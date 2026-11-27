@@ -413,19 +413,27 @@ impl Decoder
         }
     }
 
-    mtd(Rgb: bool) convertH1V1(output: [*] u8)
+    mtd(Rgb: bool) convertH1V1(output: [*] u8, clipTail: bool)
     {
         let row         = .maxMcuSizeY - .mcuLinesLeft
         let planeBytes  = .compSampV[0] * 64
         let mcuBytes    = 3 * planeBytes
         var destination = output
         var luma        = .safeSampleBuf() + row * 8
-        for .maxMcusPerRow
+        let full        = .maxMcusPerRow - cast(s32, clipTail)
+        for full
         {
             storeColor!{Rgb}(destination, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
 
             destination += 24
             luma        += mcuBytes
+        }
+
+        if clipTail
+        {
+            var last: [24] u8
+            storeColor!{Rgb}(last, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
+            Memory.copy(destination, last, cast(u64, .realDestBytesPerScanLine - full * 24))
         }
     }
 
@@ -580,7 +588,20 @@ impl Decoder
         }
     }
 
-    mtd(Rgb: bool) convertH2V2(output0, output1: [*] u8)
+    #[Swag.Inline]
+    func(Rgb: bool) storeH2V2(d0, d1, y, c: [*] u8)
+    {
+        // The same eight chroma corrections feed sixteen pixels in both luma rows.
+        let bias  = chromaBias8(c, c + 64)
+        let left  = duplicateBias!{false}(bias)
+        let right = duplicateBias!{true}(bias)
+        storeColor!{Rgb}(d0, y, left)
+        storeColor!{Rgb}(d1, y + 8, left)
+        storeColor!{Rgb}(d0 + 24, y + 64, right)
+        storeColor!{Rgb}(d1 + 24, y + 72, right)
+    }
+
+    mtd(Rgb: bool) convertH2V2(output0, output1: [*] u8, clipTail: bool)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d0  = output0
@@ -596,22 +617,24 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 2 + (row & 7) * 8
         }
 
-        var c = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
-        for _ in rangeTo(1, .maxMcusPerRow).reversed()
+        var c    = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
+        let full = .maxMcusPerRow - cast(s32, clipTail)
+        for full
         {
-            // The same eight chroma corrections feed sixteen pixels in both luma rows.
-            let bias  = chromaBias8(c, c + 64)
-            let left  = duplicateBias!{false}(bias)
-            let right = duplicateBias!{true}(bias)
-            storeColor!{Rgb}(d0, y, left)
-            storeColor!{Rgb}(d1, y + 8, left)
-            storeColor!{Rgb}(d0 + 24, y + 64, right)
-            storeColor!{Rgb}(d1 + 24, y + 72, right)
-
+            storeH2V2!{Rgb}(d0, d1, y, c)
             d0 += 48
             d1 += 48
             y  += 64 * 6
             c  += 64 * 6
+        }
+
+        if clipTail
+        {
+            let bytes = cast(u64, .realDestBytesPerScanLine - full * 48)
+            var last0, last1: [48] u8
+            storeH2V2!{Rgb}(last0, last1, y, c)
+            Memory.copy(d0, last0, bytes)
+            Memory.copy(d1, last1, bytes)
         }
     }
 

@@ -372,7 +372,7 @@ impl Decoder
                              first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
                 if .scanType == YH2V2
                 {
-                    .convertH2V2!{Rgb}(first, second)
+                    .convertH2V2!{Rgb}(first, second, destination and .realDestBytesPerScanLine != .destBytesPerScanLine)
                 }
                 else
                 {
@@ -388,7 +388,7 @@ impl Decoder
             .convertH2V1!{Rgb}(first)
 
         case YH1V1:
-            .convertH1V1!{Rgb}(first)
+            .convertH1V1!{Rgb}(first, destination and .realDestBytesPerScanLine != .destBytesPerScanLine)
 
         case RGBH1V1:
             .convertRgbH1V1!{Rgb}(first)

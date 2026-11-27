@@ -331,8 +331,9 @@ impl Decoder
             return
         }
 
-        // A complete MCU row can go straight to the image when it has no right-edge padding.
-        let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
+        // The specialized YCbCr converters stage only a partial MCU at the right edge.
+        let clipTail = .maxMcusPerRow >= 4 and (.scanType == YH1V1 or .scanType == YH2V2)
+        let direct   = .destBytesPerScanLine == .realDestBytesPerScanLine or clipTail
         for .imageSizeY
         {
             let source = try .decodeScanLine!{Rgb}(direct ? destination : null)

@@ -41,7 +41,7 @@ for index in reader.frameCount()
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],
 selected by filename extension; both read and write through [[Core.ByteSource]] and
 [[Core.ByteSink]], which are what make a codec independent of files and memory alike.
-Four codecs ship in the box:
+The built-in formats cover these streams.
 
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4
   YCbCr frames, reports display geometry from valid sample aspect tags, and writes 4:1:1, 4:2:0,
@@ -123,6 +123,10 @@ Four codecs ship in the box:
   tracks are exposed on that same media timeline. The complete indexes continue in the
   background, and work may be interrupted through
   [[Video.Reader.requestCancel]]. Media payloads stay in the file.
+
+- Raw Motion JPEG (`.mjpeg` and `.mjpg`) reads consecutive, self-contained JPEG pictures of
+  constant dimensions. Each picture is a seek point. The reader indexes the picture boundaries
+  at open and assumes 25 frames per second because the stream carries no timestamps.
 
 [[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
 `.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252

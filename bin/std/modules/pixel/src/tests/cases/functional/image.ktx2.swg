@@ -109,3 +109,40 @@ func ktx2Roundtrip(source: Image)->Image
     catch { image = try Image.decode("short-orientation.ktx2", nnBytes(fixture.toSlice())) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
+
+// Decode Khronos RGBA8 packed textures with both vertical orientations.
+#test
+{
+    const Names: [2] string = ["ktx2-rgba-packed-unorm.ktx2", "ktx2-rgba-packed-srgb.ktx2"]
+    const Crcs:  [2] u64    = [11740699541499367249_u64, 6821568150130671602_u64]
+    for name, index in Names
+    {
+        let path  = getTestDataPath(name)
+        let image = expect Image.load(path)
+        assertImage(image, 3, 5, .RGBA8)
+        Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == Crcs[index])
+
+        var reader = expect ImageReader.load(path)
+        let frame  = expect reader.read(0)
+        Swag.require(Slice.equals(image.pixels.toSlice(), frame.pixels.toSlice()))
+    }
+}
+
+// Accept older orientation strings without a NUL, and reject a non-NUL suffix.
+#test
+{
+    const Name = "ktx2-rgba-packed-srgb.ktx2"
+    var fixture = expect File.readAllBytes(getTestDataPath(Name))
+    let metadata = cast(const *u32, fixture.storage() + 56)[]
+    let entry    = cast(*u32, fixture.storage() + metadata)
+    let suffix   = metadata + 4 + entry[] - 1
+    fixture[suffix] = 'x'
+    var failure: Swag.Error
+    discard catch Image.decode(Name, fixture.toSlice()) as failure
+    Swag.require(failure.value() != null)
+
+    // The original padding still keeps the next metadata entry aligned.
+    entry[] -= 1
+    let image = expect Image.decode(Name, fixture.toSlice())
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 6821568150130671602_u64)
+}

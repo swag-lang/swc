@@ -484,14 +484,11 @@ before relying on them.
   12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
   paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
   of 16. The prototype is not merged.
-- `gui1` spends much of its semantic time in compile-time evaluation. The `gui` source
-  group took about 5 to 7 s of the warm sema. Evaluations of `signalParameterType` and the
-  `SigArray` `#ast` repeatedly build JIT orders. A runtime root with calls adds every global
-  function-initializer target even when its particular expression only reads type information.
-- Next: evaluate a compile-time condition or `#ast` once per source expression and generic
-  binding. Extend semantic folding beyond reads of the kind of a known type. Then retry
-  deferred dependency bodies with the call-site and escape-check changes above, and measure
-  CPU time rather than wall time on the shared host.
+- Next: profile the remaining compile-time evaluations. A runtime root with calls adds every
+  global function-initializer target even when its expression only reads type information.
+  Reuse eligible conditions and `#ast` results across generic bindings and check the cost of
+  preparing unrelated targets. Then retry deferred dependency bodies with the call-site and
+  escape-check changes above, and measure CPU time as well as elapsed time.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about
@@ -508,15 +505,12 @@ before relying on them.
   membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
   inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
   restoration cost on applications and scripts that share the same dependency.
-- Measure a separate cache of deterministic `#ast` results before JIT preparation. In the warm
-  `gui1` sample, `SemaJIT::runFunctionResult` accounted for about 10% of CPU. The callback
-  generator in `sigarray.swg` reads parameter count and can emit the same source for distinct
-  callback types. A separate warm trace found 25 evaluations of one declaration and three
-  distinct output strings, all present in the cold run. The PNG script executed no block
-  `#ast` evaluations. Record the metadata properties and external inputs each generator
-  observes, and analyze restored text in the destination scope. Start with a proof that
-  allows replay only for effect-free execution. An application edit can preserve entries for
-  source owners that cannot see that application.
+- Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
+  metadata properties and external inputs each generator observes, and analyze restored text
+  in the destination scope. Start with a proof that allows replay only for effect-free
+  execution. An application edit can preserve entries for source owners that cannot see that
+  application. The PNG decoding script executed no block `#ast` evaluations, so use a consumer
+  with block generators when assessing this cache.
 - Cache contract: persist stable identities and remap them into each compiler invocation.
   Preserve namespace membership, source locations, safety and ABI information, and the
   required effects of compile-time code. Validate compiler and target identity, relevant

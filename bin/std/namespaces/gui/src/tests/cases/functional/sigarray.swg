@@ -90,6 +90,24 @@ func sigArrayTestAppendA(value: *s32)
     Swag.require(SigArrayTestTotal == 33)
 }
 
+// Three differently typed parameters are forwarded in their declared order.
+#test
+{
+    var signal: SigArray!{func||(*s32, s16, bool)}
+    signal += func(value: *s32, delta: s16, enabled: bool)
+    {
+        if enabled
+        {
+            value[] += cast(s32, delta)
+        }
+    }
+
+    var value = 0
+    signal.call(&value, 7_s16, false)
+    signal.call(&value, 21_s16, true)
+    Swag.require(value == 21)
+}
+
 // Callbacks run in registration order, each one seeing what the previous one wrote.
 #test
 {

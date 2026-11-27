@@ -197,7 +197,7 @@ impl Array
             {
                 #inject(stmt, item = cast(*T, element), index = visitIdx)
             }
-            else if Reflection.isStruct(T)
+            else if #typeof(#type T).kind == .Struct
             {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
             }
@@ -226,7 +226,7 @@ impl Array
             {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
             }
-            else if Reflection.isStruct(T)
+            else if #typeof(#type T).kind == .Struct
             {
                 #inject(stmt, item = cast(const *T, element), index = visitIdx)
             }

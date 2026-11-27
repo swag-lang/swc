@@ -1156,54 +1156,46 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
     switch (kind)
     {
         case LayoutKind::Native:
-            return reservePayload<Runtime::TypeInfoNative>(storage, Runtime::TypeInfoKind::Native);
+            return reservePayload<Runtime::TypeInfoNative>(storage, kind);
 
         case LayoutKind::Enum:
-            return reservePayload<Runtime::TypeInfoEnum>(storage, Runtime::TypeInfoKind::Enum);
+            return reservePayload<Runtime::TypeInfoEnum>(storage, kind);
 
         case LayoutKind::Array:
-            return reservePayload<Runtime::TypeInfoArray>(storage, Runtime::TypeInfoKind::Array);
+            return reservePayload<Runtime::TypeInfoArray>(storage, kind);
 
         case LayoutKind::Slice:
-            return reservePayload<Runtime::TypeInfoSlice>(storage, Runtime::TypeInfoKind::Slice);
+            return reservePayload<Runtime::TypeInfoSlice>(storage, kind);
 
         case LayoutKind::Pointer:
-            return reservePayload<Runtime::TypeInfoPointer>(storage, Runtime::TypeInfoKind::Pointer);
-
-        case LayoutKind::Interface:
-        {
-            const auto res = storage.reserve<Runtime::TypeInfo>(DataSegmentAllocationKind::TypeMetadata);
-
-            res.second->kind = Runtime::TypeInfoKind::Interface;
-            return res;
-        }
+            return reservePayload<Runtime::TypeInfoPointer>(storage, kind);
 
         case LayoutKind::Struct:
-            return reservePayload<Runtime::TypeInfoStruct>(storage, Runtime::TypeInfoKind::Struct);
+            return reservePayload<Runtime::TypeInfoStruct>(storage, kind);
 
         case LayoutKind::Alias:
-            return reservePayload<Runtime::TypeInfoAlias>(storage, Runtime::TypeInfoKind::Alias);
+            return reservePayload<Runtime::TypeInfoAlias>(storage, kind);
 
         case LayoutKind::Variadic:
-            return reservePayload<Runtime::TypeInfoVariadic>(storage, Runtime::TypeInfoKind::Variadic);
-
         case LayoutKind::TypedVariadic:
-            return reservePayload<Runtime::TypeInfoVariadic>(storage, Runtime::TypeInfoKind::TypedVariadic);
+            return reservePayload<Runtime::TypeInfoVariadic>(storage, kind);
 
         case LayoutKind::CodeBlock:
-            return reservePayload<Runtime::TypeInfoCodeBlock>(storage, Runtime::TypeInfoKind::CodeBlock);
+            return reservePayload<Runtime::TypeInfoCodeBlock>(storage, kind);
 
         case LayoutKind::Func:
-            return reservePayload<Runtime::TypeInfoFunc>(storage, Runtime::TypeInfoKind::Func);
+            return reservePayload<Runtime::TypeInfoFunc>(storage, kind);
 
         case LayoutKind::Simd:
-            return reservePayload<Runtime::TypeInfoSimd>(storage, Runtime::TypeInfoKind::Simd);
+            return reservePayload<Runtime::TypeInfoSimd>(storage, kind);
 
-        case LayoutKind::Base:
+        case LayoutKind::Interface:
+        case LayoutKind::Invalid:
         default:
         {
             const auto res = storage.reserve<Runtime::TypeInfo>(DataSegmentAllocationKind::TypeMetadata);
-            return {res.first, res.second};
+            res.second->kind = kind;
+            return res;
         }
     }
 }

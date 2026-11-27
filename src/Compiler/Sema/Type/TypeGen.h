@@ -17,6 +17,7 @@ struct SourceCodeRef;
 
 namespace Runtime
 {
+    enum class TypeInfoKind : uint8_t;
     struct TypeInfo;
 }
 
@@ -142,6 +143,8 @@ public:
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, LockMode lockMode = LockMode::Wait);
     TypeRef getBackTypeRef(const void* ptr) const;
 
+    static Runtime::TypeInfoKind runtimeKindOf(const TypeInfo& type);
+
     static LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type);
     static LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef);
     static TypeRef        copyDenialTypeRef(TaskContext& ctx, TypeRef typeRef, CopyDenial denial);
@@ -151,28 +154,11 @@ public:
     static TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc);
 
 private:
-    enum class LayoutKind
-    {
-        Base,
-        Native,
-        Enum,
-        Array,
-        Slice,
-        Pointer,
-        Interface,
-        Struct,
-        Alias,
-        Variadic,
-        TypedVariadic,
-        CodeBlock,
-        Func,
-        Simd,
-    };
+    using LayoutKind = Runtime::TypeInfoKind;
 
     TypeGenCache& cacheFor(const DataSegment& storage);
 
-    static LayoutKind layoutKindOf(const TypeInfo& type);
-    static Result     rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
+    static Result rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
 
     static void                 initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry);
     static SmallVector<TypeRef> computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind);

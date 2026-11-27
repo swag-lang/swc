@@ -50,6 +50,15 @@ before relying on them.
   global-distance and source-context differences can also produce misses for unchanged sources.
 - Next: move eligible lookup ahead of IR generation using stable body and semantic dependency
   identities, preserving configuration, target, ABI, constants, effects and source provenance.
+  A scalar leaf whitelist covers too little work. Functions with call dependencies account for
+  about 95% of lowering CPU in both a warm `gui1` edit and the PNG script. Use the resolved body
+  representation in compiler.optimization.107 with explicit call targets, frame storage and
+  memory operations. Validate callee ABI and effects, storage layouts and referenced constants
+  before loading emitted code.
+- Coverage: `gui1` reaches the per-key limit of 4,096 constant allocations while hashing
+  many reflection-heavy functions. The failures are spread across many roots. Identify shared
+  subgraphs under a versioned layout and relocation identity. Measure key construction alongside
+  emission avoided when extending graph coverage.
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.
@@ -264,6 +273,10 @@ before relying on them.
 - Next: persist the compiled script artifact under a dependency-complete key (loaded
   sources, transitive source dependencies, compiler build, target, relevant configuration), and
   make cache population atomic.
+- Eligibility: attempt the lookup before parsing the full source closure. Include tracked inputs
+  from setup and compiler-time execution. Fall back to the current JIT pipeline when an effect
+  depends on an input that the compiler cannot track. On a hit, bind the current runtime context
+  and forward this invocation's arguments and environment.
 - Done when: a second unchanged invocation skips lexing, parsing, semantic analysis and code
   generation. Changes to the script, `#load` inputs, transitive source dependencies, compiler version,
   target or configuration invalidate the artifact. Cached and fresh paths preserve
@@ -433,14 +446,24 @@ before relying on them.
 
 ### compiler.build.120 — Reuse semantic work across executable builds
 
-- Evidence: `MachineCodeCache` preserves supported compiled bodies, while declaration and
-  type resolution repeat. Prior delayed-body work also exposed an ordering dependency:
-  native and JIT preparation can need semantic completion of methods reached indirectly
-  through allocation-failure reporting.
-- Next: instrument declaration and body analysis on the integrated source graph. Record
-  each file's semantic dependencies, including successful and failed lookups, overload
-  membership, layout, constants, generics, inline and macro bodies, and compiler hook
-  inputs. Select an initial set of reusable results according to measured cost.
+- Evidence: `MachineCodeCache` fingerprints the lowered Micro instructions. Even a hit still
+  pays for semantic analysis, specialization, inlining, and lowering. Prior delayed-body work
+  showed that native and JIT preparation can need semantic completion of methods reached
+  indirectly through allocation-failure reporting.
+- Versioning JIT constant relocation metadata by allocation region reduced median warm time
+  by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
+  Release series with four workers and five paired runs each. Instrumented runs avoided about
+  89% and 73% of the respective metadata refreshes. Reading multiple semantic AST payload
+  fields from one snapshot helped the PNG script but gave back part of the `gui1` gain.
+- Finding JIT targets accounted for about 88% of constant allocation lookups in a separate
+  instrumented `gui1` rebuild. A per-walk filter for repeated exact references left `gui1`
+  time flat and added 0.9% to the PNG script in a three-pair comparison. Reusing complete
+  target lists across callers of the same constant graph would remove the traversal itself.
+- Next: start with completed ordinary bodies in the runtime and source dependencies. Record
+  dependencies as phase-specific fingerprints, including successful and failed lookups, overload
+  membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
+  inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
+  restoration cost on applications and scripts that share the same dependency.
 - Cache contract: persist stable identities and remap them into each compiler invocation.
   Preserve namespace membership, source locations, safety and ABI information, and the
   required effects of compile-time code. Validate compiler and target identity, relevant

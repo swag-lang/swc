@@ -143,6 +143,16 @@ public:
     uint64_t id() const noexcept { return id_; }
     uint64_t relocationVersion() const noexcept { return relocationVersion_.load(std::memory_order_acquire); }
 
+    // A single-region allocation only depends on the relocation writes in its bucket.
+    uint64_t relocationVersion(const DataSegmentAllocation& allocation) const noexcept
+    {
+        const uint32_t firstRegion = allocation.offset / K_RELOCATION_REGION_SIZE;
+        const uint64_t lastOffset  = static_cast<uint64_t>(allocation.offset) + allocation.size - 1;
+        if (lastOffset / K_RELOCATION_REGION_SIZE == firstRegion)
+            return relocationRegionVersions_[firstRegion % K_RELOCATION_REGION_COUNT].load(std::memory_order_acquire);
+        return relocationVersion();
+    }
+
     void copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
     void copyRelocations(SmallVector<DataSegmentRelocation, 4>& outRelocations, uint32_t offset, uint32_t size) const;
     bool findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
@@ -240,6 +250,11 @@ private:
     static inline std::atomic<uint64_t> s_nextId{1};
     const uint64_t                      id_ = s_nextId.fetch_add(1, std::memory_order_relaxed);
     std::atomic<uint64_t>               relocationVersion_{0};
+
+    static constexpr uint32_t K_RELOCATION_REGION_SIZE  = 1024;
+    static constexpr uint32_t K_RELOCATION_REGION_COUNT = 256;
+    // A fixed table limits storage. Aliased regions can conservatively invalidate each other.
+    std::array<std::atomic<uint64_t>, K_RELOCATION_REGION_COUNT> relocationRegionVersions_{};
 
     std::vector<DataSegmentRelocation> relocations_;
 

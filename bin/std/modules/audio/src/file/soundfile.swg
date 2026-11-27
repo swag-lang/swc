@@ -265,7 +265,8 @@ impl SoundFile
         }
 
         let wanted = Math.min(count, .dataSize - offset)
-        result.resize(wanted)
+        result.reserve(wanted)
+        let target = Swag.makeSlice(result.storage(), wanted)
         if not .packets.isEmpty()
         {
             var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
@@ -281,7 +282,7 @@ impl SoundFile
                     let available  = cast(u64, packet.byteSize) - packetSkip
                     let readSize   = Math.min(available, wanted - written)
                     try source.seek(packet.sourceOffset + packetSkip)
-                    try source.readExact(result.toSlice()[written until written + readSize])
+                    try source.readExact(target[written until written + readSize])
                     written       += readSize
                     logicalOffset += readSize
                 }
@@ -293,19 +294,22 @@ impl SoundFile
                 }
             }
 
-            result.resize(written)
+            result.count = written
             return result
         }
 
         if .isDataPreloaded()
         {
             Memory.copy(result.storage(), .data.storage() + offset, wanted)
-            return result
+        }
+        else
+        {
+            var source = try ByteSource.openFile(.path.toString(), .ReadWrite)
+            try source.seek(.dataOffset + offset)
+            try source.readExact(target)
         }
 
-        var source = try ByteSource.openFile(.path.toString(), .ReadWrite)
-        try source.seek(.dataOffset + offset)
-        try source.readExact(result.toSlice())
+        result.count = wanted
         return result
     }
 

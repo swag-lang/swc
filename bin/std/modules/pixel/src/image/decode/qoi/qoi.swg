@@ -115,6 +115,39 @@ private func(CHANNELS: u32) decodePayload(image: *Image, buffer: const [..] u8)-
             }
             else if tag == 0xFF
             {
+                #static if CHANNELS == 4
+                {
+                    if width - x >= 4 and
+                       input + 19 <= chunkLimit and
+                       source[input + 4] == 0xFF and
+                       source[input + 9] == 0xFF and
+                       source[input + 14] == 0xFF
+                    {
+                        using Math.Simd
+
+                        // Drop the three tags between the four RGBA pixels.
+                        const RgbaWords = cast(U8x16, [0_u8, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 28, 29, 30, 31])
+                        let first  = load(source + input)
+                        let last   = load(source + input + 3)
+                        let pixels = cast #bit(U32x4, permute2(first, last, RgbaWords))
+                        let even   = (pixels & 0x00FF00FF_u32) * 0x00030007_u32
+                        let odd    = ((pixels >> 8) & 0x00FF00FF_u32) * 0x0005000B_u32
+                        let hashes = ((even + odd) >> 16) & 63_u32
+
+                        // Preserve insertion order for pixels that share an index.
+                        index[hashes[0]] = pixels[0]
+                        index[hashes[1]] = pixels[1]
+                        index[hashes[2]] = pixels[2]
+                        index[hashes[3]] = pixels[3]
+                        store(cast([*] u32, target), pixels)
+                        previous = pixels[3]
+                        target   += 16
+                        input    += 19
+                        x        += 4
+                        continue
+                    }
+                }
+
                 if input + 4 > chunkLimit
                 {
                     fail InvalidFormatError{"QOI RGBA chunk is truncated"}

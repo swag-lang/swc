@@ -44,6 +44,19 @@ using Swag, Core
     Swag.require(Memory.compare(image.pixels.storage(), expected.buffer, expected.count) == 0)
 }
 
+// Four consecutive RGBA chunks keep the most recent color in a colliding index slot.
+#test
+{
+    const Bytes: [43] u8 = [
+        'q', 'o', 'i', 'f', 0, 0, 0, 5, 0, 0, 0, 1, 4, 0,
+        0xFF, 1, 2, 3, 4, 0xFF, 5, 6, 7, 8,
+        0xFF, 9, 10, 11, 12, 0xFF, 65, 2, 3, 4,
+        14, 0, 0, 0, 0, 0, 0, 0, 1]
+    const Expected: [20] u8 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 65, 2, 3, 4, 65, 2, 3, 4]
+    let image = expect Image.decode("rgba-batch-index.qoi", Bytes)
+    Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
 // A run updates the QOI index table for a following INDEX chunk of the same pixel.
 #test
 {

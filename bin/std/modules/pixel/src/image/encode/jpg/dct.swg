@@ -134,7 +134,7 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    func transposeFour(values: [*] Math.Simd.F32x4)
+    func transposeFour(values, destination: [*] Math.Simd.F32x4)
     {
         let row0  = cast #bit(Math.Simd.U32x4, values[0])
         let row1  = cast #bit(Math.Simd.U32x4, values[1])
@@ -144,10 +144,10 @@ impl Encoder
         let high0 = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(row0, row1))
         let low1  = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveLow(row2, row3))
         let high1 = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(row2, row3))
-        values[0] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(low0, low1))
-        values[1] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(low0, low1))
-        values[2] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(high0, high1))
-        values[3] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(high0, high1))
+        destination[0] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(low0, low1))
+        destination[1] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(low0, low1))
+        destination[2] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(high0, high1))
+        destination[3] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(high0, high1))
     }
 
     // Every shifted 16-bit sample fits exactly in the fraction at 2^23.
@@ -157,6 +157,35 @@ impl Encoder
         let shifted = cast #bit(Math.Simd.U32x4, (samples + 32768))
         let biased  = shifted | 0x4B000000_u32
         return cast #bit(Math.Simd.F32x4, biased) - 8421376.0_f32
+    }
+
+    // Interleave four 16-bit sample rows into columns before widening.
+    #[Swag.Inline]
+    func loadTransposedRows(data: const [*] s16, columns: [*] Math.Simd.F32x4)
+    {
+        using Math.Simd
+
+        let rows    = cast(const [*] u16, data)
+        let first   = load(rows)
+        let second  = load(rows + 8)
+        let third   = load(rows + 16)
+        let fourth  = load(rows + 24)
+        let top0    = cast #bit(U32x4, interleaveLow(first, second))
+        let top1    = cast #bit(U32x4, interleaveHigh(first, second))
+        let bottom0 = cast #bit(U32x4, interleaveLow(third, fourth))
+        let bottom1 = cast #bit(U32x4, interleaveHigh(third, fourth))
+        let col01   = cast #bit(S16x8, interleaveLow(top0, bottom0))
+        let col23   = cast #bit(S16x8, interleaveHigh(top0, bottom0))
+        let col45   = cast #bit(S16x8, interleaveLow(top1, bottom1))
+        let col67   = cast #bit(S16x8, interleaveHigh(top1, bottom1))
+        columns[0] = floatSamples(widenLow(col01))
+        columns[1] = floatSamples(widenHigh(col01))
+        columns[2] = floatSamples(widenLow(col23))
+        columns[3] = floatSamples(widenHigh(col23))
+        columns[4] = floatSamples(widenLow(col45))
+        columns[5] = floatSamples(widenHigh(col45))
+        columns[6] = floatSamples(widenLow(col67))
+        columns[7] = floatSamples(widenHigh(col67))
     }
 
     // Expands a row's eight occupancy bits to the corresponding entropy-order positions.
@@ -197,37 +226,15 @@ impl Encoder
     // Stores eight quantized coefficients at once. Only their occupancy is reordered.
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
-        var dataFloat: [64] f32
-        let coefficients = cast([*] f32, &dataFloat[0])
+        var left, right: [8] Math.Simd.F32x4
         for group in 2
         {
             var lanes: [8] Math.Simd.F32x4
             let block = cast([*] Math.Simd.F32x4, lanes)
-            for row in 4
-            {
-                let samples = Math.Simd.load(data + group * 32 + row * 8)
-                block[row]     = floatSamples(Math.Simd.widenLow(samples))
-                block[row + 4] = floatSamples(Math.Simd.widenHigh(samples))
-            }
-
-            transposeFour(block)
-            transposeFour(block + 4)
+            loadTransposedRows(data + group * 32, block)
             transformFourLines(block)
-            transposeFour(block)
-            transposeFour(block + 4)
-            for row in 4
-            {
-                let destination = coefficients + group * 32 + row * 8
-                Math.Simd.store(destination, block[row])
-                Math.Simd.store(destination + 4, block[row + 4])
-            }
-        }
-
-        var left, right: [8] Math.Simd.F32x4
-        for row in 8
-        {
-            left[row]  = Math.Simd.load(coefficients + row * 8)
-            right[row] = Math.Simd.load(coefficients + row * 8 + 4)
+            transposeFour(block, &left[group * 4])
+            transposeFour(block + 4, &right[group * 4])
         }
 
         transformFourLines(left)

@@ -14,8 +14,7 @@ const MaxCharstringStack = 48_u32
 struct OutlineBuilder
 {
     late face:    *FaceImpl
-    scaleX:       f64
-    scaleY:       f64
+    scale:        Math.Simd.F64x2
     contourStart: u32
     open:         bool
 }
@@ -25,15 +24,20 @@ impl OutlineBuilder
     func create(face: *FaceImpl, xPpem, yPpem: u32, unitsPerEm: u32)->OutlineBuilder
     {
         var result: #returntype
-        result.face   = face
-        result.scaleX = cast(f64, xPpem) * 64.0 / cast(f64, Math.max(1_u32, unitsPerEm))
-        result.scaleY = cast(f64, yPpem) * 64.0 / cast(f64, Math.max(1_u32, unitsPerEm))
+        result.face = face
+        let divisor = cast(f64, Math.max(1_u32, unitsPerEm))
+        let xScale  = cast(f64, xPpem) * 64.0 / divisor
+        let yScale  = cast(f64, yPpem) * 64.0 / divisor
+        result.scale = cast(Math.Simd.F64x2, [xScale, yScale])
         return result
     }
 
     #[Swag.Inline]
-    private mtd const scaledPoint(x, y: f64)->Vector =>
-    {x: cast(s32, Math.round(x * .scaleX)), y: cast(s32, Math.round(y * .scaleY))}
+    mtd const scaledPoint(x, y: f64)->Vector
+    {
+        let rounded = Math.round(cast(Math.Simd.F64x2, [x, y]) * .scale)
+        return {x: cast(s32, rounded[0]), y: cast(s32, rounded[1])}
+    }
 
     private mtd addPoint(x, y: f64, tag: u8)
     {
@@ -1030,12 +1034,11 @@ private func runComposedAccent(font: *CffFont, gid: u32, builder: *OutlineBuilde
     let first = cast(u32, builder.face.outlinePoints.count)
     discard try runType2Charstring(font, gid, builder)
 
-    let dx = cast(s32, Math.round(adx * builder.scaleX))
-    let dy = cast(s32, Math.round(ady * builder.scaleY))
+    let delta = builder.scaledPoint(adx, ady)
     for i in first until cast(u32, builder.face.outlinePoints.count)
     {
-        builder.face.outlinePoints[i].x += dx
-        builder.face.outlinePoints[i].y += dy
+        builder.face.outlinePoints[i].x += delta.x
+        builder.face.outlinePoints[i].y += delta.y
     }
 }
 
@@ -1544,12 +1547,11 @@ private func runType1ComposedAccent(font: const *Type1Font, gid: u32, builder: *
     let first = cast(u32, builder.face.outlinePoints.count)
     discard try runType1Charstring(font, gid, builder)
 
-    let dx = cast(s32, Math.round(adx * builder.scaleX))
-    let dy = cast(s32, Math.round(ady * builder.scaleY))
+    let delta = builder.scaledPoint(adx, ady)
     for i in first until cast(u32, builder.face.outlinePoints.count)
     {
-        builder.face.outlinePoints[i].x += dx
-        builder.face.outlinePoints[i].y += dy
+        builder.face.outlinePoints[i].x += delta.x
+        builder.face.outlinePoints[i].y += delta.y
     }
 }
 

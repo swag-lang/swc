@@ -110,3 +110,43 @@ func fillLetters(output: [..] u8)
     discard catch Zstd.decompress(DictionaryHeader, 0) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
 }
+
+#test
+{
+    var input: [16384] u8
+    fillLetters(input)
+    for &byte in input
+    {
+        byte[] += 0x30
+    }
+
+    // The highest symbol is above 128, requiring FSE-coded Huffman weights.
+    let fast     = Zstd.compress(input)
+    let balanced = Zstd.compress(input, .Balanced)
+    Swag.require(balanced.count < fast.count)
+    let decoded = expect Zstd.decompress(balanced.toSlice(), input.count)
+    Swag.require(Slice.equals(decoded.toSlice(), input))
+}
+
+#test
+{
+    var input: Array!{u8}
+    var frequency = 1_u32
+    var next      = 1_u32
+    for symbol in 18
+    {
+        let bytes = input.emplaceAddress(frequency)
+        Memory.set(bytes, cast(u8, symbol), frequency)
+        let following = frequency + next
+        frequency = next
+        next      = following
+    }
+
+    // A Fibonacci distribution creates an unlimited tree deeper than 11 bits.
+    var encoder: Zstd.HuffmanEncoder
+    var encoded: Array!{u8}
+    Swag.require(encoder.write(&encoded, input.toSlice()))
+    var decoder: Zstd.LiteralDecoder
+    let section = expect decoder.decode(encoded.toSlice(), input.count)
+    Swag.require(section.consumed == encoded.count and Slice.equals(section.literals, input.toSlice()))
+}

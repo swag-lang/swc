@@ -1,6 +1,6 @@
 #global namespace Compress.Zstd
 
-private struct(Alphabet: u32, States: u32) EncodeTable
+internal struct(Alphabet: u32, States: u32) EncodeTable
 {
     first:   [Alphabet] u8
     inverse: [Alphabet, States] u8
@@ -8,7 +8,7 @@ private struct(Alphabet: u32, States: u32) EncodeTable
     log:     u32
 }
 
-private func(Alphabet: u32, States: u32) prepareEncoding(distribution: const [..] s16, log: u32)->EncodeTable!{Alphabet, States}
+internal func(Alphabet: u32, States: u32) prepareEncoding(distribution: const [..] s16, log: u32)->EncodeTable!{Alphabet, States}
 {
     var table: FseTable
     expect table.build(distribution, log)
@@ -71,13 +71,13 @@ private struct Sequence
     distance: u32
 }
 
-private struct ReverseWriter
+internal struct ReverseWriter
 {
     bits:  u64
     width: u32
 }
 
-private impl ReverseWriter
+internal impl ReverseWriter
 {
     #[Swag.Inline]
     mtd write(output: *Array!{u8}, value, count: u32)
@@ -95,12 +95,19 @@ private impl ReverseWriter
     mtd finish(output: *Array!{u8})
     {
         .write(output, 1, 1)
+        .flush(output)
+    }
+
+    mtd flush(output: *Array!{u8})
+    {
         appendLittle(output, .bits, (.width + 7) >> 3)
+        .bits  = 0
+        .width = 0
     }
 }
 
 #[Swag.Inline]
-private func appendLittle(output: *Array!{u8}, value: u64, count: u32)
+internal func appendLittle(output: *Array!{u8}, value: u64, count: u32)
 {
     let buffer = output.emplaceAddress(count)
     for index in count
@@ -115,11 +122,12 @@ private struct BlockEncoder
     literals:  Array!{u8}
     sequences: Array!{Sequence}
     encoded:   Array!{u8}
+    huffman:   HuffmanEncoder
 }
 
 private impl BlockEncoder
 {
-    mtd encode(block: const [..] u8)
+    mtd encode(block: const [..] u8, level: CompressionLevel)
     {
         .literals.clear()
         .sequences.clear()
@@ -146,19 +154,24 @@ private impl BlockEncoder
             literalStart = match.at + match.length
         }
 
-        if not .sequences.count
+        if not .sequences.count and level == .Fast
         {
             return
         }
 
         .literals.add(block[literalStart to])
-        .writeLiterals()
+        .writeLiterals(level)
         .writeSequences()
     }
 
-    mtd writeLiterals()
+    mtd writeLiterals(level: CompressionLevel)
     {
         let size = .literals.count
+        if level == .Balanced and size >= 64 and .huffman.write(&.encoded, .literals.toSlice())
+        {
+            return
+        }
+
         if size < 32
         {
             .encoded.add(cast(u8, size << 3))
@@ -178,6 +191,12 @@ private impl BlockEncoder
     mtd writeSequences()
     {
         let count = .sequences.count
+        if not count
+        {
+            .encoded.add(0)
+            return
+        }
+
         if count < 128
         {
             .encoded.add(cast(u8, count))
@@ -262,16 +281,19 @@ private func isRepeated(block: const [..] u8)->bool
     return true
 }
 
+// Selects the time spent compressing a Zstandard frame.
+public enum CompressionLevel
+{
+    Fast         // Uses greedy matches and stored literals.
+    Balanced     // Adds a Huffman table when it reduces the literals.
+}
+
 // Compresses `buffer` into an owned Zstandard frame with a content checksum.
 //
-// The encoder uses a greedy match search and the predefined sequence tables. It emits
-// runs and stores blocks verbatim when they would grow under compression.
-//
-// ```swag
-// let frame = Compress.Zstd.compress("one Zstandard frame")
-// let plain = try Compress.Zstd.decompress(frame.toSlice(), maxOutputSize: 1024)
-// ```
-public func compress(buffer: const [..] u8)->Array!{u8}
+// Both levels use greedy matches and the predefined sequence tables. `level` selects
+// whether to try Huffman coding for the literals. The encoder stores any block verbatim
+// when compressing it would increase its size.
+public func compress(buffer: const [..] u8, level = CompressionLevel.Fast)->Array!{u8}
 {
     var result: #returntype
     appendLittle(&result, Magic, 4)
@@ -302,7 +324,7 @@ public func compress(buffer: const [..] u8)->Array!{u8}
         }
         else
         {
-            encoder.encode(block)
+            encoder.encode(block, level)
             let packed = encoder.encoded.toSlice()
             if packed.count and packed.count < blockSize
             {

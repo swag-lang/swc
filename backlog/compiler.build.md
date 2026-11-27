@@ -484,16 +484,12 @@ before relying on them.
   12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
   paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
   of 16. The prototype is not merged.
-- `gui1` spends most semantic time in compile-time evaluation, not in unreached bodies. Its
-  `gui` source group took about 5 to 7 s of the warm sema. `prepareJitFunction` accumulated
-  13 to 23 s of worker time; 566 evaluations of the `#static if` condition inside the
-  `Array.opVisit` macro, one per expansion, accounted for about 8.7 s, and 114 evaluations of
-  `signalParameterType` from the `SigArray` `#ast` for about 4.7 s. Each evaluation of
-  `Reflection.isStruct(T)` builds a 404-function JIT order, because any root with calls adds
-  every global function-initializer target, and usually pauses and rebuilds it. Rewriting
-  the condition as `#typeof(T).kind == .Struct` still goes through the JIT.
+- `gui1` spends much of its semantic time in compile-time evaluation. The `gui` source
+  group took about 5 to 7 s of the warm sema. Evaluations of `signalParameterType` and the
+  `SigArray` `#ast` repeatedly build JIT orders. A runtime root with calls adds every global
+  function-initializer target even when its particular expression only reads type information.
 - Next: evaluate a compile-time condition or `#ast` once per source expression and generic
-  binding, and fold reads of constant type information during semantic analysis. Then retry
+  binding. Extend semantic folding beyond reads of the kind of a known type. Then retry
   deferred dependency bodies with the call-site and escape-check changes above, and measure
   CPU time rather than wall time on the shared host.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time

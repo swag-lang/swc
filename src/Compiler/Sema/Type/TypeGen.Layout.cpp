@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Backend/RuntimeTypeInfo.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
+Runtime::TypeInfoKind TypeGen::runtimeKindOf(const TypeInfo& type)
 {
     if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isAnyString() ||
         type.isRune() || type.isAny() || type.isVoid())
@@ -38,7 +39,7 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
     if (type.isStructOrAggregateStruct())
         return LayoutKind::Struct;
 
-    return LayoutKind::Base;
+    return LayoutKind::Invalid;
 }
 
 Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef)
@@ -66,7 +67,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
         case LayoutKind::CodeBlock: predefinedName = Pn::TypeInfoCodeBlock; break;
         case LayoutKind::Func: predefinedName = Pn::TypeInfoFunc; break;
         case LayoutKind::Simd: predefinedName = Pn::TypeInfoSimd; break;
-        case LayoutKind::Base: predefinedName = Pn::TypeInfo; break;
+        default: break;
     }
 
     SWC_RESULT(sema.waitPredefined(predefinedName, typeRef, codeRef));

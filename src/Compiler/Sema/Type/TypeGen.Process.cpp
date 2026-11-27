@@ -313,7 +313,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         const TypeRef   key  = stack.back();
         const TypeInfo& type = tm.get(key);
 
-        const LayoutKind kind = layoutKindOf(type);
+        const LayoutKind kind = runtimeKindOf(type);
         if (type.isFunction())
         {
             // Attribute reflection only needs the typed function signature: waiting on

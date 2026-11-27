@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Backend/RuntimeTypeInfo.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
@@ -26,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
@@ -1060,6 +1062,44 @@ namespace
         return Result::Continue;
     }
 
+    Result tryFoldTypeValueKind(Sema& sema, bool& handled, AstNodeRef memberRef, const AstMemberAccessExpr& node, const SemaNodeView& left, IdentifierRef name)
+    {
+        handled = false;
+        if (!sema.isConstExprRequired() || !left.hasConstant() || !left.cst()->isTypeValue() || sema.idMgr().get(name).name != "kind")
+            return Result::Continue;
+
+        // The descriptor kind is known from the compiler type alone. Materializing
+        // the descriptor here can wait on fields or methods gated by this condition.
+        const TypeInfo& underlying = sema.typeMgr().get(left.cst()->getTypeValue());
+        const auto      kind       = TypeGen::runtimeKindOf(underlying);
+        if (kind == Runtime::TypeInfoKind::Invalid)
+            return Result::Continue;
+
+        const SourceCodeRef codeRef = sema.node(node.nodeRightRef).codeRef();
+        TypeRef             descriptorTypeRef;
+        SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, descriptorTypeRef, codeRef));
+        const SymbolStruct& descriptor = sema.typeMgr().get(descriptorTypeRef).payloadSymStruct();
+        SWC_RESULT(sema.waitSemaCompleted(&descriptor, codeRef));
+        const SymbolVariable* field = descriptor.findFieldByName(name);
+        if (!field)
+            return Result::Continue;
+
+        TypeRef enumTypeRef;
+        SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfoKind, enumTypeRef, codeRef));
+        if (field->typeRef() != enumTypeRef)
+            return Result::Continue;
+
+        const Symbol* fieldSymbol = field;
+        SWC_RESULT(bindMatchedMemberSymbols(sema, memberRef, node.nodeRightRef, false, std::span{&fieldSymbol, 1}));
+        SWC_RESULT(SemaAccess::checkMemberAccess(sema, *field, codeRef));
+
+        TaskContext&      ctx      = sema.ctx();
+        const ConstantRef rawValue = sema.cstMgr().addConstant(ctx, ConstantValue::makeIntSized(ctx, std::to_underlying(kind)));
+        sema.setConstant(memberRef, sema.cstMgr().addConstant(ctx, ConstantValue::makeEnumValue(ctx, rawValue, enumTypeRef)));
+        handled = true;
+        return Result::Continue;
+    }
+
     bool canBeNonNamespaceMemberAccessLeft(const Symbol& symbol)
     {
         return symbol.isType() || symbol.isValueExpr();
@@ -1715,6 +1755,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     const TypeInfo* typeInfo = nodeLeftView.type();
     if (typeInfo->isTypeValue())
     {
+        if (!allowOverloadSet)
+        {
+            SWC_RESULT(tryFoldTypeValueKind(sema, handled, memberRef, node, nodeLeftView, idRef));
+            if (handled)
+                return Result::SkipChildren;
+        }
+
         const TypeRef typeInfoRef = sema.typeMgr().typeTypeInfo();
         SWC_RESULT(Cast::cast(sema, nodeLeftView, typeInfoRef, CastKind::Explicit));
 

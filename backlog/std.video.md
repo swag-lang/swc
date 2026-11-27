@@ -83,6 +83,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.040 — Reduce the remaining RealVideo filter cost
 
+- Evidence: packed weak horizontal deblocking cuts paired time by another 10.1–15.2%
+  on the 2,880-picture sequence. The confirmation medians are 0.0936 ms for Swag
+  and 0.0341 ms for FFmpeg 9.1. All benchmark planes remain exact.
 - Evidence: packed bilinear motion interpolation lowers paired time by 8.6–9.4% on
   2,880 pictures, without changing the decoded planes. The confirmation medians are
   0.104 ms per picture for Swag and 0.0365 ms for FFmpeg 9.1. Before the change,

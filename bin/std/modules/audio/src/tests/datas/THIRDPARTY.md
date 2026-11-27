@@ -11,6 +11,27 @@ both with a 512-sample attack, so it contains no third-party recording. It was e
 - SHA-256: `e002c74b334f68808367d2a0881afa9928efed09f1433a6ead214e452d117b8f`
 - License: same as this repository.
 
+`aac-lc-mono-44100-fdk.aac` and `aac-lc-stereo-44100-transients.aac` are ADTS AAC-LC streams
+generated from 26,460 synthetic sample frames at 44.1 kHz. No random seed or recording is used.
+For mono, with `t = frame / 44100` and `p = 2*pi*(260*t + 150*t*t)`, round
+`(0.8 + 0.2*sin(6*pi*t)) * (5700*sin(p) + 800*sin(3*p) + 200*sin(12*p))` to PCM16.
+FDK AAC 2.0.3 encodes this signal at 64 kbit/s with afterburner enabled.
+
+For stereo channel `c` (0 left, 1 right), add sine waves at `440 + 220*c` and `2240 + 370*c`
+Hz with amplitudes 1,700 and 260. With `d = (frame - 3551 - 793*c) mod 5011`, add
+`A * ((96-d)/96)^2` when `d < 96`, where `A` is 10,500 on the left and -8,800 on the right,
+then round to PCM16. FFmpeg 9.1 encodes it at 128 kbit/s with `aac_coder=twoloop`,
+`aac_pns=0` and `aac_is=0`, exercising all four window sequences.
+
+The matching `.pcm` files are interleaved little-endian PCM16 from FFmpeg 9.1, including
+encoder priming and end padding. The encoders are used only to generate test data.
+
+- `aac-lc-mono-44100-fdk.aac` SHA-256: `e9f16073e30bf47c9c59727d5c5a0de23ce38a4811d0615aff39f1937a87110f`
+- `aac-lc-mono-44100-fdk.pcm` SHA-256: `f941af40b2c7204eedae6e33c9d3f361613a8b87b243c4b94b502cfa1df96ee8`
+- `aac-lc-stereo-44100-transients.aac` SHA-256: `aadaec3d8bb944401ccaa9af305e335da2437a064729cdb9946dd60fea7f14f6`
+- `aac-lc-stereo-44100-transients.pcm` SHA-256: `5dce9cc2164bf7be8464f48e6a917030b0f4cb8e66b5c1610dac96c12726f0a5`
+- License: same as this repository.
+
 `dts-5.1-48000.dts` is a half-second 1,509 kbit/s DTS Core stream generated for this repository
 with dcaenc commit `68ed0d6d370268f04c22cadc9c8fc54a479958ab`. Its six synthetic inputs are
 300, 400, 500, 60, 700, and 800 Hz sine waves at amplitude 12,000 in signed 16-bit PCM, assigned

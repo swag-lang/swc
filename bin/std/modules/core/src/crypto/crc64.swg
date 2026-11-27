@@ -293,7 +293,7 @@ private impl Crc64
 
         // Use an aligned range for the folding state in an ordinary stack allocation.
         const Alignment     = #alignof(Crc64FoldQuadState)
-        const PrepareGroups = 4_u64
+        const PrepareGroups = 2_u64
         const PrepareSize   = Reflected ? 0_u64 : 256 * PrepareGroups
         const ScratchSize   = #sizeof(Crc64FoldQuadState) + Alignment - 1 + PrepareSize
         var scratch: [ScratchSize] u8
@@ -339,10 +339,17 @@ private impl Crc64
             while consumed < offset
             {
                 let groups = Swag.min((offset - consumed) / 256, PrepareGroups)
-                let source = bytes + consumed
-                for index in groups * 16
+                var source   = bytes + consumed
+                let sourceEnd = source + groups * 256
+                var target   = preparedWords
+                while source != sourceEnd
                 {
-                    Simd.store(preparedWords + index * 2, readFoldBlock!{false}(source + index * 16))
+                    Simd.store(target,     readFoldBlock!{false}(source))
+                    Simd.store(target + 2, readFoldBlock!{false}(source + 16))
+                    Simd.store(target + 4, readFoldBlock!{false}(source + 32))
+                    Simd.store(target + 6, readFoldBlock!{false}(source + 48))
+                    source += 64
+                    target += 8
                 }
 
                 for group in groups

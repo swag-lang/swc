@@ -1,7 +1,7 @@
 //! Format: DirectDraw Surface decoder.
 //! Supported: Mip levels, array layers, cube faces, and volume slices of legacy or DX10 DDS files; RGB/luminance integer pixels,
-//!            RGBA 8/16-bit and half/full-float DXGI pixels, and BC1 through BC5 compression.
-//! Not supported: Signed blocks, BC6H, BC7, or palette data.
+//!            RGBA 8/16-bit and half/full-float D3D9 or DXGI pixels, and BC1 through BC5 or BC7 compression.
+//! Not supported: Signed blocks, BC6H, or palette data.
 //! Role: This file validates DDS headers and exposes their base texture as a Pixel image.
 //
 #global namespace Dds
@@ -47,6 +47,39 @@ func blockFormat(fourCc: u32)->TextureBlocks.Format
     return .None
 }
 
+// D3D9 used numeric FourCC fields for these uncompressed pixel formats.
+private func legacyPackedFormat(fourCc: u32, format: *PixelFormat)->bool
+{
+    switch fourCc
+    {
+    case 36:
+        format[] = .RGBA16     // A16B16G16R16
+
+    case 111:
+        format[] = .GrayF16     // R16F
+
+    case 112:
+        format[] = .GrayAlphaF16     // G16R16F
+
+    case 113:
+        format[] = .RGBAF16     // A16B16G16R16F
+
+    case 114:
+        format[] = .GrayF32     // R32F
+
+    case 115:
+        format[] = .GrayAlphaF32     // G32R32F
+
+    case 116:
+        format[] = .RGBAF32     // A32B32G32R32F
+
+    default:
+        return false
+    }
+
+    return true
+}
+
 func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.Format)->bool
 {
     switch dxgi
@@ -68,6 +101,7 @@ func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.For
     case 77, 78: blocks[] = .BC3
     case 80:     blocks[] = .BC4
     case 83:     blocks[] = .BC5
+    case 98, 99: blocks[] = .BC7
     case 87, 91: pixelFormat[] = .BGRA8
     case 88, 93: pixelFormat[] = .BGRA8
     default:     return false
@@ -296,23 +330,27 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
     {
         let targetY = image.height - y - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
-        Memory.copy(target, buffer.buffer + offset + cast(u64, y) * pitch, rowBytes)
-        if forceOpaqueAlpha
+        let source  = buffer.buffer + offset + cast(u64, y) * pitch
+        if not forceOpaqueAlpha
         {
-            using Math.Simd
-            let width = cast(u64, image.width)
-            let words = cast([*] u32, target)
-            var x     = 0_u64
-            while width - x >= 4
-            {
-                store(words + x, load(words + x) | 0xFF000000_u32)
-                x += 4
-            }
+            Memory.copy(target, source, rowBytes)
+            continue
+        }
 
-            for i in x until width
-            {
-                words[i] |= 0xFF000000_u32
-            }
+        using Math.Simd
+        let width  = cast(u64, image.width)
+        let input  = cast(const [*] u32, source)
+        let output = cast([*] u32, target)
+        var x      = 0_u64
+        while width - x >= 4
+        {
+            store(output + x, load(input + x) | 0xFF000000_u32)
+            x += 4
+        }
+
+        for i in x until width
+        {
+            output[i] = input[i] | 0xFF000000_u32
         }
     }
 }
@@ -447,7 +485,12 @@ impl Decoder
                 blocks = blockFormat(fourCc)
                 if blocks == .None
                 {
-                    fail UnsupportedFormatError{"DDS FourCC pixel format is not supported"}
+                    if not legacyPackedFormat(fourCc, &format)
+                    {
+                        fail UnsupportedFormatError{"DDS FourCC pixel format is not supported"}
+                    }
+
+                    directCopy = true
                 }
 
                 if fourCc == 0x32545844 or fourCc == 0x34545844

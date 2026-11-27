@@ -44,9 +44,9 @@ using Core, Pixel, Pdf
     var reader = expect Reader.open(guiTestDataPath("llvm-polly-impact-2011-slides.pdf"))
     var page   = expect reader.loadPage(5)
     var found  = false
-    for font in page.fonts where font.bytes.count == 11_148
+    for font in page.fonts where font.programBytes().count == 11_148
     {
-        let typeface = expect TypeFace.create("FKFJSD+DejaVuSans", font.bytes.toSlice())
+        let typeface = expect TypeFace.create("FKFJSD+DejaVuSans", font.programBytes())
         Swag.require(typeface.familyName() == "FKFJSD+DejaVuSans")
         Swag.require(font.identityGlyphs)
         found = true

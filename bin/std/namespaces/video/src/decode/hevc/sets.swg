@@ -214,6 +214,7 @@ struct Sps
     cropBottom:         u32
     bitDepthLuma:       u32
     bitDepthChroma:     u32
+    vpsId:              u32
     log2MaxPocLsb:      u32
     maxDecPicBuffering: u32
     maxNumReorder:      u32
@@ -249,6 +250,10 @@ struct Sps
     matrixCoefficients:   u8  = 2     // H.273 matrix_coefficients; 2 means unspecified.
     sampleAspectWidth:    u32 = 1
     sampleAspectHeight:   u32 = 1
+    fieldSequence:        bool
+    vuiTimingPresent:     bool
+    vuiTimeScale:         u32
+    vuiTicksPerPicture:   u64
 
     // Clause 7.4.3.2.2: the range extensions, which Main 10 leaves off.
     transformSkipRotation:    bool
@@ -291,7 +296,7 @@ impl Sps
     {
         .sampleAspectWidth  = 1
         .sampleAspectHeight = 1
-        discard reader.read(4)
+        .vpsId = reader.read(4)
         let maxSubLayersMinus1 = reader.read(3)
         discard reader.bit()
         try readProfileTierLevel(reader, maxSubLayersMinus1)
@@ -1101,7 +1106,7 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
     }
 
     discard reader.bit()
-    discard reader.bit()
+    sps.fieldSequence = reader.bit() != 0
     discard reader.bit()
     if reader.bit()
     {
@@ -1111,14 +1116,13 @@ func readVuiParameters(reader: *BitReader, maxSubLayersMinus1: u32, sps: *Sps) f
         discard reader.ue()
     }
 
-    if reader.bit()
+    sps.vuiTimingPresent = reader.bit() != 0
+    if sps.vuiTimingPresent
     {
-        discard reader.read(32)
-        discard reader.read(32)
-        if reader.bit()
-        {
-            discard reader.ue()
-        }
+        let ticks = cast(u64, reader.read(32))
+        sps.vuiTimeScale = reader.read(32)
+        let ticksPerPoc = reader.bit() ? cast(u64, reader.ue()) + 1 : 1
+        sps.vuiTicksPerPicture = ticks * ticksPerPoc
 
         if reader.bit()
         {

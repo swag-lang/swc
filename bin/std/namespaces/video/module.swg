@@ -41,16 +41,20 @@ for index in reader.frameCount()
 A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],
 selected by filename extension; both read and write through [[Core.ByteSource]] and
 [[Core.ByteSink]], which are what make a codec independent of files and memory alike.
-Four codecs ship in the box:
+The built-in formats cover these streams.
 
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4
   YCbCr frames, reports display geometry from valid sample aspect tags, and writes 4:1:1, 4:2:0,
   4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit
-  frames, exposes integer PCM and MPEG Layer III sound
-  tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
-  header of the container and its setup headers inside the stream, and stores a bidirectional plane
+  frames and exposes integer PCM and MPEG Layer III sound tracks. The reader follows OpenDML
+  frame indexes and `RIFF AVIX` continuations. The writer emits Motion JPEG in classic AVI
+  while its frames and indexes fit in one 1 GiB RIFF, then uses OpenDML continuations. The
+  header reserves 4,396 bytes for the OpenDML header and a superindex that addresses up to
+  256 RIFFs. Each frame must fit within one RIFF, and the total frame count is a 32-bit value.
+  A coded stream states its codec through the bitmap header of the container and its setup headers
+  inside the stream, and stores a bidirectional plane
   behind the plane it refers forward to, which is what this container's lack of a decoding order
   costs. The container index locates Motion JPEG and uncompressed frames directly.
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
@@ -123,6 +127,24 @@ Four codecs ship in the box:
   tracks are exposed on that same media timeline. The complete indexes continue in the
   background, and work may be interrupted through
   [[Video.Reader.requestCancel]]. Media payloads stay in the file.
+
+- Raw Motion JPEG (`.mjpeg` and `.mjpg`) reads consecutive, self-contained JPEG pictures of
+  constant dimensions. Each picture is a seek point. The reader indexes the picture boundaries
+  at open and assumes 25 frames per second because the stream carries no timestamps.
+
+- H.264 Annex B (`.h264` and `.264`) indexes progressive pictures in a file or memory
+  stream. Opening scans start codes and slice headers. Seek and planar decode use the
+  AVC picture order and preceding IDR. The supported stream begins at an IDR, uses one
+  stable SPS and PPS, and keeps picture order across non-IDR pictures. The index holds
+  up to 1,048,576 pictures with access units of at most 64 MiB. The nominal VUI rate, or
+  25 frames per second when that timing is absent, gives the display timeline.
+
+- H.265 Annex B (`.hevc` and `.h265`) reads progressive Main and Main 10 streams
+  in a file or memory. It indexes up to 1,048,576 pictures at open, with access units
+  up to 64 MiB. It uses picture order for display and seeks from the preceding IDR.
+  The stream requires closed IDR groups, a stable VPS, SPS and PPS, and output for
+  every picture. The nominal SPS VUI rate, or 25 frames per second when timing is
+  absent, gives the display timeline.
 
 [[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
 `.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252

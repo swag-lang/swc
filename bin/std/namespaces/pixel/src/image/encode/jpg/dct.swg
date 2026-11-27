@@ -134,7 +134,7 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    func transposeFour(values: [*] Math.Simd.F32x4)
+    func transposeFour(values, destination: [*] Math.Simd.F32x4)
     {
         let row0  = cast #bit(Math.Simd.U32x4, values[0])
         let row1  = cast #bit(Math.Simd.U32x4, values[1])
@@ -144,19 +144,101 @@ impl Encoder
         let high0 = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(row0, row1))
         let low1  = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveLow(row2, row3))
         let high1 = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(row2, row3))
-        values[0] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(low0, low1))
-        values[1] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(low0, low1))
-        values[2] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(high0, high1))
-        values[3] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(high0, high1))
+        destination[0] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(low0, low1))
+        destination[1] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(low0, low1))
+        destination[2] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveLow(high0, high1))
+        destination[3] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(high0, high1))
     }
 
-    // Every shifted 16-bit sample fits exactly in the fraction at 2^23.
+    // Interleave each biased word with the high half of 2^23, then subtract 2^23 + 32768.
     #[Swag.Inline]
-    func floatSamples(samples: Math.Simd.S32x4)->Math.Simd.F32x4
+    func(High: bool) floatSamples(biased: Math.Simd.U16x8)->Math.Simd.F32x4
     {
-        let shifted = cast #bit(Math.Simd.U32x4, (samples + 32768))
-        let biased  = shifted | 0x4B000000_u32
-        return cast #bit(Math.Simd.F32x4, biased) - 8421376.0_f32
+        using Math.Simd
+
+        let exponent = splat(0x4B00_u16)
+        #static if High
+        {
+            return cast #bit(F32x4, interleaveHigh(biased, exponent)) - 8421376.0_f32
+        }
+        else
+        {
+            return cast #bit(F32x4, interleaveLow(biased, exponent)) - 8421376.0_f32
+        }
+    }
+
+    #[Swag.Inline]
+    func(High: bool) finishHorizontal(dc, even4, evenBase, evenMix, odd10, odd11, odd12, odd7: Math.Simd.U16x8, left, right: [*] Math.Simd.F32x4)
+    {
+        using Math.Simd
+
+        let base = floatSamples!{High}(evenBase)
+        let z1   = floatSamples!{High}(evenMix) * 0.707106781_f32
+        let o10  = floatSamples!{High}(odd10)
+        let o11  = floatSamples!{High}(odd11)
+        let o12  = floatSamples!{High}(odd12)
+        let tmp7 = floatSamples!{High}(odd7)
+        let z5   = (o10 - o12) * 0.382683433_f32
+        let z2   = Math.mulAdd(o10, splat(0.541196100_f32), z5)
+        let z4   = o12 * 1.306562965_f32 + z5
+        let z3   = o11 * 0.707106781_f32
+        let z11  = tmp7 + z3
+        let z13  = tmp7 - z3
+
+        var values: [8] F32x4 = [
+            floatSamples!{High}(dc), z11 + z4, base + z1, z13 - z2,
+            floatSamples!{High}(even4), z13 + z2, base - z1, z11 - z4]
+        transposeFour(values, left)
+        transposeFour(cast([*] F32x4, values) + 4, right)
+    }
+
+    // The integer part of the horizontal pass fits in signed words for centered byte samples.
+    // Only the terms that involve an AAN factor need floating point here.
+    func transformHorizontal(data: const [*] s16, left, right: [*] Math.Simd.F32x4)
+    {
+        using Math.Simd
+
+        let input = cast(const [*] U16x8, data)
+        var columns: [8] U16x8 = [input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7]]
+        transpose8x8(&columns)
+        let x0 = cast #bit(S16x8, columns[0])
+        let x1 = cast #bit(S16x8, columns[1])
+        let x2 = cast #bit(S16x8, columns[2])
+        let x3 = cast #bit(S16x8, columns[3])
+        let x4 = cast #bit(S16x8, columns[4])
+        let x5 = cast #bit(S16x8, columns[5])
+        let x6 = cast #bit(S16x8, columns[6])
+        let x7 = cast #bit(S16x8, columns[7])
+
+        let tmp0  = x0 + x7
+        let tmp7  = x0 - x7
+        let tmp1  = x1 + x6
+        let tmp6  = x1 - x6
+        let tmp2  = x2 + x5
+        let tmp5  = x2 - x5
+        let tmp3  = x3 + x4
+        let tmp4  = x3 - x4
+        let tmp10 = tmp0 + tmp3
+        let tmp13 = tmp0 - tmp3
+        let tmp11 = tmp1 + tmp2
+        let tmp12 = tmp1 - tmp2
+
+        let dc        = tmp10 + tmp11
+        let even4     = tmp10 - tmp11
+        let evenMix   = tmp12 + tmp13
+        let odd10     = tmp4 + tmp5
+        let odd11     = tmp5 + tmp6
+        let odd12     = tmp6 + tmp7
+        let biasedDc  = cast #bit(U16x8, dc) ^ 0x8000_u16
+        let biased4   = cast #bit(U16x8, even4) ^ 0x8000_u16
+        let biased13  = cast #bit(U16x8, tmp13) ^ 0x8000_u16
+        let biasedMix = cast #bit(U16x8, evenMix) ^ 0x8000_u16
+        let biased10  = cast #bit(U16x8, odd10) ^ 0x8000_u16
+        let biased11  = cast #bit(U16x8, odd11) ^ 0x8000_u16
+        let biased12  = cast #bit(U16x8, odd12) ^ 0x8000_u16
+        let biased7   = cast #bit(U16x8, tmp7) ^ 0x8000_u16
+        finishHorizontal!{false}(biasedDc, biased4, biased13, biasedMix, biased10, biased11, biased12, biased7, left, right)
+        finishHorizontal!{true}(biasedDc, biased4, biased13, biasedMix, biased10, biased11, biased12, biased7, left + 4, right + 4)
     }
 
     // Expands a row's eight occupancy bits to the corresponding entropy-order positions.
@@ -197,39 +279,8 @@ impl Encoder
     // Stores eight quantized coefficients at once. Only their occupancy is reordered.
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
-        var dataFloat: [64] f32
-        let coefficients = cast([*] f32, &dataFloat[0])
-        for group in 2
-        {
-            var lanes: [8] Math.Simd.F32x4
-            let block = cast([*] Math.Simd.F32x4, lanes)
-            for row in 4
-            {
-                let samples = Math.Simd.load(data + group * 32 + row * 8)
-                block[row]     = floatSamples(Math.Simd.widenLow(samples))
-                block[row + 4] = floatSamples(Math.Simd.widenHigh(samples))
-            }
-
-            transposeFour(block)
-            transposeFour(block + 4)
-            transformFourLines(block)
-            transposeFour(block)
-            transposeFour(block + 4)
-            for row in 4
-            {
-                let destination = coefficients + group * 32 + row * 8
-                Math.Simd.store(destination, block[row])
-                Math.Simd.store(destination + 4, block[row + 4])
-            }
-        }
-
         var left, right: [8] Math.Simd.F32x4
-        for row in 8
-        {
-            left[row]  = Math.Simd.load(coefficients + row * 8)
-            right[row] = Math.Simd.load(coefficients + row * 8 + 4)
-        }
-
+        transformHorizontal(data, left, right)
         transformFourLines(left)
         transformFourLines(right)
 
@@ -261,6 +312,31 @@ impl Encoder
         let magnitude = cast(u32, ((value ^ sign) - sign))
         return cast(u8, (32 - Math.leadingZeros(magnitude)))
     }
+
+    const ShortAcRadius = 128_u32
+    const ShortAcRuns   = 4
+    const ShortAcWidth  = ShortAcRadius * 2
+
+    func makeShortAcCodes(table: const [*] u32)->[ShortAcRuns * ShortAcWidth] u32
+    {
+        var result: #returntype
+        for run in ShortAcRuns
+        {
+            for index in ShortAcWidth
+            {
+                let value     = cast(s32, index) - cast(s32, ShortAcRadius)
+                let category  = magnitudeCategory(value)
+                let mask      = (1_u32 << category) - 1
+                let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
+                result[run * ShortAcWidth + index] = table[run * 16 + category] | amplitude
+            }
+        }
+
+        return result
+    }
+
+    const ShortLumaAcCodes   = #run makeShortAcCodes(LumaAcCodes)
+    const ShortChromaAcCodes = #run makeShortAcCodes(ChromaAcCodes)
 
     #[Swag.Inline]
     func rgbWord(source: const [*] u8)->u32
@@ -350,7 +426,8 @@ impl Encoder
 
         .writeDc(.du[0], dC, hTDC)
 
-        var next = 1_u64
+        let shortCodes = hTAC == cast(const [*] u32, LumaAcCodes) ? cast(const [*] u32, ShortLumaAcCodes) : cast(const [*] u32, ShortChromaAcCodes)
+        var next       = 1_u64
         while occupied
         {
             let index = Math.trailingZeros(occupied)
@@ -361,9 +438,18 @@ impl Encoder
                 run -= 16
             }
 
-            let value    = .du[ZigzagToBlock[index]]
-            let category = magnitudeCategory(value)
-            .writeAmplitude(hTAC[run * 16 + category], value, category)
+            let value      = .du[ZigzagToBlock[index]]
+            let shortIndex = cast #bit(u32, (cast(s32, value) + cast(s32, ShortAcRadius)))
+            if run < ShortAcRuns and shortIndex < ShortAcWidth
+            {
+                .writePackedCode(shortCodes[run * ShortAcWidth + shortIndex])
+            }
+            else
+            {
+                let category = magnitudeCategory(value)
+                .writeAmplitude(hTAC[run * 16 + category], value, category)
+            }
+
             next     = index + 1
             occupied &= occupied - 1
         }

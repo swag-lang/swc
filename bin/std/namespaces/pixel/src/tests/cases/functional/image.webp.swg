@@ -674,6 +674,33 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.require(Hash.Crc64.compute(decoded.pixels.toSlice()) == Hash.Crc64.compute(image.pixels.toSlice()))
 }
 
+// Preserve a new alpha value that appears after a long span of known values.
+#test
+{
+    const Width  = 257
+    const Height = 29
+    for alphaCount in [1, 2, 3]
+    {
+        var image = Image.create(Width, Height, .RGBA8)
+        let data  = cast([*] u32, image.pixels.storage())
+        for y in Height
+        {
+            for x in Width
+            {
+                let i     = cast(u32, y * Width + x)
+                let alpha = alphaCount >= 2 and y <= 2 ? 137_u32 : 255_u32
+                let last  = alphaCount == 3 and y == 0 and x == Width - 1
+                let red   = i & 0xFF
+                let green = (i >> 8) & 0xFF
+                let blue  = (i * 17) & 0xFF
+                data[i] = red | (green << 8) | (blue << 16) | ((last ? 0 : alpha) << 24)
+            }
+        }
+
+        assertEncodedWebpRoundtrip(image)
+    }
+}
+
 // A uniform image uses four single-symbol trees, including for fully transparent RGB.
 #test
 {

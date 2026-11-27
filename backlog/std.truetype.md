@@ -118,20 +118,22 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 
 ### std.truetype.015 — Variable fonts load only at their default instance
 
-- Evidence: no `fvar`, `gvar`, `avar` or `HVAR` is read, so a single file that should provide a
-  whole weight and width range provides one static face. CFF2 variation data is part of this
-  entry; the CFF1 charstring support already in the module is only its static foundation.
-- Next: read `fvar` axes and apply `gvar` deltas to TrueType outlines for a named instance,
-  then add `avar` normalization and `HVAR` metrics.
+- Evidence: TrueType opens the default outlines. The CFF2 decoder uses the default normalized
+  coordinates and SFNT advances. The Source Sans 3 and Source Serif 4 fixtures cover local
+  subroutines, multiple variation data records, and font dictionary selection. Axis selection
+  and metric variation remain unavailable.
+- Next: read `fvar` axes and apply `gvar` deltas to TrueType outlines for a named instance.
+  Extend CFF2 blending to use the selected coordinates, including `avar` normalization and
+  `HVAR` metrics.
 - Done when: default and non-default instances of representative TrueType and CFF2 variable
   fonts produce expected outlines and metrics across supported axes, with invalid variation
   tables rejected.
 
 ### std.truetype.016 — Color glyph rendering is opt-in
 
-- Evidence: `Face.loadColorGlyph` composites ordered `COLR` version-0 layers with `CPAL` version-0
-  colors into an RGBA bitmap. `loadChar` and `loadGlyph(..., .Render)` remain grayscale operations,
-  so a caller must choose the color path and palette explicitly.
+- Evidence: `Face.loadColorGlyph` composites ordered version-0 layers from `COLR` versions 0 and 1
+  with `CPAL` version-0 or version-1 colors. `loadChar` and `loadGlyph(..., .Render)` remain
+  grayscale operations, so a caller must choose the color path and palette explicitly.
 - Next: integrate palette and color-glyph selection into a higher-level text or emoji drawing path.
 - Done when: the chosen text or emoji presentation is rendered in color automatically by that path,
   while ordinary monochrome glyph rendering remains available.
@@ -191,27 +193,20 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 
 ### std.truetype.023 — Large CJK fonts spend most of their open time acquiring outlines
 
-- Evidence: copied input accounts for about 90–93% of the six CJK opens. Pillow uses a
-  file-backed FreeType mapping, which reads glyph programs from the file on demand. With
-  the same whole-file snapshot for the standalone OTF cases, Swag takes 1.81–2.93 ms and
-  FreeType takes 2.61–3.66 ms.
-- Evidence: the expanded single-worker pathname comparison still has a gap on eleven
-  CJK CFF faces and the static TrueType fixture Gowun Batang. Retained-source opens
-  can share CFF dictionaries and validated character maps.
-- Evidence: the 71-case pathname comparison adds 12 TrueType CJK scenarios and records
-  60 wins. The remaining 11 losses all use large Noto CJK CFF outlines.
-- Evidence: four regional CFF subsets add eight cases with nonconsecutive CIDs.
-  Compact CID lookup takes 60–75% off fresh-source opening. FreeType still leads
-  the pathname comparisons.
-- Evidence: the verified build leads Pillow on 81 of 103 paths. The remaining 22 cover 11 full
-  CJK CFF faces, eight regional CFF cases, and three static CJK TrueType cases. When native
-  FreeType and Swag copy the same complete file, Swag wins 11 of 13 cases. The two Gothic A1
-  cases still trail. The 11 full Noto CJK cases take 12–37 µs from a retained source.
-  Four requested workers reduce opening and rendering by 19–43% across the 16 tested cases
-  eligible for parallel reads. Three of those cases move ahead of Pillow.
-- Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
-  a host can provide independent snapshot storage. Preserve the face's guarantee after
-  in-place file edits.
-- Done when: Swag opens and renders the six CJK fixture scenarios faster than the
-  FreeType pathname probe while preserving independent face bytes and matching Swag
+- Evidence: Swag leads Pillow 12.3.0 with FreeType 2.14.3 on 128 of 167 single-worker
+  pathname cases at 20 ppem. The remaining 39 include 38 CJK cases. The largest gaps
+  are on standalone files whose required `glyf` outlines occupy 97–98.4% of their bytes.
+  The comparison checks glyph indices, advances, bitmap dimensions, and pixel checksums
+  between Swag builds.
+- Evidence: Pillow and native FreeType can map the file and read the glyph on demand.
+  With independent whole-file copies in a 28-case native comparison of additional CJK
+  fixtures, Swag leads 12 of 19 standalone cases and all nine collection cases. Swag
+  can copy only the selected collection member. Five large standalone losses range
+  from 1.4% to 5.4% with equal copies. File edits remain a test of snapshot isolation.
+- Evidence: four requested workers cut open and render time by 19–43% across 16 cases
+  eligible for parallel reads. OverlayFS on the measured host rejects reflink.
+- Next: compare acquisition on a filesystem that supports independent snapshots and
+  compare worker scaling at equal copied byte counts on the remaining standalone cases.
+- Done when: Swag opens and renders the six original CJK fixture scenarios faster than
+  the FreeType pathname probe while preserving independent face bytes and matching Swag
   glyph indices, advances, bitmap dimensions, and checksums.

@@ -14,21 +14,30 @@ enum FontProgramKind
     Cff          // A `FontFile3` bare CFF program, keyed by name or by character identifier.
 }
 
+struct CidFontDescriptor
+{
+    bounds: [4] f32
+    flags:  u32
+    ascent, descent, capHeight, italicAngle, stemV: f32
+}
+
+// Embedded program bytes are immutable after decoding, so the cache and every page can own
+// their own reference.
+struct FontProgram
+{
+    bytes: SharedBytes
+    flate: SharedBytes
+    key:   String
+}
+
 // A font a decoded page refers to, with everything needed to lay its text out again.
 struct FontResource
 {
     objectId: u32
     name:     String
     baseName: String
-    bytes:    Array!{u8}
-    program:  FontProgramKind
-
-    // Key this program takes in the process-wide typeface table.
-    //
-    // It is a hash over the whole program, so it is computed when the program is read and
-    // carried from there: recomputing it per page shown would read the font again on every
-    // paint, which a viewer feels as a pause on each zoom step.
-    programKey: String
+    program:     FontProgramKind
+    programData: FontProgram
 
     // Code to text, from a `/ToUnicode` CMap, and code to character from the font's simple
     // encoding. The CMap wins when both describe a code.
@@ -44,8 +53,11 @@ struct FontResource
 
     // A CIDFontType2 either addresses the embedded TrueType glyphs directly or provides the
     // explicit CID-to-GID table used to do so.
-    glyphIndices:   Array!{u32}
-    identityGlyphs: bool
+    glyphIndices:       Array!{u32}
+    identityGlyphs:     bool
+    identityHorizontal: bool
+    hasCidDescriptor:   bool
+    cidDescriptor:      CidFontDescriptor
 
     // A composite font whose descendant is a CIDFontType0 addresses a CID-keyed CFF through
     // its charset rather than through a glyph index.
@@ -68,6 +80,9 @@ struct FontResource
 
 impl FontResource
 {
+    mtd const programBytes()->const [..] u8 => .programData.bytes.toSlice()
+    mtd const programKey()->string => .programData.key.toString()
+
     // Returns the advance width of one character code, in fractions of the text size.
     mtd const codeWidth(code: u32)->f32
     {
@@ -280,8 +295,9 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     var metrics = fontId
     if parser.name(parser.dict(fontId, "Subtype")) == "Type0"
     {
-        result.codeBytes    = 2
-        result.defaultWidth = 1
+        result.codeBytes          = 2
+        result.defaultWidth       = 1
+        result.identityHorizontal = parser.name(parser.dict(fontId, "Encoding")) == "Identity-H"
         let descendants = parser.dict(fontId, "DescendantFonts")
         if descendants != InvalidNode and
            parser.nodes[descendants].kind == .Array and
@@ -335,6 +351,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
         }
 
         try readFontProgram(parser, &result, descriptor)
+        if result.identityHorizontal and result.program == .TrueType
+        {
+            result.hasCidDescriptor = readCidDescriptor(parser, descriptor, &result.cidDescriptor)
+        }
     }
 
     let toUnicode = parser.dict(fontId, "ToUnicode")
@@ -395,15 +415,37 @@ private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descr
     }
 }
 
+private func readCidDescriptor(parser: *PdfParser, descriptor: u32, result: *CidFontDescriptor)->bool
+{
+    let box = parser.dict(descriptor, "FontBBox")
+    if box == InvalidNode or parser.nodes[box].kind != .Array or parser.nodes[box].values.count != 4
+    {
+        return false
+    }
+
+    for index in 4
+    {
+        let value = parser.nodes[box].values[index]
+        result.bounds[index] = cast(f32, parser.number(value))
+    }
+
+    result.flags       = cast(u32, parser.integer(parser.dict(descriptor, "Flags"), 0))
+    result.ascent      = cast(f32, parser.number(parser.dict(descriptor, "Ascent")))
+    result.descent     = cast(f32, parser.number(parser.dict(descriptor, "Descent")))
+    result.capHeight   = cast(f32, parser.number(parser.dict(descriptor, "CapHeight"), result.ascent))
+    result.italicAngle = cast(f32, parser.number(parser.dict(descriptor, "ItalicAngle")))
+    result.stemV       = cast(f32, parser.number(parser.dict(descriptor, "StemV")))
+    return true
+}
+
 // Reads the embedded font program, whichever of the three forms a descriptor stores it in.
 private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor: u32) fail
 {
     let file2 = parser.dict(descriptor, "FontFile2")
     if file2 != InvalidNode
     {
-        font.bytes   = #move try parser.decodeStream(file2)
+        font.programData = #move try decodeEmbeddedProgram(parser, file2)
         font.program = .TrueType
-        keyFontProgram(font)
         return
     }
 
@@ -411,34 +453,58 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
     if file3 != InvalidNode
     {
         let isOpenType = parser.name(parser.dict(file3, "Subtype")) == "OpenType"
-        font.bytes = #move try parser.decodeStream(file3)
+        font.programData = #move try decodeEmbeddedProgram(parser, file3)
 
         // An OpenType wrapper may carry either outline flavour; the loader tells them
         // apart from the file itself, so the distinction that matters here is only
         // whether glyphs are addressed by name.
         font.program = isOpenType ? .TrueType : .Cff
-        keyFontProgram(font)
         return
     }
 
     let file1 = parser.dict(descriptor, "FontFile")
     if file1 != InvalidNode
     {
-        font.bytes   = #move try parser.decodeStream(file1)
+        font.programData = #move try decodeEmbeddedProgram(parser, file1)
         font.program = .Type1
-        keyFontProgram(font)
     }
 }
 
-// Names the program in the process-wide typeface table.
-private func keyFontProgram(font: *FontResource)
+// More than one font dictionary can name the same program stream.
+private func decodeEmbeddedProgram(parser: *PdfParser, streamId: u32)->FontProgram fail
 {
-    if font.bytes.isEmpty()
+    if let cached = parser.fontPrograms.tryFind(streamId)
     {
-        return
+        return cached.value
     }
 
-    font.programKey = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
+    var bytes = #move try parser.decodeStream(streamId)
+    var result: #returntype
+    if bytes.count
+    {
+        result.key   = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(bytes.toSlice()))
+        if parser.retainEncodedStreams and
+           bytes.count >= 4 and
+           isSingleTrueTypeProgram(bytes.toSlice()) and
+           parser.dict(streamId, "DecodeParms") == InvalidNode
+        {
+            let filter = parser.name(parser.dict(streamId, "Filter"))
+            if filter == "FlateDecode" or filter == "Fl"
+            {
+                let raw = parser.nodes[streamId].stream.toSlice()
+                if raw.count and raw.count < bytes.count
+                {
+                    var flate: Array!{u8} = raw
+                    result.flate = #move SharedBytes.create(#move flate)
+                }
+            }
+        }
+
+        result.bytes = #move SharedBytes.create(#move bytes)
+    }
+
+    parser.fontPrograms[streamId] = result
+    return #move result
 }
 
 private func readSimpleWidths(parser: *PdfParser, font: *FontResource, metricsId: u32)

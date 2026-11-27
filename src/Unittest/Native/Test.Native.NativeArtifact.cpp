@@ -2278,6 +2278,34 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SymbolTable_ImageKeepsSourcePathsTogether)
+{
+    const std::array<SymbolTable::Entry, 3> entries = {
+        SymbolTable::Entry{.symbolName = "one", .name = "First", .file = "C:/source/zeta.swg", .line = 7, .size = 11},
+        SymbolTable::Entry{.symbolName = "two", .name = "Second", .file = "C:/source/alpha.swg", .line = 9, .size = 22},
+        SymbolTable::Entry{.symbolName = "three", .name = "Third", .file = "C:/source/zeta.swg", .line = 13, .size = 33},
+    };
+    ByteArray                            object;
+    std::vector<SymbolTable::Relocation> relocations;
+    SymbolTable::build(object, relocations, entries);
+    ByteArray image;
+    SymbolTable::buildImage(image, entries);
+    if (image.size() != object.size() || image.readLe32(48) >= image.readLe32(28) || image.readLe32(68) != image.readLe32(28))
+        return Result::Error;
+
+    std::vector<SymbolTable::Entry> restored;
+    if (!SymbolTable::read(restored, image.span(), relocations) || restored.size() != entries.size())
+        return Result::Error;
+    for (size_t index = 0; index < entries.size(); ++index)
+    {
+        const SymbolTable::Entry& expected = entries[index];
+        const SymbolTable::Entry& actual   = restored[index];
+        if (actual.symbolName != expected.symbolName || actual.name != expected.name || actual.file != expected.file ||
+            actual.line != expected.line || actual.size != expected.size)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
 {

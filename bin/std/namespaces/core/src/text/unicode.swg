@@ -334,14 +334,21 @@ struct CaseRange
     delta:  [WantedCase] s32     // Offset to add for each case, or `UpperLower` for an alternating upper-lower sequence.
 }
 
-// The full case-fold mapping for one code point, with its Turkic alternative when it has one.
-struct CaseFoldMapping
+// A straight or alternating range shares a delta. An expansion indexes the sequence table.
+struct CaseFoldRange
 {
-    source:      rune
-    mapping:     [3] rune
-    count:       u8
-    turkic:      [3] rune
-    turkicCount: u8
+    first:      rune
+    last:       rune
+    data:       s32     // Signed delta or expansion index
+    turkic:     u16     // One-based override index, or zero
+    strideMask: u8      // Odd offsets stay unchanged in an alternating range
+    expands:    bool
+}
+
+struct CaseFoldExpansion
+{
+    mapping: [3] rune
+    count:   u8
 }
 
 func isInTable(ranges: const [..] Range, r: rune)->bool
@@ -436,41 +443,47 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
 
 internal func appendCaseFold(result: *String, value: rune, turkic: bool)
 {
-    let table = cast(const [..] CaseFoldMapping, TableCaseFold)
-    var lo    = 0_u64
-    var hi    = cast(u64, table.count)
-    while lo < hi
+    var low  = 0_u64
+    var high = cast(u64, TableCaseFold.count)
+    while low < high
     {
-        let middle = lo + (hi - lo) / 2
-        let entry  = table[middle]
-        if entry.source == value
+        let middle = low + (high - low) / 2
+        let entry  = &TableCaseFold[middle]
+        if value < entry.first
         {
-            if turkic
-            {
-                for i in entry.turkicCount
-                {
-                    result.append(entry.turkic[i])
-                }
-            }
-            else
-            {
-                for i in entry.count
-                {
-                    result.append(entry.mapping[i])
-                }
-            }
+            high = middle
+            continue
+        }
 
+        if value > entry.last
+        {
+            low = middle + 1
+            continue
+        }
+
+        if (value - entry.first) & entry.strideMask
+        {
+            break
+        }
+
+        var expansion = entry.data
+        if turkic and entry.turkic
+        {
+            expansion = cast(s32, entry.turkic) - 1
+        }
+        else if not entry.expands
+        {
+            result.append(value + #wrap cast #bit (rune, entry.data))
             return
         }
 
-        if value < entry.source
+        let sequence = &TableCaseFoldExpansions[cast(u64, expansion)]
+        for index in sequence.count
         {
-            hi = middle
+            result.append(sequence.mapping[index])
         }
-        else
-        {
-            lo = middle + 1
-        }
+
+        return
     }
 
     result.append(value)

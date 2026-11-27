@@ -38,8 +38,9 @@ private func buildSynthesisRotations()->SynthesisRotations
 // The synthesis matrix is a 32-point DCT-IV scaled by 1/4. Pairing even coefficients with
 // reversed odd coefficients folds it into a 16-point complex FFT. The eighth-bin rotation
 // before and after the FFT provides the half-sample offsets of the DCT-IV. Packed lanes
-// keep separate transforms for consecutive blocks, with the same order of operations.
-func(T) synthesisDct(bands: const [*] T, stride: u64, output: *[32] T)
+// keep separate transforms for consecutive blocks. In history mode, store each sum and
+// difference together so both packed lanes reach the FIR in playback order.
+func(T, History: bool = false) synthesisDct(bands: const [*] T, stride: u64, output: *[32] T)
 {
     const BitReverse: [16] u32 = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15]
     var real, imaginary: [16] T
@@ -63,8 +64,28 @@ func(T) synthesisDct(bands: const [*] T, stride: u64, output: *[32] T)
     {
         let cosine = Rotations.cosine[index]
         let sine   = Rotations.sine[index]
-        output[][2 * index]      = (real[index] * cosine + imaginary[index] * sine) * 0.25
-        output[][31 - 2 * index] = (real[index] * sine - imaginary[index] * cosine) * 0.25
+        let even   = (real[index] * cosine + imaginary[index] * sine) * 0.25
+        let odd    = (real[index] * sine - imaginary[index] * cosine) * 0.25
+        #static if History
+        {
+            if index < 8
+            {
+                let band = 2 * index
+                output[][band]      = even - odd
+                output[][16 + band] = even + odd
+            }
+            else
+            {
+                let band = 31 - 2 * index
+                output[][band]      = odd - even
+                output[][16 + band] = odd + even
+            }
+        }
+        else
+        {
+            output[][2 * index]      = even
+            output[][31 - 2 * index] = odd
+        }
     }
 }
 

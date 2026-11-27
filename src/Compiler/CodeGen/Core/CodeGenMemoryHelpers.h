@@ -45,6 +45,7 @@ namespace CodeGenMemoryHelpers
     void emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t elementSizeInBytes, uint32_t elementCount);
     void emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes);
     void emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes);
+    bool tryEmitMemZeroElements(CodeGen& codeGen, MicroReg dstReg, MicroReg countReg, uint32_t elementSize);
     bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, std::span<const std::byte> rawBytes, bool allowNonZeroStores);
     void emitMemMove(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
     void emitMemCompare(CodeGen& codeGen, MicroReg outResultReg, MicroReg leftAddressReg, MicroReg rightAddressReg, uint32_t sizeInBytes);

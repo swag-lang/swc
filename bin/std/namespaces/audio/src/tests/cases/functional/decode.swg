@@ -22,6 +22,10 @@ func audioPcmPacketSound()->SoundFile fail
     let payload = expect file.readPayload(0, 8)
     Swag.require(Slice.equals(payload.toSlice(), [0x00_u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
 
+    var destination: [4] s16
+    expect file.decodePcm16(0, destination)
+    Swag.require(Slice.equals(destination, [0_s16, Swag.S16.Max, Swag.S16.Min, -1_s16]))
+
     var voice: Voice
     voice.file = &file
     voice.requestedEncoding = .Pcm16
@@ -134,6 +138,9 @@ func audioPcmPacketSound()->SoundFile fail
     discard catch file.readPayload(0, file.dataSize) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
     discard catch voice.readBuffer() as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+    var destination: [4] s16
+    catch file.decodePcm16(0, destination) as rejected
     Swag.require(rejected.value() is Errors.InvalidFormatError)
 }
 

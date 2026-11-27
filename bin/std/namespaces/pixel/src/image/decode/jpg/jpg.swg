@@ -7,7 +7,7 @@
 
 using Swag, Core, Core.Errors
 
-private const DecoderFormat: ImageFormat = {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif;.jif;.jfi;.jps"}
+private const DecoderFormat: ImageFormat = {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif;.jif;.jfi;.jps;.pjp;.pjpeg"}
 
 // Reports whether the filename extension selects the built-in JPEG decoder.
 public func matchesFileName(fileName: string)->bool => DecoderFormat.matches(fileName)
@@ -30,6 +30,7 @@ private
     const RGBH1V1         = 5
     const CmykH1V1        = 6
     const YGeneric        = 7
+    const CmykGeneric     = 8
     const Failed          = -1
     const ConstBits       = 13_u32
     const Pass1Bits       = 2_u32
@@ -230,6 +231,10 @@ internal struct Decoder
         acceptMetadata:  bool
         progressiveFlag: bool
         hasAdobeMarker:  bool
+        mapCmyk:         bool
+        simpleCmyk:      bool
+        cmykMasks:       [4] u8
+        cmykSamples:     [4][256] u8
         hasJfifMarker:   bool
         adobeTransform:  u8
 
@@ -326,8 +331,9 @@ impl Decoder
             return
         }
 
-        // A complete MCU row can go straight to the image when it has no right-edge padding.
-        let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
+        // The specialized YCbCr converters stage only a partial MCU at the right edge.
+        let clipTail = .maxMcusPerRow >= 4 and (.scanType == YH1V1 or .scanType == YH2V2)
+        let direct   = .destBytesPerScanLine == .realDestBytesPerScanLine or clipTail
         for .imageSizeY
         {
             let source = try .decodeScanLine!{Rgb}(direct ? destination : null)
@@ -393,6 +399,69 @@ public func decodeRgbInto(target: *Image, bytes: const [..] u8, expectedWidth: s
     var result = Image.create(decoder.imageSizeX, decoder.imageSizeY, .RGB8)
     try decoder.decodePixels!{true}(result.pixels.storage())
     target[] = #move result
+}
+
+// Decodes a four-component JPEG into a tightly packed [[Pixel.PixelFormat.BGR8]] image.
+//
+// The four ranges map encoded C, M, Y, and K sample values to ink amounts. Each range's
+// `x` is the amount at sample zero and `y` is the amount at sample 255. The amounts clamp
+// to 0–1 before multiplying the light left by the color ink and the black ink. An Adobe
+// YCCK transform is reversed before this mapping. Adobe ink inversion is left to the ranges.
+// The input is borrowed for the call. The decoder discards metadata and uses the default
+// [[Pixel.DecodeOptions]] limits. Invalid ranges, malformed data and non-CMYK frames fail.
+public func decodeCmyk(bytes: const [..] u8, ranges: [4] Math.Vector2)->Image fail
+{
+    let options = DecodeOptions{decodeMetadata: false}
+    if bytes.count > options.maxInputBytes
+    {
+        fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+    }
+
+    var decoder: Decoder
+    try decoder.init(bytes, options)
+    if decoder.compsInFrame != 4
+    {
+        fail InvalidFormatError{"JPEG frame must have four ink components"}
+    }
+
+    decoder.mapCmyk    = true
+    decoder.simpleCmyk = true
+    for range, component in ranges
+    {
+        if not range.isFinite()
+        {
+            fail BadParameterError{"JPEG ink range endpoints must be finite"}
+        }
+
+        if range.x == 0 and range.y == 1
+        {
+            decoder.cmykMasks[component] = 255
+        }
+        else if range.x != 1 or range.y != 0
+        {
+            decoder.simpleCmyk = false
+        }
+    }
+
+    if not decoder.simpleCmyk
+    {
+        for range, component in ranges
+        {
+            let minimum = cast(f64, range.x)
+            let delta   = cast(f64, range.y) - minimum
+            for sample in 256
+            {
+                let amount = Math.clamp(minimum + delta * (cast(f64, sample) / 255), 0, 1)
+                decoder.cmykSamples[component][sample] = cast(u8, Math.round((1 - amount) * 255))
+            }
+        }
+    }
+
+    try options.checkImage(decoder.imageSizeX, decoder.imageSizeY, .BGR8)
+    try decoder.start()
+    var result = Image.create(decoder.imageSizeX, decoder.imageSizeY, .BGR8)
+    try decoder.decodePixels!{false}(result.pixels.storage())
+    return #move result
 }
 
 internal impl IImageDecoder for Decoder

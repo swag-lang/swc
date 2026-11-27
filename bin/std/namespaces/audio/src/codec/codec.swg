@@ -56,7 +56,7 @@ public interface IPacketCodec
 // Returns whether `encoding` names packets a packet codec decodes.
 //
 // A packetized sound is one whose payload is a sequence of independently indexed compressed
-// access units; the uncompressed encodings are chunked instead, and go through the PCM path.
+// access units. Fixed-width sample encodings are chunked and go through the PCM conversion path.
 public func isPacketEncoding(encoding: SoundFileEncoding)->bool
 {
     switch encoding

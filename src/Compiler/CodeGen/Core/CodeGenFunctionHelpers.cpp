@@ -1310,6 +1310,9 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
 
+    if (symStruct.hasImplicitAllZeroDefault() && CodeGenMemoryHelpers::tryEmitMemZeroElements(codeGen, dstAddressReg, countReg, sizeOf))
+        return Result::Continue;
+
     const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
     if (symStruct.hasImplicitAllZeroDefault())
         CodeGenMemoryHelpers::emitMemZero(codeGen, loop.cursorReg, sizeOf);
@@ -1366,6 +1369,11 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, countReg);
 
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+
+    if (!typeInfo.isArray() && !typeInfo.isEnum() &&
+        !SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeInfo.typeRef()) &&
+        CodeGenMemoryHelpers::tryEmitMemZeroElements(codeGen, dstAddressReg, countReg, sizeOf))
+        return Result::Continue;
 
     const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
     SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, loop.cursorReg));

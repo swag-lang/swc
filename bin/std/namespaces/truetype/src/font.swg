@@ -20,6 +20,7 @@ const TAG_COLR = imageTag('C'_u32, 'O'_u32, 'L'_u32, 'R'_u32)
 const TAG_CPAL = imageTag('C'_u32, 'P'_u32, 'A'_u32, 'L'_u32)
 const TAG_OS2  = imageTag('O'_u32, 'S'_u32, '/'_u32, '2'_u32)
 const TAG_CFF  = imageTag('C'_u32, 'F'_u32, 'F'_u32, ' '_u32)
+const TAG_CFF2 = imageTag('C'_u32, 'F'_u32, 'F'_u32, '2'_u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
 // carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
@@ -244,6 +245,7 @@ struct FaceImpl
     fontData:               Array!{u8}
     fontSource:             FontSource
     tables:                 Array!{TableRecord}
+    sfntDirectory:          const [..] u8?    // Validated directory borrowed from the owned sfnt bytes.
     verticalMetrics:        *VerticalMetricTable?
     ownsVerticalMetrics:    bool
     glyphLocations:         const [..] u8?
@@ -280,11 +282,23 @@ struct FaceImpl
     sharedProgramTables: const *ProgramTables?
     hasCMap:             bool
 
+    // The color lookup checks a packed base directory once for each face.
+    colorBaseGlyphsValidated: Swag.AtomicFlag
+
+    // Current point scales are shared by all simple outlines of a composite glyph.
+    pointScaleKey: u64 = Swag.U64.Max
+    pointScaleX:   PointScale
+    pointScaleY:   PointScale
+
     outlinePoints:     Array!{Vector}
     outlineTags:       Array!{u8}
     outlineContours:   Array!{s16}
     bitmapPixels:      Array!{u8}
     colorBitmapPixels: Array!{u8}
+
+    // Mono strikes borrow the font bytes and use the size at which the slot was loaded.
+    embeddedBitmapTables: EmbeddedBitmapTables
+    emptyOutlineSize:      u32
 
     // A single ordered legacy kerning subtable can stay packed. Unordered or merged
     // pairs use the hash table with `(leftGlyph << 16) | rightGlyph` as the key.
@@ -350,11 +364,12 @@ impl FaceImpl
         return .fontSource.faceBytes()
     }
 
-    mtd loadCff(bytes: const [..] u8) fail
+    mtd loadCff(bytes: const [..] u8, cff2 = false) fail
     {
-        .sharedCff = try .fontSource.cachedCff(bytes)
-        if not .sharedCff {
-            .cff = try parseCffFont(bytes)
+        .sharedCff = try .fontSource.cachedCff(bytes, cff2)
+        if not .sharedCff
+        {
+            .cff = try parseCffProgram(bytes, cff2)
         }
     }
 
@@ -417,16 +432,22 @@ impl FaceImpl
 
     // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
     //
-    // CFF and Type 1 names come from their charstring programs. TrueType outlines use the
-    // names in `post` formats 1, 2, or 2.5; format 3 carries no names, so it answers zero.
+    // CFF1 and Type 1 names come from their charstring programs. CFF2 and TrueType use
+    // the names in `post` formats 1, 2, or 2.5.
     // When a name occurs more than once, the lowest glyph index is returned.
     mtd glyphIndexByName(name: string)->u32
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
-        case .Type1: return .type1Font().nameToGid.getOrDefault(name, 0)
-        case .Glyf:  return .postGlyphNames().glyphIndex(name)
+        case .Cff:
+            let font = .cffFont()
+            return font.isCff2 ? .postGlyphNames().glyphIndex(name) : font.glyphNames.glyphIndex(name)
+
+        case .Type1:
+            return .type1Font().nameToGid.getOrDefault(name, 0)
+
+        case .Glyf:
+            return .postGlyphNames().glyphIndex(name)
         }
     }
 
@@ -440,7 +461,8 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:
-            return .cffFont().glyphNames.nameOf(glyphIndex)
+            let font = .cffFont()
+            return font.isCff2 ? .postGlyphNames().nameOf(glyphIndex) : font.glyphNames.nameOf(glyphIndex)
 
         case .Type1:
             let names = &.type1Font().glyphNames
@@ -491,24 +513,42 @@ func getFaceImpl(face: *Face?)->*FaceImpl fail
 
 func getSlotImpl(slot: *GlyphSlot)->*FaceImpl fail => try getFaceImpl(slot.face)
 
-func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
+func findTable(faceData: const *FaceImpl, tag: u32)->TableRecord
 {
+    if let directory = faceData.sfntDirectory
+    {
+        let target = Math.nativeToBigEndian(tag)
+        var entry  = cast(const [*] u32, directory.buffer)
+        for directory.count / 16
+        {
+            if entry[0] == target
+            {
+                return {tag: tag, offset: Math.bigEndianToNative(entry[2]), length: Math.bigEndianToNative(entry[3])}
+            }
+            entry += 4
+        }
+
+        return {}
+    }
+
     for it in faceData.tables
     {
-        if it.tag == tag {
-            return it
+        if it.tag == tag
+        {
+            return it[]
         }
     }
 
-    return null
+    return {}
 }
 
 func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8 fail
 {
-    let rec = findTable(faceData, tag)
-    if not rec {
+    let record = findTable(faceData, tag)
+    if not record.tag
+    {
         try fault(missingCode)
     }
-    let r = unwrap rec
-    return try getSlice(faceData.fontBytes(), r.offset, r.length)
+
+    return try getSlice(faceData.fontBytes(), record.offset, record.length)
 }

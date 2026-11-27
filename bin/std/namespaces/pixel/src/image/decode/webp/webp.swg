@@ -298,31 +298,6 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
     return result
 }
 
-func flipRgbaRows(pixels: *Array!{u8}, width, height: s32)
-{
-    using Math.Simd
-
-    let data = cast([*] u32, pixels.storage())
-    for y in height / 2
-    {
-        let upper = data + cast(u64, y) * width
-        let lower = data + cast(u64, (height - y - 1)) * width
-        var x: s32
-        while width - x >= 4
-        {
-            let top = load(upper + x)
-            store(upper + x, load(lower + x))
-            store(lower + x, top)
-            x += 4
-        }
-
-        for column in x until width
-        {
-            swap(&upper[column], &lower[column])
-        }
-    }
-}
-
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
     let imageData = Swag.makeSlice(cast(const [*] u8, unwrap container.image.data), container.image.size)
@@ -344,8 +319,7 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
     }
 
     var pixels: Array!{u8}
-    try losslessDecode(imageData, &pixels, &width, &height)
-    flipRgbaRows(&pixels, width, height)
+    try losslessDecodeStream(&reader, &pixels, width, height, bottomUp: true)
     swap(&result.pixels, &pixels)
     return #move result
 }

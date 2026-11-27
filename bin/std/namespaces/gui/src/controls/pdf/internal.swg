@@ -95,18 +95,14 @@ struct PdfParser
     // single largest cost of walking such a document, and the result is byte-identical every
     // time. The pair is the key because a named color space is defined by the resources in
     // force, so the same object under different resources is not the same image.
-    retainImageStreams: bool
+    retainEncodedStreams: bool
     imageCache:         HashTable!{u64, ImageReference}
     deviceImageCache:   HashTable!{u32, ImageReference}
     imageCacheBytes:    u64
 
-    // Fonts already decoded from this document, keyed by the font object.
-    //
-    // Every page that names a font decodes it again otherwise, which decompresses the same
-    // embedded program, rebuilds the same encoding and width tables, and leaves each page
-    // holding its own copy of the bytes: a hundred-page thesis with a four-hundred-kilobyte
-    // family carries forty megabytes of duplicated font data.
-    fontCache: HashTable!{u32, FontResource}
+    // Fonts keep per-object encoding and widths, and share the immutable program streams.
+    fontCache:    HashTable!{u32, FontResource}
+    fontPrograms: HashTable!{u32, FontProgram}
 
     // Soft mask groups already decoded, keyed by the group object and the transform it was
     // established under.

@@ -467,7 +467,7 @@ impl Writer
         pending.alignment            = options.alignment ? options.alignment : 1
         pending.bytes                = try encodePayload(.codecs, options.codecId, source)
         pending.info.storedSize      = pending.bytes.count
-        pending.info.storedChecksum  = Hash.Crc32.compute(pending.bytes.toSlice())
+        pending.info.storedChecksum  = options.codecId.isNull() ? pending.info.decodedChecksum : Hash.Crc32.compute(pending.bytes.toSlice())
         .chunks.add(#move pending)
         return id
     }
@@ -850,8 +850,15 @@ impl Reader
             fail BadParameterError{"SCC has no chunk with this identifier"}
         }
 
+        return try .readStoredPayload(info)
+    }
+
+    private mtd readStoredPayload(info: const *ChunkInfo)->Array!{u8} fail
+    {
+        // A successful positioned read fills the whole buffer.
         var result: #returntype
-        result.resize(info.storedSize)
+        result.reserve(info.storedSize)
+        result.count = info.storedSize
         if not (try .stream.readFileRange(info.offset, result.toSlice()))
         {
             fail InvalidFormatError{"SCC chunk payload is truncated"}
@@ -870,17 +877,10 @@ impl Reader
     {
         func decodePayload(codecs: Array!{ICodec}, info: const *ChunkInfo, source: const [..] u8)->Array!{u8} fail
         {
-            if info.codecId.isNull()
-            {
-                var result: #returntype
-                result.add(source)
-                return result
-            }
-
             if info.codecId == deflateCodecId()
             {
                 var codec: Core.Compress.ZLib
-                return try codec.decompress(source, info.decodedSize)
+                return try codec.decompress(source, hintSize: info.decodedSize, maxOutputSize: info.decodedSize)
             }
 
             let codec = findCodec(codecs, info.codecId)
@@ -898,7 +898,18 @@ impl Reader
             fail BadParameterError{"SCC has no chunk with this identifier"}
         }
 
-        let stored = try .readStoredChunk(id)
+        let stored = try .readStoredPayload(info)
+        if info.codecId.isNull()
+        {
+            // A stored chunk uses the same bytes for both representations.
+            if info.storedChecksum != info.decodedChecksum
+            {
+                fail InvalidFormatError{"SCC decoded chunk checksum does not match its bytes"}
+            }
+
+            return stored
+        }
+
         let result = try decodePayload(.codecs, info, stored.toSlice())
         if result.count != info.decodedSize
         {

@@ -263,6 +263,92 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
+// CRC-32 of the FFmpeg RGB24 output, with each frame's rows in Image storage order.
+const OpenDmlPictureCrcs = [0x33269741_u32, 0x84AAC5C6, 0xE9D10BBB, 0x30C36689, 0xBFD4183C, 0xEA34FA73]
+
+// The AVI header and `idx1` describe only the first RIFF. The OpenDML index reaches
+// the second `movi` list and its record group, and audio follows the same continuation.
+#test
+{
+    let path   = videoFixturePath("synthetic-opendml.avi")
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 6 and reader.width() == 32 and reader.height() == 24)
+    Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
+    for index in [5_u64, 0, 3, 2, 4, 1]
+    {
+        let picture = expect reader.decodeFrame(index)
+        Swag.require(Hash.Crc32.compute(picture.pixels.toSlice()) == OpenDmlPictureCrcs[index])
+        Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(index), cast(f64, index) / 25, 0.000001))
+    }
+
+    Swag.require(reader.audioTrackCount() == 1)
+    let audio = unwrap reader.audioTrack(0)
+    Swag.require(audio.sampleFrameCount() == 32 and audio.sampleRateHz() == 8_000)
+    let pcm = expect audio.readPayload(0, audio.payloadSize())
+    Swag.require(Hash.Crc32.compute(pcm.toSlice()) == 0x3DE0907C)
+
+    let bytes  = expect File.readAllBytes(path)
+    var source = ByteSource.openMemory(bytes.toSlice())
+    var avi:     Avi.Decoder
+    let decoder: IDecoder = &avi
+    let info   = expect decoder.open(&source)
+    Swag.require(info.frameCount == 6)
+
+    // The standard indexes mark every raw frame as a keyframe. A frame-list walk marks
+    // only the first one, so these flags also distinguish index use from the fallback.
+    Swag.require(avi.frames[2].isSync and avi.frames[5].isSync)
+}
+
+// Missing or malformed OpenDML indexes fall back to both movie lists. The usable legacy
+// `idx1` still only covers the first RIFF and must not hide the continuation.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("synthetic-opendml.avi"))
+    let index = Slice.findSubslice(bytes.toSlice(), "indx")
+    Swag.require(index < bytes.count and index + 40 <= bytes.count)
+    let tag = aviReadU32(bytes.toSlice(), index)
+    aviWriteU32(bytes.toSlice(), index, Avi.fourCc('J'_u32, 'U'_u32, 'N'_u32, 'K'_u32))
+    var noIndex = expect Reader.openMemory("no-opendml-index.avi", bytes.toSlice())
+    Swag.require(noIndex.frameCount() == 6)
+    let last = expect noIndex.decodeFrame(5)
+    Swag.require(Hash.Crc32.compute(last.pixels.toSlice()) == OpenDmlPictureCrcs[5])
+    noIndex.close()
+
+    aviWriteU32(bytes.toSlice(), index, tag)
+    let firstReference = index + 8 + 24
+    let firstTable     = cast(u64, aviReadU32(bytes.toSlice(), firstReference))
+    Swag.require(firstTable + 28 <= bytes.count and aviHasId(bytes.toSlice(), firstTable, "ix00"))
+
+    // Exercise an incomplete superindex, a wide child offset, and a wide standard base.
+    for field in [index + 8 + 4, firstReference + 4, firstTable + 8 + 16]
+    {
+        let original = aviReadU32(bytes.toSlice(), field)
+        aviWriteU32(bytes.toSlice(), field, 1)
+        var reader = expect Reader.openMemory("bad-opendml-index.avi", bytes.toSlice())
+        Swag.require(reader.frameCount() == 6)
+        for rank in [3_u64, 5, 2]
+        {
+            let picture = expect reader.decodeFrame(rank)
+            Swag.require(Hash.Crc32.compute(picture.pixels.toSlice()) == OpenDmlPictureCrcs[rank])
+        }
+
+        reader.close()
+        aviWriteU32(bytes.toSlice(), field, original)
+    }
+}
+
+// A malformed continuation cannot claim bytes beyond the source.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("synthetic-opendml.avi"))
+    let form  = Slice.findSubslice(bytes.toSlice(), "AVIX")
+    Swag.require(form >= 8 and form < bytes.count and aviHasId(bytes.toSlice(), form - 8, "RIFF"))
+    aviWriteU32(bytes.toSlice(), form - 4, Swag.U32.Max)
+    var invalid: Swag.Error
+    discard catch Reader.openMemory("truncated-avix.avi", bytes.toSlice()) as invalid
+    Swag.require(invalid.value() is InvalidFormatError)
+}
+
 // A child chunk must stay inside its `rec ` list even when later records remain inside `movi`.
 #test
 {
@@ -733,7 +819,11 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(aviHasId(raw, 0, "RIFF") and aviHasId(raw, 8, "AVI "))
     Swag.require(aviHasId(raw, 12, "LIST") and aviHasId(raw, 20, "hdrl"))
     Swag.require(aviHasId(raw, 24, "avih") and aviHasId(raw, 100, "strh") and aviHasId(raw, 164, "strf"))
-    Swag.require(aviHasId(raw, 212, "LIST") and aviHasId(raw, 220, "movi") and aviHasId(raw, 224, "00dc"))
+    Swag.require(aviHasId(raw, 212, "JUNK"))
+    let frameList = 20 + cast(u64, aviReadU32(raw, 16))
+    Swag.require(aviHasId(raw, frameList, "LIST") and
+                 aviHasId(raw, frameList + 8, "movi") and
+                 aviHasId(raw, frameList + 12, "00dc"))
 
     // Everything the header could only know once the last frame landed.
     Swag.require(aviReadU32(raw, 4) == cast(u32, bytes.count) - 8)
@@ -745,12 +835,154 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(aviReadU32(raw, 140) == 3)      // Frame count of the stream header.
 
     // The size of the frame list is what places the index right after the last frame.
-    let indexStart = 220 + cast(u64, aviReadU32(raw, 216))
+    let indexStart = frameList + 8 + cast(u64, aviReadU32(raw, frameList + 4))
     Swag.require(aviHasId(raw, indexStart, "idx1"))
     Swag.require(aviReadU32(raw, indexStart + 4) == 3 * 16)
     Swag.require(aviHasId(raw, indexStart + 8, "00dc"))
     Swag.require(aviReadU32(raw, indexStart + 16) == 4)
     Swag.require(indexStart + 8 + 3 * 16 == bytes.count)
+
+    var source = ByteSource.openMemory(raw)
+    var avi:     Avi.Decoder
+    let decoder: IDecoder = &avi
+    let info   = expect decoder.open(&source)
+
+    // A frame-list walk flags only the first picture. This checks that the reader used idx1.
+    Swag.require(info.frameCount == 3 and avi.frames[2].isSync)
+}
+
+// A rollover uses the same stream-relative offsets in a file and in a borrowed buffer.
+#test
+{
+    const Frames = 24_u64
+    const Limit  = 6 * 1024_u64
+
+    func writeFrames(writer: *Writer)
+    {
+        let encoder = cast(*Avi.Encoder, (unwrap writer.encoder).buffer)
+        encoder.riffLimit = Limit
+        for index in Frames
+        {
+            expect writer.addFrame(videoGrayImage(17, 13, cast(u8, 20 + index * 8)))
+        }
+
+        Swag.require(writer.frameCount() == Frames)
+        expect writer.end()
+        expect writer.end()
+    }
+
+    let path = videoTempPath("avi-opendml-write", "avi")
+    defer discard catch File.delete(path)
+    let rate = expect FrameRate.create(30_000, 1_001)
+    var file = expect Writer.create(path, 17, 13, rate)
+    writeFrames(&file)
+    let bytes = expect File.readAllBytes(path)
+    let raw   = bytes.toSlice()
+
+    var buffer: ConcatBuffer
+    const Prefix = "already written"
+    buffer.addBytes(cast(const [..] u8, Prefix))
+    var memory = expect Writer.createMemory("continued.avi", &buffer, 17, 13, rate)
+    writeFrames(&memory)
+    let output = buffer.toArray()
+    Swag.require(Slice.equals(output.toSlice()[until Prefix.count], Prefix))
+    Swag.require(Slice.equals(output.toSlice()[Prefix.count until output.count], raw))
+
+    // Count references, validate the RIFF and movie boundaries, and resolve the first packet
+    // in every standard index without relying on the module's reader.
+    const SuperIndex = 212_u64
+    Swag.require(aviHasId(raw, SuperIndex, "indx"))
+    let indexes = aviReadU32(raw, SuperIndex + 12)
+    Swag.require(indexes >= 3)
+    let dmlh = SuperIndex + 8 + cast(u64, aviReadU32(raw, SuperIndex + 4)) + 12
+    Swag.require(aviHasId(raw, dmlh, "dmlh") and aviReadU32(raw, dmlh + 8) == Frames)
+    Swag.require(aviReadU32(raw, 140) == Frames)
+
+    var riff  = 0_u64
+    var count = 0_u64
+    for segment in indexes
+    {
+        Swag.require(aviHasId(raw, riff, "RIFF"))
+        Swag.require(aviHasId(raw, riff + 8, segment ? "AVIX" : "AVI "))
+        let riffSize = 8 + cast(u64, aviReadU32(raw, riff + 4))
+        Swag.require(riffSize <= Limit and riff + riffSize <= raw.count)
+        let list = segment ? riff + 12 : 20 + cast(u64, aviReadU32(raw, 16))
+        Swag.require(aviHasId(raw, list, "LIST") and aviHasId(raw, list + 8, "movi"))
+        let movieEnd  = list + 8 + cast(u64, aviReadU32(raw, list + 4))
+        let reference = SuperIndex + 32 + cast(u64, segment) * 16
+        let index     = cast(u64, aviReadU32(raw, reference))
+        let indexSize = aviReadU32(raw, reference + 8)
+        let duration  = aviReadU32(raw, reference + 12)
+        Swag.require(aviHasId(raw, index, "ix00") and index + indexSize == movieEnd)
+        Swag.require(aviReadU32(raw, index + 4) + 8 == indexSize)
+        Swag.require(aviReadU32(raw, index + 12) == duration)
+        Swag.require(aviReadU32(raw, index + 20) == list + 8)
+        Swag.require(aviReadU32(raw, index + 32) == 12)
+        Swag.require(aviReadU32(raw, index + 36) == aviReadU32(raw, list + 16))
+
+        if not segment
+        {
+            Swag.require(aviReadU32(raw, 48) == duration)
+            Swag.require(aviHasId(raw, movieEnd, "idx1"))
+            Swag.require(aviReadU32(raw, movieEnd + 4) == duration * 16)
+        }
+
+        riff  += riffSize
+        count += duration
+    }
+
+    Swag.require(riff == raw.count and count == Frames)
+    var source = ByteSource.openMemory(raw)
+    var avi:     Avi.Decoder
+    let decoder: IDecoder = &avi
+    let info   = expect decoder.open(&source)
+    Swag.require(info.frameCount == Frames and avi.frames[Frames - 1].isSync)
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameRate() == rate and reader.frameCount() == Frames)
+    for index in [23_u64, 0, 17, 2, 11, 1]
+    {
+        let picture = expect reader.decodeFrame(index)
+        videoAssertGray(picture.pixelColor(8, 6), cast(u8, 20 + index * 8), tolerance: 6)
+        Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(index), cast(f64, index * 1_001) / 30_000, 0.000001))
+    }
+}
+
+// A rejected submission leaves the previous bytes and frame count intact. Writer.end
+// re-raises the rejection because invalidating a partially written stream is its contract.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    for limit in 3
+    {
+        var buffer: ConcatBuffer
+        var writer  = expect Writer.createMemory("limited.avi", &buffer, 8, 8, rate)
+        let picture = videoGrayImage(8, 8, 80)
+        expect writer.addFrame(picture)
+
+        let encoder = cast(*Avi.Encoder, (unwrap writer.encoder).buffer)
+        switch limit
+        {
+        case 0:
+            encoder.riffLimit = 100
+
+        case 1:
+            encoder.riffLimit       = writer.sink.position() + 100
+            encoder.standardIndexes = 255
+
+        case 2:
+            encoder.frames = Swag.U32.Max
+        }
+
+        let before = buffer.toArray()
+        var rejected: Swag.Error
+        discard catch writer.addFrame(picture) as rejected
+        Swag.require(rejected.value() is UnsupportedFormatError and writer.frameCount() == 1)
+        let after = buffer.toArray()
+        Swag.require(Slice.equals(after.toSlice(), before.toSlice()))
+        discard catch writer.end() as rejected
+        Swag.require(rejected.value() is UnsupportedFormatError)
+    }
 }
 
 // The approximate `avih` frame period stays representable at the ends of the stream-rate range.
@@ -788,7 +1020,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var rejected: Swag.Error
     discard catch writer.end() as rejected
     Swag.require(rejected.value() is BadParameterError)
-    Swag.require(Slice.equals(buffer.toSlice(), opened.toSlice()))
+    let finalized = buffer.toArray()
+    Swag.require(Slice.equals(finalized.toSlice(), opened.toSlice()))
 }
 
 // A failed frame write ends the writer before its partial AVI index can be used by end().

@@ -84,6 +84,7 @@ private func sampleDocument()->Document
 {
     let source = sampleDocument()
     let bytes  = expect source.encode()
+    Swag.require(Slice.equals(bytes.toSlice()[bytes.count - 6 until bytes.count], cast(const [..] u8, "%%EOF\n")))
     Swag.require(bytes.count > 400)
     Swag.require(cast(string, bytes.toSlice()[0 to 7]) == "%PDF-1.7")
 

@@ -133,7 +133,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   resources without double-counting shared typefaces, and compare against measured eviction.
 - Done when: decode, first paint, text indexing and zoom update the documented accounting,
   evictions respect that budget, and a measured corpus comparison states the remaining error.
-- Related: std.pixel.027, std.gui.pdf.028, std.gui.pdf.036
+- Related: std.pixel.027, std.gui.pdf.036
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
@@ -180,9 +180,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.019 — Text output cannot leave Windows-1252 and the fourteen standard faces
 
-- Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
-  character outside that encoding. No font can be embedded, so the writer cannot express text
-  such as Greek, Cyrillic, Hebrew, CJK or emoji.
+- Decoded text outside Windows-1252 can keep its horizontal CID TrueType program, glyph
+  mapping and Unicode map when saved. This allows the FileSamples Wingdings and Symbol runs
+  to be saved with the original font bytes and extracted characters.
+- Authored text and edited runs still use Windows-1252 and the standard faces. The writer
+  cannot author new runs in Greek, Cyrillic, Hebrew, CJK or emoji.
 - Next: embed and subset TrueType/OpenType fonts with composite encoding and `ToUnicode` while
   retaining standard faces as the default.
 - Done when: a TrueType or OpenType program can be embedded, subset to the glyphs used, with a
@@ -299,20 +301,24 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.012 — The `/Decode` array is not applied to a DCT image
 
-- Intent: four-component frames decode now, but a DCT image is the one sample representation whose
-  `/Decode` array is ignored, because the frame reaches this module already converted to screen
-  colours. A file that states its inks are stored complemented through that array rather than
-  through the Adobe marker therefore renders inverted, and a partial range on a gray or colour
-  photograph is dropped silently.
-- Evidence: `decodeImage` hands `DCTDecode` straight to `Image.decode(".jpg", …)` and returns its
-  colour result; every sampled representation beside it goes through `readSamplePlane`, which does
-  read `/Decode`. The four-component path in `pixel` applies the Adobe complement itself, which is
-  what a standalone CMYK JPEG needs and what a `/Decode` array would then apply twice.
-- Next: decide where ink values are allowed to exist — either a four-component frame comes back from
-  `pixel` as inks and this module converts them, or the decoder takes the decode ranges as an
-  option — then apply the array on the DCT path for every component count.
-- Done when: a DCT image honours `/Decode` exactly as a sampled image does, and a fixture
-  carries a CMYK photograph inverted through that array.
+- Evidence: direct, unmasked `DeviceCMYK` DCT images use the declared ink ranges before
+  conversion to screen colours. The decoder handles subsampled four-component JPEG streams
+  and a default-range stream survives saving with its original JPEG bytes. The 62-page check
+  gains the public `cmykjpeg.pdf` page and improves the explicitly inverted stress page's
+  mean RGB difference against PDFium from 20.40 to 12.49 channel levels. The other 60 pages
+  have the same bitmap checksums in that comparison.
+- Direct grayscale and RGB JPEGs also apply the declared component ranges before composition.
+  The public mask page's mean RGB difference against PDFium drops from 8.64 to 1.25 levels.
+  A large default JPEG soft mask loads in 16.29 ms, down from 24.15 ms, with the same raster.
+- Direct grayscale and RGB DCT color keys now test the decoded JPEG samples before color
+  mapping. The inverted grayscale fixture matches PDFium pixel for pixel. The partial-range
+  RGB fixture's mean channel difference against PDFium drops from 62.31 to 0.47 levels.
+- Composing the keyed RGB samples straight into RGBA reduces load on the large JPEG key
+  fixture from 75.08 to 56.47 ms against the new key-aware reader, with identical Swag pixels.
+- Resource-named DCT paths, CMYK masks and RGB `DecodeParms` remain open. Direct CMYK refers
+  to device colours without an ICC transform.
+- Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and
+  colour spaces.
 - Related: std.gui.pdf.002
 
 ### std.gui.pdf.014 — JBIG2 images are refused
@@ -395,8 +401,20 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   cut the large public JPEG save from 588 to 0.58 ms and reduce the output from
   11.95 to 1.43 MB. Both public RGB JPEG pages render exactly as the originals
   through PDFium.
-- Next: extend encoded stream retention to other supported JPEG color models and preserve
-  indexed image representations.
+- Retaining a CMYK JPEG and its inverted ink ranges brings the public CMYK stress page
+  from 223 to 0.20 ms to save and from 5.47 to 0.83 MB. PDFium renders the saved page
+  byte for byte like the source.
+- Retaining indexed Flate images and device palettes brings the public indexed fixture
+  from 65.56 to 0.15 ms to save and from 355 to 275 kB. PDFium renders the saved page
+  pixel for pixel like the source. Different palettes for equal packed samples keep distinct
+  image objects.
+- Gray and RGB JPEG streams with default or inverted component directions also survive saving.
+  Three public-derived range variants save in 0.14–0.46 ms, down from 104–557 ms, with
+  unchanged raw JPEG bytes and PDFium raster. A fourth case retains explicit interpolation.
+- JPEGs with direct gray or RGB color keys retain their original compressed data and mask
+  bounds. Three derived fixtures save in 0.18–0.46 ms, down from 175–572 ms. PDFium renders
+  the stored JPEGs identically at scales 1 and 0.44, and differing keys remain distinct.
+- Next: retain fractional JPEG decode ranges and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.
@@ -434,21 +452,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Evidence: sharing device images across page resources
   reduces four warmed page loads on the public shared-resource document from 49 to 1.8 ms.
   Named spaces keep their resource context and all 52 supported rasters match.
-- Related: std.gui.pdf.028, std.gui.pdf.025.
-
-### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
-
-- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
-  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
-  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
-  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
-  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
-  decision to narrow that contract.
-- Next: settle shared-byte-buffer ownership or the page lifetime contract, then share font programs
-  between pages.
-- Done when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
-  a decoded font program is shared between the pages that reference the same font object, and a
-  `Document` load of the corpus costs one copy per distinct program.
+- Related: std.gui.pdf.025.
 
 ### std.gui.pdf.043 — Store a page item's representation in a tagged union
 
@@ -471,8 +475,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   `decode.image.swg`. Different-size masks use exact quotient-and-remainder coordinates.
   Non-default decode arrays, other sample widths and remaining composition paths still need
   separate profiling and vectorization.
-- Next: vectorize non-default decode arrays, packed and 16-bit samples, other color-key comparisons,
-  mask scaling, and remaining alpha composition; use gather for indexed spaces only when profitable.
+- Inverting complete RGB samples in a packed pass and resolving color-key bounds once per
+  image reduces load on the public mask fixture from 58.49 to 27.48 ms. Its matching CPU
+  total goes from 73.41 to 43.38 ms against PDFium's 58.06 ms, with identical Swag pixels.
+- Next: vectorize remaining decode arrays, packed and 16-bit samples, color-key comparisons,
+  mask scaling, and remaining alpha composition.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: std.core.042, std.core.044, std.core.047.
@@ -602,6 +609,36 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   every supported Swag raster checksum. The remaining curve and transformed-text
   gaps call for reducing compound stroke and glyph scan conversion work. Keeping
   encoded images available could let bitmap rendering decode at the requested size.
+- Merging equally oriented intervals in the CPU scan converter reduces the compound curve
+  page from 688 to 645 ms at 1200 px and from 1484 to 1405 ms at 2400 px. In the same
+  one-core series PDFium takes 231 and 448 ms. At 1200 px, 60 of 61 supported pages keep
+  their previous bitmap checksum. The remaining forms page differs by at most one byte per
+  color channel because overlapping spans add their coverage in a different order.
+- Scan conversion of transformed substitute glyphs takes the transformed-text stress page
+  from 296 to 184 ms at 1200 px and from 1168 to 313 ms at 2400 px. PDFium takes 147 and
+  236 ms in the same one-core series. Before the change, the MSDF shader alone takes about
+  0.95 s at 2400 px. In the expanded comparison at 1200 px all other 86 supported pages keep
+  their checksums. The stress page's mean RGB difference from PDFium is 21.61 to 21.56 at
+  1200 px and 17.11 to 17.30 at 2400 px out of 255 levels.
+- Collecting stroke fragments directly as intervals and merging neighboring overlaps takes
+  the dense curve page from 663 to 465 ms at 1200 px and from 1419 to 948 ms at 2400 px.
+  PDFium takes 277 and 448 ms in those series. Of 88 pages, 87 keep their bitmap checksums
+  and the remaining forms page differs by one level in one pixel. The native stroke comparison
+  goes from 34.86 to 29.77 ms against AGG's 19.27 ms with the same Swag coverage.
+- Borrowing single-Flate inputs and reserving a bounded raster row estimate takes the
+  public RGB16 page from 12.44 to 9.51 ms of load and from 21.53 to 19.29 ms total.
+  The same runs measure PDFium at 16.69 ms. Seven tested pages keep their bitmap checksums.
+- Scan conversion and an opaque RGB span compositor reduce the advanced blend-mode page
+  from 315 to 248 ms in the first series, then from 195 to 90 ms in the opaque-span series.
+  PDFium takes 81 ms in the latter. Mean RGB difference from PDFium changes from 2.52 to
+  2.44 levels at 1200 px. The group and graphics-state controls retain identical pixels.
+- Packed constant CCITT tables take the six-image CCITT fixture from 0.178 to 0.107 ms
+  of load, and the large fax page from 5.95 to 5.74 ms. The three measured rasters are exact
+  matches for the previous Swag output.
+- Keeping short separable resampling tables on the stack allows smaller axis-aligned
+  images to use the packed CPU sampler. At 1200 px, the stencil page changes from 113 to
+  45 ms, inline images from 62 to 31 ms, and repeated images from 82 to 54 ms. PDFium takes
+  24, 14 and 71 ms in the same series. Image differences are at most one level per channel.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

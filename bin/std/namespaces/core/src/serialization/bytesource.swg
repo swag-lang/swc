@@ -23,7 +23,7 @@ struct ByteSource
         stream:       File.FileStream     // Open file, when the source reads from a file.
         memory:       const [..] u8?      // Borrowed bytes, when the source reads from memory.
         fileName:     String              // File the source reads, empty for a memory source.
-        window:       Array!{u8}          // Read-ahead window over the file.
+        window:       Array!{u8}          // Read-ahead storage. Only the first `windowCount` bytes are valid.
         windowStart:  u64                 // Stream offset of the first byte held in the window.
         windowCount:  u64                 // Number of valid bytes in the window.
         filePosition: u64                 // Native cursor, or U64.Max after an incomplete read.
@@ -282,21 +282,17 @@ impl ByteSource
         {
             try .fillWindow(needed)
         }
-        return .window.toSlice()[.cursor - .windowStart until .windowCount]
+        let offset = .cursor - .windowStart
+        return Swag.makeSlice(.window.storage() + offset, .windowCount - offset)
     }
 
     // Refills the window from the read position, with at least `wanted` bytes when they remain.
     private mtd fillWindow(wanted: u64) fail
     {
-        let size = Math.max(WindowSize, wanted)
-        if .window.count < size
-        {
-            .window.resize(size)
-        }
-
-        let count = Math.min(size, .remaining())
+        let count = Math.min(Math.max(WindowSize, wanted), .remaining())
+        .window.reserve(count)
         .windowCount = 0
-        try .readFileExact(.window.toSlice()[until count])
+        try .readFileExact(Swag.makeSlice(.window.storage(), count))
         .windowStart = .cursor
         .windowCount = count
     }

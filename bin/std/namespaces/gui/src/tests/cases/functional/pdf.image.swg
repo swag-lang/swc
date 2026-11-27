@@ -582,6 +582,44 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// An inverted RGB Decode keeps the row and channel order. Its color key sees the raw samples.
+#test
+{
+    const Width  = 7
+    const Height = 2
+    const Red: [Width] u8 = [0, 99, 100, 142, 180, 181, 255]
+    var samples: [Width * Height * 3] u8
+    for y in Height
+    {
+        for x in Width
+        {
+            let pixel = (y * Width + x) * 3
+            samples[pixel + 0] = Red[x]
+            samples[pixel + 1] = y == 0 ? 60 : 59
+            samples[pixel + 2] = cast(u8, 128 + x + y)
+        }
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(samples)
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Decode [1 0 1 0 1 0]"
+    let direct = imageDocument(Dictionary, packed.toSlice())
+    let keyed  = imageDocument(Format.toString("% /Mask [100 180 60 255 -100 500]", Dictionary).toString(), packed.toSlice())
+    let opaque = unwrap onlyItem(direct.pages[0], .Image).imageValue()
+    let masked = unwrap onlyItem(keyed.pages[0], .Image).imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            let color = opaque.pixelColor(cast(s32, x), cast(s32, y))
+            let key   = masked.pixelColor(cast(s32, x), cast(s32, y))
+            Swag.require(color == Color.fromRgb(255 - Red[x], y == 0 ? 195 : 196, cast(u8, 127 - x - y)))
+            Swag.require(key.r == color.r and key.g == color.g and key.b == color.b)
+            Swag.require(key.a == (y == 0 and x >= 2 and x <= 4 ? 0 : 255))
+        }
+    }
+}
+
 // A color key mask turns the sample ranges it names transparent.
 #test
 {
@@ -856,10 +894,23 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         Swag.require(editable.isValid() and not changed.encoded().bytes.count)
         Swag.require(item.image.encoded().bytes.toSlice().count == before.count)
 
-        let pixels     = unwrap item.imageValue()
-        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]", pixels.width, pixels.height)
-        let custom     = imageDocument(dictionary.toString(), before)
-        Swag.require(not custom.pages[0].items[0].image.encoded().bytes.toSlice().count)
+        let pixels = unwrap item.imageValue()
+        for range in [{ranges: "1 0 1 0 1 0", bits: 7_u8}, {ranges: "1 0 0 1 1 0", bits: 5_u8}]
+        {
+            let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [%] /Interpolate true", pixels.width, pixels.height, range.ranges)
+            let custom     = imageDocument(dictionary.toString(), before)
+            let inverted   = unwrap onlyItem(custom.pages[0], .Image).imageValue()
+            let preserved  = custom.pages[0].items[0].image.encoded()
+            Swag.require(Slice.equals(before, preserved.bytes.toSlice()))
+            Swag.require(preserved.invertedSamples == range.bits and preserved.interpolate)
+
+            let rewritten  = expect custom.encode()
+            let reopened   = expect Document.decode(rewritten.toSlice())
+            let savedImage = reopened.pages[0].items[0].image
+            Swag.require(Slice.equals(before, savedImage.encoded().bytes.toSlice()))
+            Swag.require(savedImage.encoded().invertedSamples == range.bits and savedImage.encoded().interpolate)
+            Swag.require(Slice.equals(inverted.pixels.toSlice(), savedImage.value()!.pixels.toSlice()))
+        }
     }
 
     Swag.require(found)
@@ -876,6 +927,44 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let image   = saved.pages[0].items[0].image
     Swag.require(image.encoded().channels == 1)
     Swag.require(Slice.equals(bytes.toSlice(), image.encoded().bytes.toSlice()))
+}
+
+// DeviceCMYK DCT images apply the PDF ranges to the encoded samples before composing the inks.
+#test
+{
+    let jpeg = expect File.readAllBytes(guiTestDataPath("cmyk-subsampled-11x13.jpg"))
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 11 /Height 13 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /DCTDecode"
+    let direct = imageDocument(Dictionary, jpeg.toSlice())
+    let first  = direct.pages[0].items[0].image
+    Swag.require(first.value()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+    Swag.require(first.encoded().channels == 4 and Slice.equals(first.encoded().bytes.toSlice(), jpeg.toSlice()))
+    let saved = expect direct.encode()
+    let read  = expect Document.decode(saved.toSlice())
+    Swag.require(read.pages[0].items[0].imageValue()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+
+    var inverted = String.from(Dictionary)
+    inverted += " /Decode [1 0 1 0 1 0 1 0]"
+    let reversed = imageDocument(inverted.toString(), jpeg.toSlice())
+    let second   = reversed.pages[0].items[0].image
+    Swag.require(second.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
+    Swag.require(second.encoded().invertedSamples == 15)
+    Swag.require(Slice.equals(second.encoded().bytes.toSlice(), jpeg.toSlice()))
+
+    // Identical source bytes with different ink directions must stay distinct in the writer.
+    var objects: Array!{u8}
+    addStreamObject(&objects, 5, Dictionary, jpeg.toSlice())
+    addStreamObject(&objects, 6, inverted.toString(), jpeg.toSlice())
+    let content        = "q 11 0 0 13 0 0 cm /A Do Q q 11 0 0 13 12 0 cm /B Do Q"
+    let combinedSource = singlePagePdf("/XObject << /A 5 0 R /B 6 0 R >>", cast(const [..] u8, content), objects.toSlice())
+    let combined       = expect Document.decode(combinedSource.toSlice())
+    let combinedBytes  = expect combined.encode()
+    let combinedRead   = expect Document.decode(combinedBytes.toSlice())
+    let forwardImage   = combinedRead.pages[0].items[0].image
+    let reverseImage   = combinedRead.pages[0].items[1].image
+    Swag.require(Slice.equals(forwardImage.encoded().bytes.toSlice(), reverseImage.encoded().bytes.toSlice()))
+    Swag.require(forwardImage.encoded().invertedSamples == 0 and reverseImage.encoded().invertedSamples == 15)
+    Swag.require(forwardImage.value()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+    Swag.require(reverseImage.value()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
 }
 
 // A Flate predictor keeps its parameters, image samples and interpolation request.
@@ -907,6 +996,93 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
                  stream.interpolate)
     Swag.require(Slice.equals(bytes.toSlice(), stream.bytes.toSlice()))
     Swag.require(image.value()!.pixelColor(15, 15) == Color.fromRgb(139, 139, 139))
+}
+
+// Indexed Flate retains packed rows and palettes, including different palettes for the same samples.
+#test
+{
+    var rows: [5 * 16] u8
+    for y in 16
+    {
+        let row = y * 5
+        rows[row + 1] = 0x01
+        rows[row + 2] = 0x20
+        rows[row + 3] = 0x12
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(rows)
+    const ImageDictionary = "/Type /XObject /Subtype /Image /Width 7 /Height 16 /BitsPerComponent 4 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Columns 7 /BitsPerComponent 4 >> /Interpolate true "
+    const FirstPalette    = "/ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>]"
+    const SecondPalette   = "/ColorSpace [/Indexed /DeviceRGB 2 8 0 R]"
+    var extra: Array!{u8}
+    addStreamObject(&extra, 5, Format.toString("% %", ImageDictionary, FirstPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 6, Format.toString("% %", ImageDictionary, SecondPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 7, Format.toString("% %", ImageDictionary, FirstPalette).toString(), packed.toSlice())
+    addStreamObject(&extra, 8, "", [0_u8, 0, 255, 255, 0, 0, 0, 255, 0])
+    let commands = "q 7 0 0 16 0 0 cm /Im0 Do Q q 7 0 0 16 7 0 cm /Im1 Do Q q 7 0 0 16 14 0 cm /Im2 Do Q"
+    let fixture  = singlePagePdf("/XObject << /Im0 5 0 R /Im1 6 0 R /Im2 7 0 R >>", cast(const [..] u8, commands), extra.toSlice())
+    let source   = expect Document.decode(fixture.toSlice())
+    let encoded  = expect source.encode()
+    let saved    = expect Document.decode(encoded.toSlice())
+    let items    = saved.pages[0].items
+    Swag.require(items.count == 3)
+    for item in items
+    {
+        let stream = item.image.encoded()
+        Swag.require(stream.filter == .Flate and
+                     stream.bits == 4 and
+                     stream.channels == 1 and
+                     stream.paletteChannels == 3)
+        Swag.require(stream.predictor == 15 and stream.interpolate)
+        Swag.require(Slice.equals(stream.bytes.toSlice(), packed.toSlice()))
+    }
+
+    let first  = unwrap items[0].imageValue()
+    let second = unwrap items[1].imageValue()
+    let third  = unwrap items[2].imageValue()
+    Swag.require(first == third and first != second)
+    Swag.require(first.pixelColor(0, 0) == Color.fromRgb(255, 0, 0))
+    Swag.require(first.pixelColor(2, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(second.pixelColor(0, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(second.pixelColor(2, 0) == Color.fromRgb(0, 255, 0))
+}
+
+// An owned stream can go straight to a file without changing offsets or bytes.
+#test
+{
+    var samples: Array!{u8}
+    samples.resize(512 * 256)
+    var state = 42_u32
+    for index in 65536
+    {
+        state = state * 1664525_u32 + 1013904223_u32
+        samples[index] = cast(u8, state >> 24)
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(samples.toSlice())
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 512 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode"
+    var document = imageDocument(Dictionary, packed.toSlice())
+    let stream   = document.pages[0].items[0].image.encoded().bytes.toSlice()
+    Swag.require(stream.count >= 65536 and Slice.equals(stream, packed.toSlice()))
+
+    let path = Testing.tempFilePath("pdf-retained-image-", ".pdf")
+    defer discard catch File.delete(path)
+    let encoded = expect document.encode()
+    expect document.save(path)
+    let saved = expect File.readAllBytes(path)
+    Swag.require(Slice.equals(encoded.toSlice(), saved.toSlice()))
+
+    // An encoding error must leave the existing destination intact.
+    var later = Page.create(32, 32)
+    later.addText("\u0416", 2, 2, 8)
+    document.addPage(#move later)
+    var outcome: Swag.Error
+    catch { try document.save(path) } as outcome
+    Swag.require(outcome.value() is Core.Errors.UnsupportedFormatError)
+    let surviving = expect File.readAllBytes(path)
+    Swag.require(Slice.equals(encoded.toSlice(), surviving.toSlice()))
 }
 
 // Identical compressed bytes under different image dimensions are distinct objects.

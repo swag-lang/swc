@@ -1,6 +1,6 @@
 //! Format: Audio Video Interleave (AVI/RIFF) encoder component.
-//! Supported: Indexed Motion JPEG video with a standard `idx1` index and files up to the 32-bit RIFF size limit.
-//! Not supported: OpenDML/AVI 2.0, audio tracks, uncompressed output, and files of 4 GiB or more.
+//! Supported: Motion JPEG video in classic AVI or an OpenDML stream with RIFF AVIX continuations.
+//! Not supported: Audio tracks and uncompressed output.
 //! Role: This file owns RIFF chunk emission, stream indexes, frame writing, and top-level encoding.
 //
 #global namespace Avi
@@ -11,27 +11,33 @@ using Core, Core.Errors, Pixel
 // the stream header.
 private const MaxFrameSide = 32_767_s32
 
-// `AVIF_HASINDEX`: the file ends with the `idx1` table, which is what makes seeking free.
+// `AVIF_HASINDEX`: the first RIFF includes a legacy index.
 private const MainHasIndex = 0x0000_0010_u32
-
-// `AVIIF_KEYFRAME`: every frame of a Motion JPEG stream stands on its own.
-private const IndexKeyFrame = 0x0000_0010_u32
 
 // Quality the stream header reports when the writer does not measure one.
 private const UnknownQuality = 0xFFFF_FFFF_u32
 
-// Largest stream an encoder accepts, in bytes.
-//
-// Every size in the container is a 32-bit field, so the margin below four gigabytes leaves room
-// for the index and the trailing chunk headers a stream still owes when its last frame lands.
-private const MaxStreamSize = 0xFFF0_0000_u64
+// OpenDML keeps each complete RIFF at or below 1 GiB. One reserved superindex entry
+// addresses each RIFF, with a 64-bit absolute offset.
+private const MaxRiffBytes = 1_u64 << 30
+private const MaxRiffs     = 256_u64
+
+// Identifiers for the header reservation and the standard index of video stream 00.
+private const JunkId = fourCc('J'_u32, 'U'_u32, 'N'_u32, 'K'_u32)
+private const StandardIndexId = fourCc('i'_u32, 'x'_u32, '0'_u32, '0'_u32)
 
 // Identifier the frames of an encoded stream carry: compressed pictures of the first stream.
 private const FrameChunkId = frameChunkId(0, 'd'_u32, 'c'_u32)
 
-// Total size of the lists an encoder writes, counting their own identifier.
-private const StreamListSize = FourCcSize + ChunkHeaderSize + #sizeof(StreamHeader) + ChunkHeaderSize + #sizeof(Bmp.Header)
-private const HeaderListSize = FourCcSize + ChunkHeaderSize + #sizeof(MainHeader) + ChunkHeaderSize + StreamListSize
+// Payload sizes, including list identifiers and payloads of nested chunks.
+private const SuperIndexSize     = #sizeof(OpenDmlIndexHeader) + MaxRiffs * #sizeof(OpenDmlIndexReference)
+private const ExtendedHeaderSize = 248_u64
+private const ExtendedListSize   = FourCcSize + ChunkHeaderSize + ExtendedHeaderSize
+private const StreamListSize     = FourCcSize + ChunkHeaderSize + #sizeof(StreamHeader) +
+                                   ChunkHeaderSize + #sizeof(Bmp.Header) + ChunkHeaderSize + SuperIndexSize
+private const HeaderListSize = FourCcSize + ChunkHeaderSize + #sizeof(MainHeader) +
+                               ChunkHeaderSize + StreamListSize + ChunkHeaderSize + ExtendedListSize
+private const ContinuationSize = 2 * (ChunkHeaderSize + FourCcSize)
 
 // One entry of the index an encoder builds while it writes.
 private struct IndexEntry
@@ -49,25 +55,31 @@ private func(T) patchValue(sink: *ByteSink, offset: u64, value: T) fail
 
 // Writes AVI files one frame at a time, compressing each of them as a JPEG image.
 //
-// Motion JPEG codes every frame on its own, so an encoded stream seeks anywhere at the cost of
-// one frame and survives losing any part of itself, which is what a container written while it
-// is being recorded needs. The totals the header carries — the size of the file, the size of the
-// frame list, the number of frames — are reserved when the header is written and rewritten once
-// the last frame lands, so encoding never holds more than one frame.
+// The encoder writes one JPEG at a time and keeps only the current RIFF's frame index in
+// memory. A single RIFF uses a classic `idx1` index. If a frame would overrun the RIFF,
+// it finishes the current index, records its location in the reserved superindex, and
+// begins an `AVIX` continuation. The header reservation becomes OpenDML during finalization.
 //
 // [[Avi.EncodeOptions]] selects the quality of the frames.
 struct Encoder
 {
     internal
     {
-        info:          StreamInfo             // Geometry and rate the stream was opened with.
-        options:       EncodeOptions          // Compression the caller asked for.
-        index:         Array!{IndexEntry}     // One entry per written frame, written as `idx1`.
-        mainHeader:    u64                    // Offset of the `avih` payload.
-        streamHeader:  u64                    // Offset of the `strh` payload.
-        frameList:     u64                    // Offset of the `movi` identifier.
-        frameListSize: u64                    // Offset of the size field of the `movi` list.
-        largestFrame:  u64                    // Size of the largest frame written, in bytes.
+        info:            StreamInfo             // Geometry and rate of the stream.
+        options:         EncodeOptions          // Compression the caller asked for.
+        index:           Array!{IndexEntry}     // Frame offsets within the active RIFF.
+        riffLimit = MaxRiffBytes                // Largest byte count of one complete RIFF.
+        riffStart:       u64                    // Offset of the current RIFF identifier.
+        frameList:       u64                    // Offset of the current movi identifier.
+        mainHeader:      u64                    // Offset of the avih payload.
+        streamHeader:    u64                    // Offset of the strh payload.
+        superIndex:      u64                    // Offset of the reserved indx chunk.
+        extendedHeader:  u64                    // Offset of the reserved odml list.
+        standardIndexes: u64                    // Number of finished standard indexes.
+        firstRiffFrames: u32                    // Legacy frame count in the original RIFF.
+        frames:          u32                    // Total frame count over all RIFFs.
+        frameBytes:      u64                    // Total size of the written frame chunks.
+        largestFrame:    u64                    // Largest frame payload in bytes.
     }
 }
 
@@ -90,9 +102,7 @@ impl IEncoder for Encoder
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        sink.writeNative(RiffId)
-        sink.writeNative(0_u32)
-        sink.writeNative(AviId)
+        .beginRiff(sink, AviId)
 
         sink.writeNative(ListId)
         sink.writeNative(cast(u32, HeaderListSize))
@@ -116,11 +126,23 @@ impl IEncoder for Encoder
         sink.writeNative(cast(u32, #sizeof(Bmp.Header)))
         sink.writeNative(.createFormatHeader())
 
-        sink.writeNative(ListId)
-        .frameListSize = sink.position()
-        sink.writeNative(0_u32)
-        .frameList = sink.position()
-        sink.writeNative(FrameListId)
+        // Keep the short file a classic AVI. Only a multi-RIFF file enables these chunks.
+        .superIndex = sink.position()
+        sink.writeNative(JunkId)
+        sink.writeNative(cast(u32, SuperIndexSize))
+        var indexSpace: [SuperIndexSize] u8
+        sink.write(indexSpace)
+
+        .extendedHeader = sink.position()
+        sink.writeNative(JunkId)
+        sink.writeNative(cast(u32, ExtendedListSize))
+        sink.writeNative(OpenDmlListId)
+        sink.writeNative(OpenDmlHeaderId)
+        sink.writeNative(cast(u32, ExtendedHeaderSize))
+        var extendedSpace: [ExtendedHeaderSize] u8
+        sink.write(extendedSpace)
+
+        .beginFrameList(sink)
     }
 
     #[Swag.Propagate]
@@ -136,7 +158,7 @@ impl IEncoder for Encoder
         let size    = payload.count
         .reserve(sink, size)
 
-        .index.add(IndexEntry{cast(u32, (sink.position() - .frameList)), cast(u32, size)})
+        let offset = cast(u32, sink.position() - .frameList)
         sink.writeNative(FrameChunkId)
         sink.writeNative(cast(u32, size))
         sink.write(payload)
@@ -147,48 +169,129 @@ impl IEncoder for Encoder
             sink.writeNative(0_u8)
         }
 
+        .index.add(IndexEntry{offset, cast(u32, size)})
+        .frames       += 1
+        .frameBytes   += ChunkHeaderSize + size + (size & 1)
         .largestFrame = Math.max(.largestFrame, size)
     }
 
     #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
-        if .index.isEmpty()
+        if not .frames
         {
             fail BadParameterError{"AVI stream needs at least one frame"}
         }
 
-        let frameEnd = sink.position()
-        sink.writeNative(IndexId)
-        sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))
-        for entry in .index
-        {
-            sink.writeNative(FrameChunkId)
-            sink.writeNative(IndexKeyFrame)
-            sink.writeNative(entry.offset)
-            sink.writeNative(entry.size)
-        }
-
-        .patchTotals(sink, frameEnd)
+        .finishRiff(sink, openDml: .riffStart != 0)
+        .patchTotals(sink)
     }
 }
 
 private impl Encoder
 {
-    // Offset of the size field of the file, which is the first total to be rewritten.
-    const RiffSizeOffset = 4_u64
-
-    // Fails unless a frame of `size` bytes still fits in what the container can address.
-    //
-    // Every size in the container is a 32-bit field, so a stream that would run past four
-    // gigabytes is refused while it is still correct rather than written with a size that wraps.
-    mtd const reserve(sink: *ByteSink, size: u64) fail
+    #[Swag.Propagate]
+    mtd beginRiff(sink: *ByteSink, kind: u32) fail
     {
-        let projected = sink.position() + ChunkHeaderSize + size + 1 + ChunkHeaderSize + (.index.count + 1) * IndexEntrySize
-        if projected > MaxStreamSize
+        .riffStart = sink.position()
+        sink.writeNative(RiffId)
+        sink.writeNative(0_u32)
+        sink.writeNative(kind)
+    }
+
+    #[Swag.Propagate]
+    mtd beginFrameList(sink: *ByteSink) fail
+    {
+        sink.writeNative(ListId)
+        sink.writeNative(0_u32)
+        .frameList = sink.position()
+        sink.writeNative(FrameListId)
+    }
+
+    // Includes index bytes when checking the new frame. If a rollover is needed, confirm that
+    // the new frame fits in the next RIFF and that both indexes have reserved slots first.
+    mtd reserve(sink: *ByteSink, size: u64) fail
+    {
+        if .frames == Swag.U32.Max
         {
-            fail UnsupportedFormatError{"AVI stream exceeds the four gigabytes the container can address"}
+            fail UnsupportedFormatError{"AVI stream exceeds the 32-bit frame count"}
         }
+
+        if size > .riffLimit
+        {
+            fail UnsupportedFormatError{"AVI frame exceeds the RIFF size limit"}
+        }
+
+        let frameBytes = ChunkHeaderSize + size + (size & 1)
+        let entries    = .index.count + 1
+        let indexBytes = ChunkHeaderSize + #sizeof(OpenDmlIndexHeader) + entries * #sizeof(IndexEntry)
+        let legacy     = .riffStart ? 0_u64 : ChunkHeaderSize + entries * IndexEntrySize
+        if sink.position() - .riffStart + frameBytes + indexBytes + legacy <= .riffLimit
+        {
+            return
+        }
+
+        if .index.isEmpty() or
+           ContinuationSize + frameBytes + ChunkHeaderSize +
+           #sizeof(OpenDmlIndexHeader) + #sizeof(IndexEntry) > .riffLimit
+        {
+            fail UnsupportedFormatError{"AVI frame exceeds the RIFF size limit"}
+        }
+
+        if .standardIndexes >= MaxRiffs - 1
+        {
+            fail UnsupportedFormatError{"AVI stream exceeds the OpenDML superindex capacity"}
+        }
+
+        try .finishRiff(sink, openDml: true)
+        try .beginRiff(sink, AvixId)
+        try .beginFrameList(sink)
+    }
+
+    #[Swag.Propagate]
+    mtd finishRiff(sink: *ByteSink, openDml: bool) fail
+    {
+        if openDml
+        {
+            .writeStandardIndex(sink)
+        }
+
+        let frameEnd = sink.position()
+        if not .riffStart
+        {
+            sink.writeNative(IndexId)
+            sink.writeNative(cast(u32, .index.count * IndexEntrySize))
+            for entry in .index
+            {
+                sink.writeNative(IndexRecord{FrameChunkId, IndexKeyFrameFlag, entry.offset, entry.size})
+            }
+
+            .firstRiffFrames = cast(u32, .index.count)
+        }
+
+        patchValue(sink, .frameList - FourCcSize, cast(u32, frameEnd - .frameList))
+        patchValue(sink, .riffStart + FourCcSize, cast(u32, sink.position() - .riffStart - ChunkHeaderSize))
+        .index.clear()
+    }
+
+    #[Swag.Propagate]
+    mtd writeStandardIndex(sink: *ByteSink) fail
+    {
+        let start = sink.position()
+        sink.writeNative(StandardIndexId)
+        sink.writeNative(cast(u32, #sizeof(OpenDmlIndexHeader) + .index.count * #sizeof(IndexEntry)))
+        sink.writeNative(OpenDmlIndexHeader{entryWords: 2, kind: IndexOfChunks,
+                                            count: cast(u32, .index.count), chunkId: FrameChunkId, base: .frameList})
+        for entry in .index
+        {
+            // A standard index points at the payload. The legacy index points at the tag.
+            sink.writeNative(IndexEntry{entry.offset + cast(u32, ChunkHeaderSize), entry.size})
+        }
+
+        let slot = .superIndex + ChunkHeaderSize + #sizeof(OpenDmlIndexHeader) +
+                   .standardIndexes * #sizeof(OpenDmlIndexReference)
+        patchValue(sink, slot, OpenDmlIndexReference{start, cast(u32, sink.position() - start), cast(u32, .index.count)})
+        .standardIndexes += 1
     }
 
     // Returns the header of the file, with the totals it cannot know yet left at zero.
@@ -236,34 +339,37 @@ private impl Encoder
     }
 
     // Rewrites the header fields only the finished stream knows.
-    mtd const patchTotals(sink: *ByteSink, frameEnd: u64) fail
+    #[Swag.Propagate]
+    mtd const patchTotals(sink: *ByteSink) fail
     {
-        let frames = cast(u32, .index.count)
-
         var main = .createMainHeader()
-        main.totalFrames         = frames
+        main.totalFrames         = .firstRiffFrames
         main.suggestedBufferSize = cast(u32, .largestFrame)
-        main.maxBytesPerSec      = .bytesPerSecond(frameEnd)
-        try patchValue(sink, .mainHeader, main)
+        main.maxBytesPerSec      = .bytesPerSecond()
+        patchValue(sink, .mainHeader, main)
 
         var stream = .createStreamHeader()
-        stream.length = frames
+        stream.length = .frames
         stream.suggestedBufferSize = cast(u32, .largestFrame)
-        try patchValue(sink, .streamHeader, stream)
+        patchValue(sink, .streamHeader, stream)
 
-        try patchValue(sink, RiffSizeOffset, cast(u32, (sink.position() - ChunkHeaderSize)))
-        try patchValue(sink, .frameListSize, cast(u32, (frameEnd - .frameList)))
+        if .standardIndexes
+        {
+            patchValue(sink, .superIndex, OpenDmlIndexId)
+            patchValue(sink,
+                       .superIndex + ChunkHeaderSize,
+                       OpenDmlIndexHeader{entryWords: 4, kind: IndexOfIndexes,
+                                          count: cast(u32, .standardIndexes), chunkId: FrameChunkId})
+
+            patchValue(sink, .extendedHeader, ListId)
+            patchValue(sink, .extendedHeader + 2 * ChunkHeaderSize + FourCcSize, .frames)
+        }
     }
 
-    // Returns the average data rate of the finished stream, in bytes per second.
-    mtd const bytesPerSecond(frameEnd: u64)->u32
+    // Returns the average frame data rate of the finished stream, in bytes per second.
+    mtd const bytesPerSecond()->u32
     {
-        let seconds = cast(f64, .index.count) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator())
-        if seconds <= 0
-        {
-            return 0
-        }
-
-        return cast(u32, Math.min(cast(f64, (frameEnd - .frameList)) / seconds, cast(f64, Swag.U32.Max)))
+        let seconds = cast(f64, .frames) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator())
+        return cast(u32, Math.min(cast(f64, .frameBytes + FourCcSize) / seconds, cast(f64, Swag.U32.Max)))
     }
 }

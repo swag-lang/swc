@@ -761,18 +761,26 @@ namespace
             else
             {
                 output.bytes.append(head.bytes.first(17));
-                output.bytes.pushBack(std::byte{0x0a}); // DW_CFA_remember_state: the CIE's entry rules.
-                output.bytes.append(head.instructions);
-                for (size_t i = first + 1; i < end; ++i)
+                uint64_t rulePc      = head.codeOffset;
+                bool     restoreRule = false;
+                for (size_t i = first; i < end; ++i)
                 {
-                    const NativeUnwindRecord& previous = nativeUnwind_[i - 1];
-                    const NativeUnwindRecord& frame    = nativeUnwind_[i];
-                    X64DwarfFrame::appendAdvance(output.bytes, static_cast<uint32_t>(frame.codeOffset - previous.codeOffset - previous.lastPc));
-                    output.bytes.pushBack(std::byte{0x0b}); // DW_CFA_restore_state
-                    if (i + 1 < end)
-                        output.bytes.pushBack(std::byte{0x0a});
+                    const NativeUnwindRecord& frame = nativeUnwind_[i];
+                    if (i != first)
+                        unwindRelocationOffsets_.emplace(frame.address, UINT64_MAX);
+
+                    // The CIE's entry rules already cover leaf ranges with no instructions.
+                    if (!restoreRule && frame.instructions.empty())
+                        continue;
+
+                    X64DwarfFrame::appendAdvance(output.bytes, static_cast<uint32_t>(frame.codeOffset - rulePc));
+                    if (restoreRule)
+                        output.bytes.pushBack(std::byte{0x0b}); // DW_CFA_restore_state
+                    restoreRule = i + 1 < end && !frame.instructions.empty();
+                    if (restoreRule)
+                        output.bytes.pushBack(std::byte{0x0a}); // DW_CFA_remember_state
                     output.bytes.append(frame.instructions);
-                    unwindRelocationOffsets_.emplace(frame.address, UINT64_MAX);
+                    rulePc = frame.codeOffset + frame.lastPc;
                 }
                 const NativeUnwindRecord& tail = nativeUnwind_[end - 1];
                 output.bytes.align(8);

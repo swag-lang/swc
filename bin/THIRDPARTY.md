@@ -137,6 +137,13 @@ Some redistributions are documented closer to the files they cover:
 - Upstream releases all gifdec source code and documentation into the public domain without
   warranty.
 
+## bcdec
+
+- Licence: MIT
+- Copyright: Copyright (c) 2022 Sergii Kudlai
+- Origin: <https://github.com/iOrange/bcdec>
+- Used by: partition and fix-up tables for the BC7 decoder in Pixel.
+
 ## MPEG-4 Part 2 normative tables
 
 - Licence: MIT

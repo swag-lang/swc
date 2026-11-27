@@ -15,13 +15,20 @@ internal struct ScanSample
     crossings: Array!{Crossing}
 }
 
+internal struct ScanInterval
+{
+    left, right: f32
+}
+
 internal struct ScanScratch
 {
     rows:         Array!{ScanSample}
+    intervals:    [VerticalSamples] Array!{ScanInterval}
     coverage:     Array!{f32}
     order:        Array!{u32}
     reordered:    Array!{Crossing}
     keys, sorted: Array!{u64}
+    intervalRows: Array!{Array!{ScanInterval}}
 }
 
 internal impl ScanScratch
@@ -189,6 +196,90 @@ internal impl ScanScratch
         Memory.copy(crossings, ordered, line.count * #sizeof(Crossing))
     }
 
+    // Opposite crossings make one interval. When all pairs have the same
+    // winding inside, the nonzero rule is the union of those intervals.
+    mtd prepareIntervals(line: const *Array!{Crossing}, target: *Array!{ScanInterval})->{valid: bool, left, right: f32}
+    {
+        target.clear()
+        let points   = line.storage()
+        var direction: s32
+        var low      = Swag.F32.Max
+        var high     = 0.0_f32
+        var previous = 0.0_f32
+        var ordered  = true
+        for index in line.count / 2
+        {
+            let a = points[index * 2]
+            let b = points[index * 2 + 1]
+            if a.winding != -b.winding
+            {
+                return {false, 0, 0}
+            }
+
+            if a.x == b.x
+            {
+                continue
+            }
+
+            let ascending = a.x < b.x
+            let winding   = ascending ? a.winding : b.winding
+            if not winding or (direction and winding != direction)
+            {
+                return {false, 0, 0}
+            }
+
+            direction = winding
+            let left  = ascending ? a.x : b.x
+            let right = ascending ? b.x : a.x
+            target.add({left, right})
+            ordered  = ordered and left >= previous
+            previous = left
+            low      = Math.min(low, left)
+            high     = Math.max(high, right)
+        }
+
+        if not target.count
+        {
+            return {false, 0, 0}
+        }
+
+        if not ordered
+        {
+            target.sort(func||(lhs, rhs) => lhs.left <=> rhs.left)
+        }
+
+        return {true, low, high}
+    }
+
+    #[Swag.Inline]
+    func addCoverageSpan(coverage: [*] f32, left, right: f32)
+    {
+        let start = cast(u64, Math.floor(left))
+        let last  = cast(u64, Math.ceil(right)) - 1
+        if start == last
+        {
+            coverage[start] += right - left
+            return
+        }
+
+        coverage[start] += cast(f32, start + 1) - left
+        var column = start + 1
+        let one    = Math.Simd.splat(1.0_f32)
+        while last - column >= 4
+        {
+            let pixels = coverage + column
+            Math.Simd.store(pixels, Math.Simd.load(pixels) + one)
+            column += 4
+        }
+
+        for tail in column until last
+        {
+            coverage[tail] += 1
+        }
+
+        coverage[last] += right - cast(f32, last)
+    }
+
     // Integrates horizontal coverage at four vertical sample positions per device row.
     mtd resolveRow(crossings: [..] ScanSample, row, width: s32, evenOdd, fullRow: bool, sortedRows = false)->{values: [*] f32, first, end: u64}
     {
@@ -203,11 +294,24 @@ internal impl ScanScratch
 
         var low  = cast(f32, width)
         var high = 0.0_f32
-        for &sample in samples where sample.crossings.count > 1
+        var unionRows: [VerticalSamples] bool
+        for &sample, index in samples where sample.crossings.count > 1
         {
             let line = &sample.crossings
             if not sortedRows
             {
+                if line.count >= 16 and not (line.count & 1) and not evenOdd and not fullRow
+                {
+                    let {valid, left, right} = .prepareIntervals(line, &.intervals[index])
+                    if valid
+                    {
+                        unionRows[index] = true
+                        low  = Math.min(low, left)
+                        high = Math.max(high, right)
+                        continue
+                    }
+                }
+
                 .sortLine(line)
             }
 
@@ -225,8 +329,14 @@ internal impl ScanScratch
         }
 
         Memory.clear(coverage + first, (end - first) * #sizeof(f32))
-        for &line in samples
+        for &line, index in samples
         {
+            if unionRows[index]
+            {
+                paintIntervals(coverage, .intervals[index].toSlice())
+                continue
+            }
+
             var winding:  s32
             var previous: f32
             for crossing in line.crossings
@@ -234,31 +344,7 @@ internal impl ScanScratch
                 let x = crossing.x
                 if x > previous and (evenOdd ? (winding & 1) != 0 : winding != 0)
                 {
-                    let start = cast(u64, Math.floor(previous))
-                    let last  = cast(u64, Math.ceil(x)) - 1
-                    if start == last
-                    {
-                        coverage[start] += x - previous
-                    }
-                    else
-                    {
-                        coverage[start] += cast(f32, start + 1) - previous
-                        var column = start + 1
-                        let one    = Math.Simd.splat(1.0_f32)
-                        while last - column >= 4
-                        {
-                            let pixels = coverage + column
-                            Math.Simd.store(pixels, Math.Simd.load(pixels) + one)
-                            column += 4
-                        }
-
-                        for tail in column until last
-                        {
-                            coverage[tail] += 1
-                        }
-
-                        coverage[last] += x - cast(f32, last)
-                    }
+                    addCoverageSpan(coverage, previous, x)
                 }
 
                 winding  += crossing.winding

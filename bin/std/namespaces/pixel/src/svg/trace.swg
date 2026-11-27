@@ -18,6 +18,37 @@ struct TraceOptions
     }
 }
 
+private struct TraceBounds
+{
+    left, top:     s32 = Swag.S32.Max
+    right, bottom: s32 = -1
+}
+
+private impl TraceBounds
+{
+    mtd include(x, y: s32)
+    {
+        .left   = Math.min(.left, x)
+        .top    = Math.min(.top, y)
+        .right  = Math.max(.right, x)
+        .bottom = Math.max(.bottom, y)
+    }
+
+    mtd const merged(other: TraceBounds)->TraceBounds
+    {
+        return {
+            Math.min(.left, other.left), Math.min(.top, other.top),
+            Math.max(.right, other.right), Math.max(.bottom, other.bottom),
+        }
+    }
+}
+
+private struct TraceColorStats
+{
+    count, alphaSum: u64
+    bounds:          TraceBounds
+}
+
 // Traces a flat-color raster image into a vector document.
 //
 // Pixels are grouped by color; each group's coverage is contour-traced with
@@ -41,87 +72,61 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 
     var result: #returntype = Document.create(image.width, image.height)
 
-    let w = image.width
-    let h = image.height
-
-    // Read logical pixels so every packed format and alpha association follows Image's contract.
-    func sample(image: const *Image, x, y: s32)->{ color: Color, alpha: u8 }
+    if options.threshold == Swag.U8.Max
     {
-        var result: #returntype
-        if x < 0 or y < 0 or x >= image.width or y >= image.height
-        {
-            return result
-        }
-
-        result.color = image.pixelColor(x, y)
-        result.alpha = result.color.a
         return result
     }
 
-    // Collect the distinct colors of sufficiently opaque pixels, most frequent
-    // first so large fills are written before the details drawn over them.
-    var colorCount: HashTable!{u32, u64}
-    for y in h
+    var colorStats: HashTable!{u32, TraceColorStats}
+    var sharedBounds: TraceBounds
+    for y in image.height
     {
-        for x in w
+        for x in image.width
         {
-            let {color, alpha} = sample(image, x, y)
+            let color = image.pixelColor(x, y)
+            let alpha = color.a
             if alpha <= options.threshold
             {
+                // Coverage at or below the color threshold is shared by every class.
+                // Only alpha at or above half can enlarge the marching-squares grid.
+                if alpha >= 128
+                {
+                    sharedBounds.include(x, y)
+                }
+
                 continue
             }
 
-            let key  = color.argb & 0x00FFFFFF
-            let here = colorCount.tryFind(key)
-            if here
+            let entry = colorStats.findOrAdd(color.argb & 0x00FFFFFF)
+            entry.value.count    += 1
+            entry.value.alphaSum += alpha
+            if alpha >= 128
             {
-                here.value += 1
-            }
-            else
-            {
-                colorCount.add(key, 1)
+                entry.value.bounds.include(x, y)
             }
         }
     }
 
-    var colors: Array!{{ key: u32, count: u64 }}
-    for key, count in colorCount
+    // Trace each color from most to least frequent, painting details over large fills.
+    var colors: Array!{{ key: u32, stats: TraceColorStats }}
+    for key, stats in colorStats
     {
-        colors.add({key, count})
+        colors.add({key, stats})
     }
 
-    colors.sort(func||(a, b) => b.count <=> a.count)
-
-    // Trace each color class independently.
+    colors.sort(func||(a, b) => b.stats.count <=> a.stats.count)
     for entry in colors
     {
-        var paths = traceClass(image, entry.key, options)
+        let bounds = entry.stats.bounds.merged(sharedBounds)
+        var paths  = traceClass(image, entry.key, options, bounds)
         if paths.paths.isEmpty()
         {
             continue
         }
 
         // Average the class alpha so a uniformly translucent layer keeps its opacity.
-        var alphaSum, alphaCount: u64
-        for y in h
-        {
-            for x in w
-            {
-                let {color, alpha} = sample(image, x, y)
-                if alpha > options.threshold and (color.argb & 0x00FFFFFF) == entry.key
-                {
-                    alphaSum   += alpha
-                    alphaCount += 1
-                }
-            }
-        }
-
         var color = Color.fromArgb(entry.key | 0xFF000000)
-        if alphaCount
-        {
-            color.a = cast(u8, (alphaSum / alphaCount))
-        }
-
+        color.a = cast(u8, (entry.stats.alphaSum / entry.stats.count))
         result.addPath(paths, color, .NonZero)
     }
 
@@ -159,25 +164,28 @@ private func coverage(image: const *Image, key: u32, threshold: u8, x, y: s32)->
 //
 // Cell corners sit on pixel centers; edge crossings interpolate the coverage so
 // the contour follows the antialiased boundary with sub-pixel precision.
-private func traceClass(image: const *Image, key: u32, options: TraceOptions)->LinePathList
+private func traceClass(image: const *Image, key: u32, options: TraceOptions, bounds: TraceBounds)->LinePathList
 {
     var result: #returntype
+    if bounds.left > bounds.right
+    {
+        return result
+    }
 
-    let w   = image.width
-    let h   = image.height
     let thr = 0.5_f32
 
-    // Corner coverage grid, one sample per pixel center, padded by one so outer
-    // boundaries close.
-    let gw = w + 2
-    let gh = h + 2
+    // Keep one sample beyond each side to close contours and interpolate coverage
+    // at the edge of the occupied pixels, including closed edges at the image border.
+    let gw = bounds.right - bounds.left + 3
+    let gh = bounds.bottom - bounds.top + 3
     var grid: Array!{f32}
     grid.resize(cast(u64, gw) * cast(u64, gh))
     for y in gh
     {
         for x in gw
         {
-            grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = coverage(image, key, options.threshold, x - 1, y - 1)
+            let value = coverage(image, key, options.threshold, x + bounds.left - 1, y + bounds.top - 1)
+            grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = value
         }
     }
 
@@ -352,24 +360,28 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
                     return Math.saturate((thr - va) / d)
                 }
 
+                // Add the crop origin before computing the fractional crossing, so
+                // floating-point rounding is the same as in the full image grid.
+                let gridX = x + bounds.left
+                let gridY = y + bounds.top
                 var px, py: f32
                 switch exitEdge
                 {
                 case 0:
-                    px = x - 0.5 + crossing(c00, c10, thr)
-                    py = y - 0.5
+                    px = gridX - 0.5 + crossing(c00, c10, thr)
+                    py = gridY - 0.5
 
                 case 1:
-                    px = x + 0.5
-                    py = y - 0.5 + crossing(c10, c11, thr)
+                    px = gridX + 0.5
+                    py = gridY - 0.5 + crossing(c10, c11, thr)
 
                 case 2:
-                    px = x - 0.5 + crossing(c01, c11, thr)
-                    py = y + 0.5
+                    px = gridX - 0.5 + crossing(c01, c11, thr)
+                    py = gridY + 0.5
 
                 case 3:
-                    px = x - 0.5
-                    py = y - 0.5 + crossing(c00, c01, thr)
+                    px = gridX - 0.5
+                    py = gridY - 0.5 + crossing(c00, c01, thr)
                 }
 
                 if not path

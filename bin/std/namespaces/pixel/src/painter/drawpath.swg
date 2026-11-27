@@ -1462,7 +1462,7 @@ public impl Painter
             .scanStrokeHigh = Math.Vector2.Min
             defer .scanStroke = false
             .drawPath(&cxt)
-            .emitScanFill(first, .scanStrokeLow, .scanStrokeHigh, pen.brush.color, .NonZero)
+            .emitScanFill(first, .scanStrokeLow, .scanStrokeHigh, pen.brush.color, .NonZero, stroke: true)
             return
         }
 

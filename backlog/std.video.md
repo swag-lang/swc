@@ -2,10 +2,10 @@
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
-It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
-and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed RGB555 16-bit and RGB 24-/32-bit
-frames and exposes integer PCM tracks; ISO-BMFF
-sample-table tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+It reads YUV4MPEG2, raw Motion JPEG and Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in
+Annex B, ISO-BMFF or Matroska, and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed
+RGB555 16-bit and RGB 24-/32-bit frames and exposes integer PCM tracks. ISO-BMFF sample-table
+tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
 Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 
@@ -35,17 +35,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
   across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
 
-### std.video.004 — An AVI larger than four gigabytes is refused
-
-- Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four
-  gigabytes, and the decoder reads `idx1` or walks the first RIFF's `movi` list
-  (`walkFrames`), ignoring OpenDML's 64-bit `indx` chunks and `RIFF AVIX` continuations, which
-  any capture longer than a few minutes at a usable bitrate produces.
-- Next: read the OpenDML `indx` hierarchy and follow `AVIX` continuations in the decoder,
-  then emit them from the encoder.
-- Done when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
-  encoder emits them instead of failing once the stream approaches the limit.
-
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Evidence: one-slice 1080p Baseline takes 2.50× the time of native single-threaded FFmpeg
@@ -66,11 +55,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: Main10 decoding at 3840×2076 takes 1.72× the time of FFmpeg 9.1 with one lane
-  and 3.09× with four. In a separate run, 32-bit CABAC look-ahead lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
-  and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
-  before the CABAC change. The Main and Main10 conformance digests and container reference
-  planes remain the correctness boundary.
+- Evidence: on 3840×2076 Main10, bulk pixel-plane initialization lowers paired serial time
+  by 5.1%. The medians are 52.60 ms per picture at one lane for Swag and 29.06 ms for
+  FFmpeg 9.1. The previous four-lane run puts Swag at 3.09× FFmpeg time. Residual coding
+  still accounts for about 21% of sampled time. The Main and Main10 conformance digests
+  and container reference planes remain the correctness boundary.
 - Next: measure significance context selection on motion, all-intra and WPP streams.
   Waiting for references on first use increased paired time by 6.9% at four lanes on the 3840×2076 fixture.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
@@ -82,17 +71,25 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
 
-- Evidence: the sparse transform comparison
-  measures Simple Profile at 2.44× native single-threaded FFmpeg, textured intra at 3.14×,
-  and MPEG matrix B pictures at 2.30×. Skipping zero coefficients retained the exact
-  Swag planes on all four fixtures.
-- Next: profile the updated coefficient loop on the textured intra and predicted streams.
-  Measure any more compact coefficient representation against the same sample-error bounds.
+- Evidence: with complete coefficient lookahead, the confirmation run puts 720p Simple
+  Profile at 2.28× single-threaded FFmpeg 9.1, weighted 720p at 2.09×, textured intra at
+  3.16×, and MPEG matrix B pictures at 2.19×. The four clips keep their exact Swag planes;
+  their maximum differences from FFmpeg are one to four sample levels.
+- Next: profile the remaining coefficient and inverse-transform cost on the textured intra
+  and predicted streams. Measure any more compact representation against the same
+  sample-error bounds.
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 
 ### std.video.040 — Reduce the remaining RealVideo filter cost
 
+- Evidence: packed weak horizontal deblocking cuts paired time by another 10.1–15.2%
+  on the 2,880-picture sequence. The confirmation medians are 0.0936 ms for Swag
+  and 0.0341 ms for FFmpeg 9.1. All benchmark planes remain exact.
+- Evidence: packed bilinear motion interpolation lowers paired time by 8.6–9.4% on
+  2,880 pictures, without changing the decoded planes. The confirmation medians are
+  0.104 ms per picture for Swag and 0.0365 ms for FFmpeg 9.1. Before the change,
+  deblocking accounted for 30% of sampled time and bilinear interpolation for 10%.
 - Evidence: the packed-filter comparison
   measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
   post-change profile assigns 23% of samples to deblocking and 9% to bilinear
@@ -450,9 +447,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   pattern and 4.9% more on a camera clip. The camera gap rises to 24.2% against x264 High/veryfast.
   Against the shared Baseline profile, x264 veryfast is 2.21-2.61 times as fast at QP 25
   across seven repeats per clip. The remaining opportunity is primarily encode throughput,
-  especially the region estimator and candidate motion costs. At 1080p the camera clip takes
-  35.60 ms per picture versus 17.77 ms in x264 Baseline veryfast at QP 25. On the 4K animated
-  pattern the corresponding times are 53.04 and 20.26 ms with the current x264 reference.
+  especially the region estimator and the cost of scoring intra and motion candidates. With
+  packed Intra_4x4 prediction and scoring, the 1080p camera clip takes 27.91 ms per picture
+  against 16.87 ms in x264 Baseline veryfast, and the 4K pattern takes 35.63 ms against 22.31 ms.
+  Both comparisons use the same NV12 input, QP 25, three workers and four slices.
   Packed column profiles and
   Hadamard scores cut median paired encode wall time by 11-20% across the four 640x360
   clips, with bitstreams unchanged. The High profile also exposes
@@ -460,7 +458,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Next: remeasure the complete 1080p60 and 4K60 capture paths with the new coder, which spends
   about 26 ms on a 2664×1078 film picture with eight slices. Slices cost 5% of the stream:
   code one slice in parallel waves, decisions first and bits after, to drop them. Vectorize the
-  remaining region estimator, the forward 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
+  remaining region estimator and the forward 4x4 transforms. Then 8×8 and 16×8
   partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
   zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
   The app allows eight slices up to 4096 pixels and four above that, where downscaled desktop
@@ -654,6 +652,18 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: picture validation counted decoded macroblocks but did not check their addresses, so duplicate slices could replace already parsed macroblocks while omitting another address.
 - Resolved: each macroblock is checked against the current picture's slice coverage before normal or skipped decode. A second slice restarting at macroblock zero is rejected.
 
+### std.video.043 — Respect HEVC SAO slice and tile boundaries (resolved)
+
+- Evidence: on a five-picture Main sequence with two slices, Swag produced the same
+  Annex B and MP4 planes. FFmpeg 9.1 differed at 533 of 46,080 samples, starting along
+  the slice boundary. The maximum error was 4 levels and PSNR was 61.758 dB.
+- Fixed: SAO edge classification keeps the deblocked sample when its directional
+  neighbour lies in a slice or tile the loop filter cannot cross. Diagonal corners
+  use their diagonal neighbour's permissions.
+- Verification: five-picture Main and Main 10 reference streams match in Annex B
+  and MP4. The native Main 10 samples are exact. Synthetic cases check tile
+  transitions and the two outcomes at diagonal corners.
+
 ### std.video.030 — HEVC crop validation can wrap (resolved)
 
 - Evidence: visible dimensions subtracted conformance-window sums in `u32`; oversized crop values could wrap and leave an invalid picture apparently visible.
@@ -698,28 +708,16 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   stays bounded, audio timestamps remain aligned, and `.webm` is advertised by the reader.
 - Related: std.video.010, std.video.011
 
-### std.video.037 — Read raw Motion JPEG video streams
+### std.video.038 — Extend Annex B video decoding to open groups and parameter changes
 
-- Evidence: FileSamples includes `.mjpeg` streams, and Pixel already decodes JPEG pictures; the
-  video module only reaches Motion JPEG through AVI and ISO-BMFF. A raw stream still needs bounded
-  JPEG frame-boundary scanning, an index for seeking, and a cadence policy because it carries no
-  container timestamps.
-- Next: add a raw MJPEG reader that reuses Pixel's JPEG decoder, indexes concatenated pictures,
-  and defines how callers learn or supply a frame rate when the stream has none. Compare complete
-  frames against FFmpeg and reject malformed or truncated image boundaries safely.
-- Done when: `.mjpeg` and `.mjpg` streams decode sequentially and by frame index against FFmpeg,
-  with an explicit frame-rate contract and bounded malformed-input handling.
-
-### std.video.038 — Read raw H.264 and HEVC elementary streams
-
-- Evidence: H.264 and HEVC decoding exists behind MP4 and Matroska packet readers, while FileSamples
-  also contains raw `.hevc` elementary streams. These inputs have no container index or timestamps,
-  so registering their extensions alone cannot open them; the reader must frame access units and
-  preserve codec picture reordering.
-- Next: add a bounded Annex-B reader for H.264 and HEVC that feeds the existing codec decoders,
-  indexes access units for seeking, reads dimensions and timing from codec metadata when present,
-  and defines the fallback when timing is absent. Compare reference frames and presentation order
-  against FFmpeg.
-- Done when: `.h264`/`.264` and `.hevc`/`.h265` elementary streams decode and seek against reference
-  planes, missing timing is reported or supplied according to the documented contract, and
-  malformed access units fail safely.
+- Evidence: `.h264` and `.264` index progressive AVC with a stable SPS and PPS. `.hevc`
+  and `.h265` index progressive Main and Main 10 HEVC with a stable VPS, SPS and PPS
+  in closed IDR groups. Both reorder by picture order, seek from IDRs, and use the
+  SPS VUI rate or 25 frames per second. The AVC and HEVC reference fixtures cover
+  reordered B pictures, multiple slices and streams without nominal timing. The
+  HEVC reader rejects a valid open-GOP CRA fixture before playback begins.
+- Next: support CRA and BLA in raw HEVC. Index the leading RADL and RASL pictures
+  consistently across playback and seeking. Extend indexing across parameter changes
+  and codec picture-order resets without losing seek setup.
+- Done when: open groups and configuration changes decode and seek against reference
+  planes, with stable display numbering and bounded handling of incomplete access units.

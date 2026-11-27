@@ -46,6 +46,27 @@ namespace
             appendLz4Length(bytes, matchLength - inlineLength);
     }
 
+    size_t lz4MatchLength(const std::byte* match, const std::byte* candidate, const size_t limit)
+    {
+        size_t length = sizeof(uint32_t);
+        while (length + sizeof(uint64_t) <= limit)
+        {
+            uint64_t first, second;
+            std::memcpy(&first, match + length, sizeof(first));
+            std::memcpy(&second, candidate + length, sizeof(second));
+            const uint64_t different = first ^ second;
+            if (different)
+            {
+                const int bits = std::endian::native == std::endian::little ? std::countr_zero(different) : std::countl_zero(different);
+                return length + static_cast<size_t>(bits / 8);
+            }
+            length += sizeof(uint64_t);
+        }
+        while (length < limit && match[length] == candidate[length])
+            ++length;
+        return length;
+    }
+
     void appendLz4Block(ByteArray& packed, const std::span<const std::byte> bytes)
     {
         if (bytes.size() < 12)
@@ -53,14 +74,15 @@ namespace
             appendLz4Sequence(packed, bytes, 0, 0);
             return;
         }
-        constexpr size_t      hashBits = 16;
-        std::vector<uint32_t> last(1 << hashBits, UINT32_MAX);
-        size_t                literalStart = 0;
-        size_t                cursor       = 0;
+        constexpr size_t hashBits = 16;
+        using MatchPositions      = std::array<uint32_t, 2>;
+        std::vector<MatchPositions> recent(1 << hashBits, {UINT32_MAX, UINT32_MAX});
+        size_t                      literalStart = 0;
+        size_t                      cursor       = 0;
         // LZ4 leaves at least five trailing literals, and the last match starts
         // at least twelve bytes before the end of the block.
         const size_t matchLimit = bytes.size() - 5;
-        const auto readWord = [&](const size_t offset) {
+        const auto   readWord   = [&](const size_t offset) {
             uint32_t word;
             std::memcpy(&word, bytes.data() + offset, sizeof(word));
             if constexpr (std::endian::native == std::endian::big)
@@ -69,24 +91,37 @@ namespace
         };
         while (cursor + 12 <= bytes.size())
         {
-            const uint32_t word     = readWord(cursor);
-            const uint32_t hash     = (word * 2654435761u) >> (32 - hashBits);
-            const uint32_t previous = std::exchange(last[hash], static_cast<uint32_t>(cursor));
-            if (previous == UINT32_MAX || cursor - previous > UINT16_MAX || readWord(previous) != word)
+            const uint32_t       word       = readWord(cursor);
+            const uint32_t       hash       = (word * 2654435761u) >> (32 - hashBits);
+            const MatchPositions candidates = std::exchange(recent[hash], {static_cast<uint32_t>(cursor), recent[hash][0]});
+            const size_t         maxLength  = matchLimit - cursor;
+            const auto*          match      = bytes.data() + cursor;
+            size_t               length     = 0;
+            uint16_t             distance   = 0;
+
+            // A newer name can share only the prefix with an older, longer match.
+            for (const uint32_t position : candidates)
+            {
+                if (position == UINT32_MAX || cursor - position > UINT16_MAX || readWord(position) != word)
+                    continue;
+                const auto* candidate = bytes.data() + position;
+                if (length && match[length] != candidate[length])
+                    continue;
+                const size_t candidateLength = lz4MatchLength(match, candidate, maxLength);
+                if (candidateLength <= length)
+                    continue;
+                length   = candidateLength;
+                distance = static_cast<uint16_t>(cursor - position);
+                if (length == maxLength)
+                    break;
+            }
+
+            if (!distance)
             {
                 ++cursor;
                 continue;
             }
-            const size_t maxLength = matchLimit - cursor;
-            const auto*  match     = bytes.data() + cursor;
-            const auto*  candidate = bytes.data() + previous;
-            size_t       length    = 4;
-            while (length + sizeof(uint64_t) <= maxLength &&
-                   std::memcmp(match + length, candidate + length, sizeof(uint64_t)) == 0)
-                length += sizeof(uint64_t);
-            while (length < maxLength && match[length] == candidate[length])
-                ++length;
-            appendLz4Sequence(packed, bytes.subspan(literalStart, cursor - literalStart), static_cast<uint16_t>(cursor - previous), length);
+            appendLz4Sequence(packed, bytes.subspan(literalStart, cursor - literalStart), distance, length);
             cursor += length;
             literalStart = cursor;
         }
@@ -235,7 +270,23 @@ bool SymbolTable::makeEntry(Entry& outEntry, const TaskContext& ctx, const Nativ
 
 namespace
 {
-    void buildSymbolTable(ByteArray& outBytes, std::vector<SymbolTable::Relocation>* outRelocations, const std::span<const SymbolTable::Entry> entries)
+    void appendImageStrings(StringBlob& strings, const std::span<const SymbolTable::Entry> entries)
+    {
+        std::unordered_set<std::string_view> sourceFiles;
+        for (const SymbolTable::Entry& entry : entries)
+        {
+            strings.insert(entry.name.view());
+            sourceFiles.insert(entry.file.view());
+        }
+
+        // Nearby source paths can share their directory prefix in the LZ4 window.
+        std::vector<std::string_view> sorted(sourceFiles.begin(), sourceFiles.end());
+        std::ranges::sort(sorted);
+        for (const std::string_view file : sorted)
+            strings.insert(file);
+    }
+
+    void buildSymbolTable(ByteArray& outBytes, std::vector<SymbolTable::Relocation>* outRelocations, const std::span<const SymbolTable::Entry> entries, const bool groupSourceFiles = false)
     {
         outBytes.clear();
         if (outRelocations)
@@ -245,6 +296,8 @@ namespace
 
         StringBlob strings;
         strings.base = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(entries.size()) * SymbolTable::ENTRY_SIZE;
+        if (groupSourceFiles)
+            appendImageStrings(strings, entries);
 
         outBytes.appendLe32(SymbolTable::MAGIC);
         outBytes.appendLe32(SymbolTable::VERSION_PLAIN);
@@ -279,6 +332,11 @@ void SymbolTable::build(ByteArray& outBytes, std::vector<Relocation>& outRelocat
 void SymbolTable::build(ByteArray& outBytes, const std::span<const Entry> entries)
 {
     buildSymbolTable(outBytes, nullptr, entries);
+}
+
+void SymbolTable::buildImage(ByteArray& outBytes, const std::span<const Entry> entries)
+{
+    buildSymbolTable(outBytes, nullptr, entries, true);
 }
 
 bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std::byte> bytes, const std::span<const Relocation> relocations)

@@ -1240,6 +1240,14 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         return;
     }
 
+    if (inst.op == MicroInstrOpcode::VecCarrylessProductSum16)
+    {
+        info.addUse(MicroReg::floatReg(6));
+        for (uint8_t reg = 0; reg < 7; ++reg)
+            info.addDef(MicroReg::floatReg(reg));
+        return;
+    }
+
     if (inst.op == MicroInstrOpcode::VecGatherS32)
     {
         // VPGATHERDD destroys its mask. XMM15 is a late encoder scratch, and
@@ -2753,7 +2761,7 @@ void X64Encoder::encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg
         emitCpuOp(store_, 0x6F);
         emitMemoryOperand(store_, 0, dst, src);
     };
-    const auto multiply = [this](MicroReg dst, uint8_t selector) {
+    const auto multiply = [this, zmm1](MicroReg dst, uint8_t selector) {
         emitEvex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), X64Reg::Xmm0, X64Reg::Xmm1, length);
         emitCpuOp(store_, 0x44);
         emitModRm(store_, dst, zmm1);
@@ -2777,6 +2785,130 @@ void X64Encoder::encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg
     store_.pushU8(0xC5);
     store_.pushU8(0xF8);
     store_.pushU8(0x77);
+}
+
+void X64Encoder::encodeVecCarrylessProductSum16(MicroReg result, MicroReg input, MicroReg factors, bool finishRun)
+{
+    SWC_ASSERT(result.isInt() && input.isInt() && factors.isInt());
+    constexpr auto     length  = EvexVectorLength::Zmm;
+    constexpr MicroReg inputLo = MicroReg::floatReg(0);
+    constexpr MicroReg inputHi = MicroReg::floatReg(1);
+    constexpr MicroReg sumLo   = MicroReg::floatReg(2);
+    constexpr MicroReg sumHi   = MicroReg::floatReg(3);
+    constexpr MicroReg cross   = MicroReg::floatReg(4);
+    constexpr MicroReg scratch = MicroReg::floatReg(5);
+    constexpr MicroReg mask    = MicroReg::floatReg(6);
+
+    const auto loadInput = [this](MicroReg reg, MicroReg base, uint64_t offset, bool wide) {
+        emitVex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(base), false, false, wide);
+        emitCpuOp(store_, 0x6F);
+        emitMemoryOperand(store_, offset, reg, base);
+    };
+    const auto shuffleBytes = [this, mask](MicroReg reg) {
+        emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg), microRegToX64Reg(reg), X64Reg::Xmm6, false, false, true);
+        emitCpuOp(store_, 0x00);
+        emitModRm(store_, reg, mask);
+    };
+    const auto xorWide = [this](MicroReg dst, MicroReg src) {
+        emitEvex(store_, 0x66, VEX_MAP_0F, microRegToX64Reg(dst), microRegToX64Reg(dst), microRegToX64Reg(src), length, true);
+        emitCpuOp(store_, 0xEF);
+        emitModRm(store_, dst, src);
+    };
+    const auto xorNarrow = [this](MicroReg dst, MicroReg src) {
+        emitVex(store_, 0x66, VEX_MAP_0F, microRegToX64Reg(dst), microRegToX64Reg(dst), microRegToX64Reg(src));
+        emitCpuOp(store_, 0xEF);
+        emitModRm(store_, dst, src);
+    };
+    const auto multiply = [this, inputHi](MicroReg dst, uint8_t selector) {
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), X64Reg::Xmm0, X64Reg::Xmm1, length);
+        emitCpuOp(store_, 0x44);
+        emitModRm(store_, dst, inputHi);
+        store_.pushU8(selector);
+    };
+
+    // Broadcast the 128-bit shuffle carried in XMM6 to both halves.
+    emitVex(store_, 0x66, VEX_MAP_0F3A, X64Reg::Xmm6, X64Reg::Xmm6, X64Reg::Xmm6, false, false, true);
+    emitCpuOp(store_, 0x38);
+    emitModRm(store_, mask, mask);
+    store_.pushU8(1);
+
+    for (uint64_t group = 0; group < 4; ++group)
+    {
+        // Two AVX2 shuffles per group avoid requiring AVX-512BW.
+        loadInput(inputLo, input, group * 64, true);
+        loadInput(inputHi, input, group * 64 + 32, true);
+        shuffleBytes(inputLo);
+        shuffleBytes(inputHi);
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, X64Reg::Xmm0, X64Reg::Xmm0, X64Reg::Xmm1, length, true);
+        emitCpuOp(store_, 0x3A);
+        emitModRm(store_, inputLo, inputHi);
+        store_.pushU8(1);
+
+        if (!group)
+        {
+            // The 128-bit load clears the upper lanes, so the seed affects
+            // only the first input lane.
+            loadInput(scratch, result, 0, false);
+            xorWide(inputLo, scratch);
+        }
+
+        emitEvex(store_, 0xF3, VEX_MAP_0F, X64Reg::Xmm1, X64Reg::Rax, microRegToX64Reg(factors), length, true);
+        emitCpuOp(store_, 0x6F);
+        // EVEX scales this signed byte displacement by the full 64-byte width.
+        emitMemoryOperand(store_, group, inputHi, factors);
+
+        if (!group)
+        {
+            multiply(sumLo, 0x00);
+            multiply(sumHi, 0x11);
+            multiply(cross, 0x01);
+            multiply(inputLo, 0x10);
+            xorWide(cross, inputLo);
+            continue;
+        }
+
+        multiply(scratch, 0x00);
+        xorWide(sumLo, scratch);
+        multiply(scratch, 0x11);
+        xorWide(sumHi, scratch);
+        multiply(scratch, 0x01);
+        multiply(inputLo, 0x10);
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, X64Reg::Xmm4, X64Reg::Xmm5, X64Reg::Xmm0, length, true);
+        emitCpuOp(store_, 0x25);
+        emitModRm(store_, cross, inputLo);
+        store_.pushU8(0x96);
+    }
+
+    for (const MicroReg sum : {sumLo, sumHi, cross})
+    {
+        const X64Reg reg = microRegToX64Reg(sum);
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, reg, X64Reg::Rax, X64Reg::Xmm0, length, true);
+        emitCpuOp(store_, 0x3B);
+        emitModRm(store_, sum, inputLo);
+        store_.pushU8(1);
+        emitVex(store_, 0x66, VEX_MAP_0F, reg, reg, X64Reg::Xmm0, false, false, true);
+        emitCpuOp(store_, 0xEF);
+        emitModRm(store_, sum, inputLo);
+        emitVex(store_, 0x66, VEX_MAP_0F3A, reg, X64Reg::Rax, X64Reg::Xmm0, false, false, true);
+        emitCpuOp(store_, 0x39);
+        emitModRm(store_, sum, inputLo);
+        store_.pushU8(1);
+        xorNarrow(sum, inputLo);
+    }
+
+    encodeOpBinaryRegRegImm(inputLo, cross, MicroOp::VecShiftLeftBytes, MicroOpBits::B128, 8);
+    encodeOpBinaryRegRegImm(inputHi, cross, MicroOp::VecShiftRightBytes, MicroOpBits::B128, 8);
+    xorNarrow(sumLo, inputLo);
+    xorNarrow(sumHi, inputHi);
+    encodeStoreVecMemReg(result, 0, sumLo, MicroOpBits::B128);
+    encodeStoreVecMemReg(result, 16, sumHi, MicroOpBits::B128);
+
+    if (finishRun)
+    {
+        store_.pushU8(0xC5);
+        store_.pushU8(0xF8);
+        store_.pushU8(0x77);
+    }
 }
 
 void X64Encoder::encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun)

@@ -29,7 +29,7 @@ outcomes owned by `core` together.
 - Done when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than that
   baseline with no more than 1% growth in compressed size, and every `core` compression test
   still round-trips.
-- Related: std.core.021, std.core.022
+- Related: std.core.022
 
 ### std.core.010 — No AES implementation
 
@@ -54,14 +54,6 @@ outcomes owned by `core` together.
   modes retain separate backlog IDs.
 - Related: std.net.005
 
-### std.core.021 — No gzip container support
-
-- Next: add the gzip container over the existing deflate/inflate and zlib support, including
-  headers, trailers, checksums, and concatenated members.
-- Done when: gzip reading and writing validate headers, trailers, checksums, and concatenated
-  members over existing Deflate, with round-trip, truncation, and corruption tests.
-- Related: std.core.022, std.core.023
-
 ### std.core.023 — No TAR container support
 
 - Next: add streaming TAR reading and writing, with the supported metadata and extension
@@ -69,8 +61,6 @@ outcomes owned by `core` together.
 - Done when: a streaming TAR reader and writer round-trip regular files, directories, and the
   declared metadata and extension variants, while malformed sizes and unsafe paths fail under
   explicit limits.
-- Related: std.core.021
-
 ### std.core.024 — Time zones
 
 - Evidence: `time` handles UTC and local. There is no IANA zone database, no historical
@@ -120,8 +110,6 @@ outcomes owned by `core` together.
   and add the missing writer with explicit supported formats and resource limits.
 - Done when: owning round-trip and malformed-container tests cover the shared reader/writer
   and Scope uses that contract without a private ZIP parser.
-
-- Related: std.core.021
 
 ### std.core.031 — Two atomic families, one of them Core's
 

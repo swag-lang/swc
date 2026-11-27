@@ -1,5 +1,5 @@
 // Regenerates the lossless zlib-compressed font resources beside their TTF sources.
-// Run with: bin/swc.dm.exe run -f bin/std/modules/gui/tools/compress-theme-fonts.swgs
+// Run with: bin/swc.dm.exe run -f bin/std/namespaces/gui/tools/compress-theme-fonts.swgs
 #import("core", location: "swag@std")
 
 using Core

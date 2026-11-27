@@ -369,7 +369,7 @@ func smallPaletteTables(packed: const [*] u32, paletteSize: u64)->[4] Math.Simd.
 const PaletteDropAlpha = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
 
 #[Swag.Inline]
-private func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
+func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
 {
     let rg     = cast #bit(Math.Simd.U16x8, redGreen)
     let ba     = cast #bit(Math.Simd.U16x8, blueAlpha)
@@ -407,4 +407,67 @@ func(HAS_ALPHA: bool) writeSmallPaletteRow(source: const [*] u8, target: [*] u8,
     }
 
     return x
+}
+
+#[Inline]
+private func changedByteMask(first, second: const [*] u8, channels: u32)->u32
+{
+    let equal = Math.Simd.load(first) == Math.Simd.load(second)
+    return ~Math.Simd.bitmask(equal) & channels
+}
+
+// Finds the first and last changed byte in one packed row, optionally ignoring alpha.
+func changedPackedRow(first, second: const [*] u8, rowBytes: s32, ignoreAlpha: bool)->{ left, right: s32 }
+{
+    let channels  = ignoreAlpha ? 0x7777_u32 : 0xFFFF_u32
+    let vectorEnd = rowBytes & ~15
+    var start     = 0
+    var mask: u32
+    while start < vectorEnd
+    {
+        mask = changedByteMask(first + start, second + start, channels)
+        if mask
+        {
+            break
+        }
+
+        start += 16
+    }
+
+    var left  = mask ? start + cast(s32, Math.trailingZeros(mask)) : rowBytes
+    var right = -1
+    for offset in vectorEnd until rowBytes
+    {
+        if (ignoreAlpha and (offset & 3) == 3) or first[offset] == second[offset]
+        {
+            continue
+        }
+
+        if left == rowBytes
+        {
+            left = offset
+        }
+
+        right = offset
+    }
+
+    if right >= 0 or not mask
+    {
+        return {left, right}
+    }
+
+    // The earliest changed group already supplies both bounds when no later group differs.
+    var stop = vectorEnd - 16
+    while stop > start
+    {
+        let last = changedByteMask(first + stop, second + stop, channels)
+        if last
+        {
+            return {left, stop + 31 - cast(s32, Math.leadingZeros(last))}
+        }
+
+        stop -= 16
+    }
+
+    return {left, start + 31 - cast(s32, Math.leadingZeros(mask))}
 }

@@ -58,7 +58,7 @@ private func updateAdlerBlocks64(input: const [*] u8, count: u64, byteSum, weigh
     byteSum[] += blockBytes
 }
 
-#[Swag.Inline]
+#[Swag.Inline, Swag.Safety(.Overflow, false)]
 private func updateAdlerShort(input: const [*] u8, count: u64, byteSum, weightedSum: *u32)
 {
     var sum      = byteSum[]
@@ -66,15 +66,15 @@ private func updateAdlerShort(input: const [*] u8, count: u64, byteSum, weighted
     var offset   = 0_u64
     while count - offset >= 4
     {
-        let word   = Math.littleEndianToNative(cast(const [*] u32, input + offset)[0])
-        let first  = word & 0xFF
-        let second = (word >> 8) & 0xFF
-        let third  = (word >> 16) & 0xFF
-        let fourth = word >> 24
-
-        // Each byte contributes to its own prefix and to the prefixes that follow.
-        weighted += 4 * sum + 4 * first + 3 * second + 2 * third + fourth
-        sum      += first + second + third + fourth
+        const ByteColumns = 0x00FF_00FF_u32
+        const EvenWeights = 0x0004_0002_u32
+        const OddWeights  = 0x0003_0001_u32
+        const Ones        = 0x0001_0001_u32
+        let word = Math.littleEndianToNative(cast(const [*] u32, input + offset)[0])
+        let even = word & ByteColumns
+        let odd  = (word >> 8) & ByteColumns
+        weighted += 4 * sum + ((even * EvenWeights + odd * OddWeights) >> 16)
+        sum      += ((even + odd) * Ones) >> 16
         offset   += 4
     }
 
@@ -279,6 +279,14 @@ public impl Adler32
         }
 
         let input = buffer.buffer
+        if count < 16
+        {
+            var byteSum     = 1_u32
+            var weightedSum = 0_u32
+            updateAdlerShort(input, count, &byteSum, &weightedSum)
+            return byteSum | (weightedSum << 16)
+        }
+
         if count >= 128
         {
             var checksum: Adler32
@@ -288,14 +296,18 @@ public impl Adler32
 
         var byteSum     = 1_u32
         var weightedSum = 0_u32
-        var offset      = 0_u64
+        updateAdlerBlock16(input, &byteSum, &weightedSum)
+        var offset = 16_u64
         while count - offset >= 16
         {
             updateAdlerBlock16(input + offset, &byteSum, &weightedSum)
             offset += 16
         }
 
-        updateAdlerShort(input + offset, count - offset, &byteSum, &weightedSum)
+        if offset != count
+        {
+            updateAdlerShort(input + offset, count - offset, &byteSum, &weightedSum)
+        }
 
         // The byte sum stays below the modulus for at most 127 bytes. The
         // weighted sum can reach the modulus when there are 23 bytes or more.

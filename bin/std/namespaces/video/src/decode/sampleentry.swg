@@ -5,10 +5,9 @@
 //
 #global internal
 
-// One length-prefixed access unit of a coded video track, in decode order.
+// One stored access unit of a coded video track in decode order.
 //
-// A container indexes its video samples this way whatever the codec inside them: the payload
-// stays in the file, and the reader keeps only where it is and when it is shown.
+// The payload stays in the source. The reader indexes its location and presentation order.
 struct SampleEntry
 {
     offset:           u64      // Absolute byte offset of the access unit in the source file.

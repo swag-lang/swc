@@ -59,6 +59,53 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(image.width == 128 and image.height == 64)
 }
 
+// SVGZ opens as vectors and yields the same pixels as the equivalent uncompressed document.
+#test
+{
+    let svg  = scopeTestDataPath("sample.svg")
+    let svgz = scopeTestDataPath("sample.svgz")
+
+    let plain = expect Picture.loadViewerImage(svg)
+    let image = expect Picture.loadViewerImage(svgz)
+    Swag.require(image.width == 128 and image.height == 64)
+    Swag.require(image.pixels.count == plain.pixels.count and
+                 Memory.compare(image.pixels.storage(), plain.pixels.storage(), image.pixels.count) == 0)
+
+    let plainThumbnail = expect Picture.loadThumbnail(svg, 32)
+    let thumbnail      = expect Picture.loadThumbnail(svgz, 32)
+    Swag.require(thumbnail.width == 32 and thumbnail.height == 16)
+    Swag.require(thumbnail.pixels.count == plainThumbnail.pixels.count and
+                 Memory.compare(thumbnail.pixels.storage(), plainThumbnail.pixels.storage(), thumbnail.pixels.count) == 0)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var index  = createViewerPluginRegistry()
+    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
+    window.resize(640, 420)
+    window.openFile(svgz)
+    completeImageViewerWindow(&host, window)
+
+    Swag.require(window.activeChoiceIndex < window.instances.count)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "image")
+    let view = assume cast(*Picture.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.failureReason.isEmpty() and view.facts.vector)
+    Swag.require(view.facts.width == "128" and view.facts.height == "64")
+}
+
+// A gzip stream with valid SVG data but an invalid trailer must fail before parsing.
+#test
+{
+    var bytes = expect File.readAllBytes(scopeTestDataPath("sample.svgz"))
+    bytes[bytes.count - 8] ^= 1_u8
+    let fileName = Testing.tempFilePath("scope-image-damaged-svg-", ".svgz")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch Picture.loadViewerDrawing(fileName) as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 // A generated watershed map renders its gradient paper, blue river and orange sampling sites.
 #test
 {

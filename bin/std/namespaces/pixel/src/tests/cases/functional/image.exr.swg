@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null, compressionMode = 0_u8)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -41,7 +41,8 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&channels, 1)
     channels.addNative(0_u8)
 
-    var compression: [1] u8 = [rowsPerBlock == 16 ? 3 : 2]
+    let inferred = rowsPerBlock == 32 ? 4_u8 : (rowsPerBlock == 16 ? 3_u8 : 2_u8)
+    var compression: [1] u8 = [compressionMode ? compressionMode : inferred]
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
@@ -425,6 +426,132 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
             }
         }
     }
+}
+
+// OpenEXR 3.5.5 wrote these synthetic PIZ images with odd dimensions and partial final blocks.
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-half.exr"))
+    assertImage(image, 17, 33, .GrayAlphaF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let index = ((image.height - y - 1) * image.width + x) * 2
+            Swag.require(halfToFloat(samples[index]) == cast(f32, x / 2 + y / 3))
+            let opacity = y & 1 ? cast(f32, x % 3) * 0.5 : 1
+            Swag.require(halfToFloat(samples[index + 1]) == opacity)
+        }
+    }
+}
+
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-mixed.exr"))
+    assertImage(image, 31, 35, .GrayAlphaF32)
+    let samples = cast(const [*] u32, image.pixels.storage())
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let index = ((image.height - y - 1) * image.width + x) * 2
+            Swag.require(samples[index] == 0x3F000123 + cast(u32, x * 257 + (y & 3) * 65536))
+            Swag.require(cast #bit(f32, samples[index + 1]) == cast(f32, x & 3) / 4)
+        }
+    }
+}
+
+// This synthetic image exercises a 14-bit code and a 58-bit code that spans two refills.
+#test
+{
+    let image = expect Image.load(getTestDataPath("exr-piz-long-code.exr"))
+    assertImage(image, 58, 1, .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in image.width
+    {
+        Swag.require(samples[x] == (x == 7 ? 57 : (x == 8 ? 13 : 0)))
+    }
+}
+
+#test
+{
+    // The packed Huffman table leaves only two bits for its second six-bit length.
+    var packed: ConcatBuffer
+    packed.addBytes([0xFF_u8, 0x1F, 0, 0])     // Empty range bitmap.
+    exrAddU32(&packed, 22)     // Huffman block size.
+    exrAddU32(&packed, 0)      // First symbol.
+    exrAddU32(&packed, 1)      // Repeat symbol.
+    exrAddU32(&packed, 1)      // Table byte count.
+    exrAddU32(&packed, 8)      // Payload bit count.
+    exrAddU32(&packed, 0)      // Reserved.
+    packed.addBytes([4_u8, 0])
+    let bytes = exrZipFixture(1, nnBytes(packed.toSlice()), rowsPerBlock: 32)
+    var outcome: Swag.Error
+    discard catch Image.decode("truncated-piz.exr", nnBytes(bytes.toSlice())) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
+#test
+{
+    // The compressed HALF 1.0 row has short packets throughout, including its tail.
+    const Encoded: [24] u8 = [0xFF, 0, 2, 128, 6, 128, 10, 128, 15, 128, 89, 128,
+                              0xFF, 188, 94, 128, 15, 128, 4, 128, 2, 128, 7, 128]
+    var stored: [256] u8
+    for x in 128
+    {
+        stored[x * 2 + 1] = 0x40
+    }
+
+    let input = exrZipFixture(128, Encoded, blocks: 2, alternate: stored, compressionMode: Exr.RleCompression)
+    let image = expect Image.decode("rle.exr", nnBytes(input.toSlice()))
+    assertImage(image, 128, 2, .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in 128
+    {
+        Swag.require(samples[x] == 0x4000)
+        Swag.require(samples[x + 128] == 0x3C00)
+    }
+}
+
+#test
+{
+    // One packet has too few literal bytes, the other repeats past the decoded row.
+    for packed in [[0xFE_u8, 1], [0x7F_u8, 0]]
+    {
+        let input = exrZipFixture(4, packed, compressionMode: Exr.RleCompression)
+        var outcome: Swag.Error
+        discard catch Image.decode("invalid-rle.exr", nnBytes(input.toSlice())) as outcome
+        Swag.require(outcome.value() is Errors.InvalidFormatError)
+    }
+}
+
+#test
+{
+    const First:  [2] u8 = [0, 0x3C]
+    const Second: [2] u8 = [0, 0x40]
+    const Blocks         = 4_u32
+    var input = exrZipFixture(1, First, blocks: Blocks, alternate: Second)
+    var bytes = input.moveToArray()
+
+    // Four eight-byte offsets followed by four ten-byte raw scanline chunks.
+    let offsets = cast([*] u64, bytes.storage() + bytes.count - Blocks * 18)
+    let next    = offsets[2]
+    offsets[2] = offsets[3]
+    offsets[3] = next
+
+    let image = expect Image.decode("reordered-offsets.exr", bytes.toSlice())
+    assertImage(image, 1, cast(s32, Blocks), .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in Blocks
+    {
+        Swag.require(samples[x] == (x & 1 ? 0x3C00 : 0x4000))
+    }
+
+    offsets[3] = offsets[1]
+    var outcome: Swag.Error
+    discard catch Image.decode("duplicate-offset.exr", bytes.toSlice()) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
 }
 
 #test

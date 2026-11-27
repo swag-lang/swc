@@ -899,6 +899,104 @@ func buildRgbTransparencyPng(width: u32)->Array!{u8}
     Swag.require(color.r == 17 and color.g == 34 and color.b == 51)
 }
 
+// Indexed reads use validated frame ranges, including split fdAT data and global metadata.
+#test
+{
+    const AnimationControl: [8] u8 = [0, 0, 0, 1, 0, 0, 0, 0]
+    const FrameControl: [26] u8 = [
+        0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 1, 0, 10, 0, 0]
+    const Palette: [6] u8 = [17, 34, 51, 85, 102, 119]
+    const Alpha: [2] u8 = [0, 255]
+    const Poster: [2] u8 = [0, 0x40]
+    const Frame: [2] u8 = [0, 0x80]
+    const Metadata: [9] u8 = ['T', 'i', 't', 'l', 'e', 0, 'P', 'N', 'G']
+
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(Frame)
+    let bytes = nnBytes(compressed.toSlice())
+    let split = bytes.count / 2
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 2, 1, 1, 3)
+    addPngChunk(&encoded, "PLTE", Palette)
+    addPngChunk(&encoded, "tRNS", Alpha)
+    addPngChunk(&encoded, "acTL", AnimationControl)
+    addPngImageData(&encoded, Poster)
+    addPngChunk(&encoded, "fcTL", FrameControl)
+
+    for part in 3
+    {
+        var data: ConcatBuffer
+        addPngU32Be(&data, cast(u32, part + 1))
+        if part == 0
+        {
+            data.addBytes(bytes[until split])
+        }
+        else if part == 2
+        {
+            data.addBytes(bytes[split to])
+        }
+
+        addPngChunk(&encoded, "fdAT", nnBytes(data.toSlice()))
+        if part == 0
+        {
+            addPngChunk(&encoded, "tEXt", Metadata)
+        }
+    }
+
+    addPngChunk(&encoded, "IEND", "")
+    let fileBytes = nnBytes(encoded.toSlice())
+    for enabled in [false, true]
+    {
+        var reader = expect ImageReader.decode("indexed.apng", fileBytes, {decodeMetadata: enabled})
+        let image  = expect reader.read(0)
+        Swag.require(image.pixelColor(0, 0).r == 85 and image.pixelColor(0, 0).a == 255)
+        Swag.require(image.pixelColor(1, 0).a == 0)
+        Swag.require(image.metadata.count == (enabled ? 1 : 0))
+        if enabled
+        {
+            Swag.require(image.metadata[0].isTag("Title") and Slice.equals(image.metadata[0].toSlice(), "PNG"))
+        }
+    }
+}
+
+// A successful isolated read cannot hide a corrupt frame in an unvisited prefix.
+#test
+{
+    const Animation: [8] u8 = [0, 0, 0, 2, 0, 0, 0, 0]
+    const First: [26] u8 = [
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 10, 0, 100, 0, 0]
+    const GoodRow: [4] u8 = [0, 47, 68, 109]
+    var second = First
+    second[3] = 1
+
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(GoodRow)
+    var frameData: ConcatBuffer
+    addPngU32Be(&frameData, 2)
+    frameData.addBytes(compressed.toSlice())
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 1, 1, 8, 2)
+    addPngChunk(&encoded, "acTL", Animation)
+    addPngChunk(&encoded, "fcTL", First)
+    addPngChunk(&encoded, "IDAT", "invalid zlib data")
+    addPngChunk(&encoded, "fcTL", second)
+    addPngChunk(&encoded, "fdAT", nnBytes(frameData.toSlice()))
+    addPngChunk(&encoded, "IEND", "")
+
+    var reader = expect ImageReader.decode("corrupt-prefix.apng", nnBytes(encoded.toSlice()))
+    let frame = expect reader.readFrame(1, composeAnimation: false)
+    Swag.require(frame.pixelColor(0, 0).r == 47)
+    var rejected: Swag.Error
+    discard catch reader.read(1) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = encoded.toArray()
@@ -1313,12 +1411,12 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(simdImage, 4095, 0, 37_u8, 91_u8, 173_u8, 0_u8)
 }
 
-// Consecutive Paeth rows preserve all RGB8 bytes across the paired path,
+// Consecutive Paeth rows preserve all RGB8 bytes across the four-row and two-row paths,
 // a row copied from above, and the final row that uses the single-row path.
 #test
 {
     const Width    = 9
-    const Height   = 6
+    const Height   = 10
     const RowBytes = Width * 3
     var original: [Height * RowBytes] u8
     for i in original.count
@@ -1698,6 +1796,57 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(image.pixelFormat == .GrayAlpha8)
     let pixel = cast(const [*] u8, image.pixels.storage())
     Swag.require(pixel[0] == 255 and pixel[1] == 0)
+}
+
+// Full one-bit palettes expand directly from packed rows, including the partial last byte.
+#test
+{
+    const Width = 515
+    const Height = 131
+    const Palette: [6] u8 = [17, 59, 143, 237, 178, 71]
+    const Alpha: [1] u8 = [42]
+    const RowBytes = (Width + 7) / 8
+
+    var rows: ConcatBuffer
+    for y in Height
+    {
+        rows.addNative(0_u8)
+        for byte in RowBytes
+        {
+            rows.addNative(((y + byte) & 1) ? 0x55_u8 : 0xAA_u8)
+        }
+    }
+
+    rows.makeLinear()
+
+    for hasAlpha in [false, true]
+    {
+        var encoded: ConcatBuffer
+        addPngSignature(&encoded)
+        addPngHeader(&encoded, Width, Height, 1, 3)
+        addPngChunk(&encoded, "PLTE", Palette)
+        if hasAlpha
+        {
+            addPngChunk(&encoded, "tRNS", Alpha)
+        }
+
+        addPngImageData(&encoded, nnBytes(rows.toSlice()))
+        addPngChunk(&encoded, "IEND", "")
+        let image = expect Image.decode("one-bit-table.png", nnBytes(encoded.toSlice()))
+        assertImage(image, Width, Height, hasAlpha ? .RGBA8 : .RGB8)
+        for y in Height
+        {
+            for x in Width
+            {
+                let sample = 1 - ((x + (x / 8) + y) & 1)
+                let color  = image.pixelColor(x, y)
+                Swag.require(color.r == Palette[3 * sample] and
+                             color.g == Palette[3 * sample + 1] and
+                             color.b == Palette[3 * sample + 2] and
+                             color.a == (hasAlpha and not sample ? 42 : 255))
+            }
+        }
+    }
 }
 
 // Decode palette and tRNS transparency chunks.

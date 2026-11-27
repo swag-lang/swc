@@ -10,6 +10,9 @@ const CFF_OP_PRIVATE         = 18_u16
 const CFF_OP_SUBRS           = 19_u16
 const CFF_OP_DEFAULT_WIDTH   = 20_u16
 const CFF_OP_NOMINAL_WIDTH   = 21_u16
+const CFF2_OP_VSINDEX        = 22_u16
+const CFF2_OP_BLEND          = 23_u16
+const CFF2_OP_VAR_STORE      = 24_u16
 const CFF_OP_ITALIC_ANGLE    = 0x0C02_u16
 const CFF_OP_WEIGHT          = 0x0C04_u16
 const CFF_OP_CHARSTRING_TYPE = 0x0C06_u16
@@ -106,17 +109,57 @@ struct CffDict
 impl CffDict
 {
     // Decodes into the existing buffers so a series of dictionaries can reuse them.
+    #[Swag.Inline]
     mtd decode(data: const [..] u8) fail
+    {
+        try .decodeEntries!{false}(data)
+    }
+
+    mtd(cff2: bool) decodeEntries(data: const [..] u8, variations: const *Cff2VariationStore? = null) fail
     {
         .ops.clear()
         .operands.clear()
         var first = 0_u64
         var pos   = 0_u64
+        var vsIndex: u32
+        var sawIndex, sawBlend: bool
 
         while pos < data.count
         {
             let b0 = peekU8(data, pos)
-            if b0 <= 21
+            #static if cff2
+            {
+                if b0 == CFF2_OP_BLEND
+                {
+                    if not variations
+                    {
+                        try fault(0x08)
+                    }
+
+                    let depth = try blendCff2Operands(unwrap variations, vsIndex, .operands.toSlice()[first to])
+                    .operands.resize(first + depth)
+                    sawBlend = true
+                    pos      += 1
+                    continue
+                }
+
+                if b0 == CFF2_OP_VSINDEX
+                {
+                    if not variations or sawIndex or sawBlend or .operands.count - first != 1
+                    {
+                        try fault(0x08)
+                    }
+
+                    vsIndex  = try cff2UInt(.operands[first])
+                    sawIndex = true
+                    if vsIndex >= variations!.data.count
+                    {
+                        try fault(0x08)
+                    }
+                }
+            }
+
+            if b0 <= (cff2 ? 25 : 21)
             {
                 var op = cast(u16, b0)
                 pos += 1
@@ -172,6 +215,22 @@ impl CffDict
             {
                 try fault(0x08)
             }
+
+            #static if cff2
+            {
+                if .operands.count - first > MaxCff2CharstringStack
+                {
+                    try fault(0x82)
+                }
+            }
+        }
+
+        #static if cff2
+        {
+            if .operands.count != first
+            {
+                try fault(0x08)
+            }
         }
 
         // Operands without a following operator do not belong to the dictionary.
@@ -218,6 +277,7 @@ struct CffPrivate
     subrs:        CffIndex
     defaultWidth: f64
     nominalWidth: f64
+    vsIndex:      u32
 }
 
 // A parsed CFF font program, from a bare `Type1C` stream or an OpenType `CFF ` table.
@@ -235,19 +295,30 @@ struct CffFont
     glyphNames:    GlyphNames
     encoding:      CffEncoding
     codeToGid:     HashTable!{u32, u32}
+    cidIsIdentity: bool
+    cidCharset:    const [..] u8?
+    cidFormat:     u8
+    largestCid:    u32
+    cidAllocator:  IAllocator?
     denseCidToGid: Array!{u16}
     cidToGid:      HashTable!{u32, u32}
-    cidIsIdentity: bool
+    cidIndexReady: Swag.AtomicFlag
+    cidIndexLock:  Swag.Mutex
 
     // A CID-keyed font splits its private data across font dictionaries, one selected
     // per glyph, so the subroutines and width defaults are per dictionary rather than
     // per font.
     isCid:          bool
+    isCff2:         bool
     late fdSelect:  const [..] u8
     fdPrivate:      Array!{CffPrivate}
     defaultPrivate: CffPrivate
     charstringType: u32 = 2
     unitsPerEm:     u16 = 1000
+
+    // An explicit CFF2 FontMatrix must agree with the SFNT design units.
+    matrixScale: f64
+    variations:  Cff2VariationStore
 
     // Identity and metrics a bare CFF has to supply itself, because it ships without the
     // sfnt tables an OpenType file would state them in.
@@ -265,7 +336,7 @@ impl CffFont
     // Returns the local subroutines and width defaults that apply to one glyph.
     mtd const privateFor(gid: u32)->const *CffPrivate
     {
-        if not .isCid or .fdPrivate.isEmpty()
+        if .fdPrivate.isEmpty()
         {
             return &.defaultPrivate
         }
@@ -285,6 +356,27 @@ impl CffFont
         if data[0] == 0
         {
             return data[1 + gid]
+        }
+
+        if data[0] == 4
+        {
+            let ranges = data + 5
+            var first  = 0_u32
+            var end    = readPackedOffset(data + 1, 4)
+            while end - first > 1
+            {
+                let middle = first + (end - first) / 2
+                if readPackedOffset(ranges + cast(u64, middle) * 6, 4) <= gid
+                {
+                    first = middle
+                }
+                else
+                {
+                    end = middle
+                }
+            }
+
+            return readPackedOffset(ranges + cast(u64, first) * 6 + 4, 2)
         }
 
         let ranges = data + 3
@@ -329,16 +421,140 @@ impl CffFont
         }
     }
 
-    mtd const glyphIndexByCid(cid: u32)->u32
+    #[Swag.Inline]
+    private mtd(dense: bool) storeCidRun(target: [*] u16, first, count, glyph: u32)
+    {
+        #static if dense
+        {
+            // Short ranges predominate in regional CID fonts. Long ranges
+            // can store successive glyph indices a vector at a time.
+            let output = target + first
+            var done   = 0_u32
+            if count >= 8
+            {
+                const Consecutive = cast(Math.Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 6, 7])
+                var indices = Consecutive + cast(u16, glyph)
+                while count - done >= 8
+                {
+                    Math.Simd.store(output + done, indices)
+                    indices += 8_u16
+                    done    += 8
+                }
+            }
+
+            for index in done until count
+            {
+                output[index] = cast(u16, glyph + index)
+            }
+        }
+        else
+        {
+            for index in count
+            {
+                .cidToGid[first + index] = glyph + index
+            }
+        }
+    }
+
+    private mtd(dense: bool) buildCidIndex()
+    {
+        let charset = unwrap .cidCharset
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = .cidAllocator orelse previousAllocator
+        defer context.allocator = previousAllocator
+
+        #static if dense
+        {
+            .denseCidToGid.resize(.largestCid + 1)
+        }
+
+        let target     = .denseCidToGid.storage()
+        let glyphCount = .charStrings.count()
+        var entry      = charset.buffer
+        if .cidFormat == 0
+        {
+            for glyph in 1_u32 until glyphCount
+            {
+                let cid = readPackedOffset(entry, 2)
+                #static if dense
+                {
+                    target[cid] = cast(u16, glyph)
+                }
+                else
+                {
+                    .cidToGid[cid] = glyph
+                }
+
+                entry += 2
+            }
+        }
+        else
+        {
+            let shortRange = .cidFormat == 1
+            let recordSize = shortRange ? 3_u32 : 4_u32
+            var glyph      = 1_u32
+            while glyph < glyphCount
+            {
+                let first = readPackedOffset(entry, 2)
+                let left  = shortRange ? cast(u32, entry[2]) : readPackedOffset(entry + 2, 2)
+                let count = left + 1
+                #static if dense
+                {
+                    if not left
+                    {
+                        target[first] = cast(u16, glyph)
+                    }
+                    else
+                    {
+                        .storeCidRun!{true}(target, first, count, glyph)
+                    }
+                }
+                else
+                {
+                    .storeCidRun!{false}(target, first, count, glyph)
+                }
+
+                glyph += count
+                entry += recordSize
+            }
+        }
+
+        .cidIndexReady.raise()
+    }
+
+    mtd glyphIndexByCid(cid: u32)->u32
     {
         if .cidIsIdentity
         {
             return cid < .charStrings.count() ? cid : 0
         }
 
+        if cid > .largestCid or not .cidCharset
+        {
+            return 0
+        }
+
+        if not .cidIndexReady.isRaised()
+        {
+            Sync.scopedLock(&.cidIndexLock)
+            if not .cidIndexReady.isRaised()
+            {
+                // Use a dense index when it needs at most eight bytes per glyph.
+                if .largestCid < .charStrings.count() * 4
+                {
+                    .buildCidIndex!{true}()
+                }
+                else
+                {
+                    .buildCidIndex!{false}()
+                }
+            }
+        }
+
         if .denseCidToGid.count
         {
-            return cid < .denseCidToGid.count ? .denseCidToGid[cid] : 0
+            return .denseCidToGid[cid]
         }
 
         return .cidToGid.getOrDefault(cid, 0)
@@ -391,17 +607,32 @@ func subrBias(count: u32)->s32
     return 32768
 }
 
+#[Swag.Inline]
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
+    return try readCffIndexWithCount!{2}(block, offset)
+}
+
+func(countSize: u64) readCffIndexWithCount(block: const [..] u8, offset: u64)->CffIndex fail
+{
     var result: #returntype
-    let count = try readU16(block, offset)
+    var count:  u32
+    #static if countSize == 2
+    {
+        count = try readU16(block, offset)
+    }
+    else
+    {
+        count = try readU32(block, offset)
+    }
+
     if not count
     {
-        result.end = offset + 2
+        result.end = offset + countSize
         return result
     }
 
-    let offSize = try readU8(block, offset + 2)
+    let offSize = try readU8(block, offset + countSize)
     if offSize < 1 or offSize > 4
     {
         try fault(0x08)
@@ -410,7 +641,7 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
         // all the preceding items once the offsets have been checked for monotonicity.
     }
 
-    let table     = offset + 3
+    let table     = offset + countSize + 1
     let offsets   = try getSlice(block, table, (cast(u64, count) + 1) * offSize)
     let dataStart = table + offsets.count
     if readPackedOffset(offsets.buffer, offSize) != 1
@@ -648,6 +879,117 @@ private func readCffPrivate(font: *CffFont, dict: const *CffDict, privateDict: *
     return result
 }
 
+// Validate the CID coverage at open time. Addressing glyphs by Unicode or by
+// index never needs the reverse CID map, so build it only on the first CID lookup.
+func readCidCharset(font: *CffFont, offset: u64, glyphCount: u32) fail
+{
+    if offset <= 2
+    {
+        font.cidIsIdentity = true
+        return
+    }
+
+    let format = try readU8(font.block, offset)
+    let start  = offset + 1
+    var pos    = start
+    var largest, differences: u32
+
+    if format == 0
+    {
+        let byteCount = cast(u64, glyphCount - 1) * 2
+        let records   = try getSlice(font.block, start, byteCount)
+        var entry     = records.buffer
+        for glyph in 1_u32 until glyphCount
+        {
+            let cid = readPackedOffset(entry, 2)
+            largest     = Math.max(largest, cid)
+            differences |= cid ^ glyph
+            entry       += 2
+        }
+
+        pos += byteCount
+    }
+    else if format == 1 or format == 2
+    {
+        let shortRange = format == 1
+        let recordSize = shortRange ? 3_u64 : 4_u64
+        var glyph      = 1_u32
+        #static if Math.nativeToBigEndian(1_u16) != 1
+        {
+            if shortRange and glyphCount >= 256
+            {
+                const FirstIds = cast(Math.Simd.U8x16, [1_u8, 0, 128, 128, 4, 3, 128, 128, 7, 6, 128, 128, 10, 9, 128, 128])
+                const Rest     = cast(Math.Simd.U8x16, [2_u8, 128, 128, 128, 5, 128, 128, 128, 8, 128, 128, 128, 11, 128, 128, 128])
+                let zero = Math.Simd.splat(0_u32)
+                var maxima, different: Math.Simd.U32x4
+                while glyphCount - glyph >= 4 and font.block.count - pos >= 16
+                {
+                    let bytes = Math.Simd.load(font.block.buffer + pos)
+                    let cids  = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(bytes, FirstIds))
+                    let left  = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(bytes, Rest))
+                    let sizes = left + 1_u32
+                    let pairs = sizes + Math.Simd.align(zero, sizes, 12)
+                    let sums  = pairs + Math.Simd.align(zero, pairs, 8)
+                    if sums[3] > glyphCount - glyph
+                    {
+                        break
+                    }
+
+                    let firstGlyphs = Math.Simd.align(zero, sums, 12) + glyph
+                    maxima    = Math.max(maxima, cids + left)
+                    different |= firstGlyphs ^ cids
+                    glyph     += sums[3]
+                    pos       += 12
+                }
+
+                largest     = Math.Simd.maximum(maxima)
+                differences |= Math.Simd.bitwiseOr(different)
+            }
+        }
+
+        while glyph < glyphCount
+        {
+            if recordSize > font.block.count - pos
+            {
+                try fault(0x03)
+            }
+
+            let entry = font.block.buffer + pos
+            let first = readPackedOffset(entry, 2)
+            let left  = shortRange ? cast(u32, entry[2]) : readPackedOffset(entry + 2, 2)
+            let count = left + 1
+            if count > glyphCount - glyph
+            {
+                try fault(0x08)
+            }
+
+            if glyph == 1 and first == 1 and count == glyphCount - 1
+            {
+                font.cidIsIdentity = true
+                return
+            }
+
+            largest     = Math.max(largest, first + count - 1)
+            differences |= first ^ glyph
+            glyph       += count
+            pos         += recordSize
+        }
+    }
+    else
+    {
+        try fault(0x08)
+    }
+
+    font.cidIsIdentity = differences == 0
+    if not font.cidIsIdentity
+    {
+        font.cidCharset   = Swag.makeSlice(font.block.buffer + start, pos - start)
+        font.cidFormat    = format
+        font.largestCid   = largest
+        font.cidAllocator = Swag.getContext().allocator
+    }
+}
+
 private func readCffCharset(font: *CffFont, offset: u64) fail
 {
     let glyphCount = font.charStrings.count()
@@ -658,9 +1000,9 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
         // The predefined identity charset needs no per-glyph storage for a CID font.
     }
 
-    if font.isCid and offset <= 2
+    if font.isCid
     {
-        font.cidIsIdentity = true
+        try readCidCharset(font, offset, glyphCount)
         return
     }
 
@@ -739,14 +1081,6 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
                 if count > glyphCount - gid
                 {
                     try fault(0x08)
-
-                    // A single range from CID 1 through the last glyph is also identity.
-                }
-
-                if font.isCid and gid == 1 and first == 1 and count == glyphCount - 1
-                {
-                    font.cidIsIdentity = true
-                    return
                 }
 
                 pos += rangeSize
@@ -762,48 +1096,6 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
         {
             try fault(0x08)
         }
-    }
-
-    // A CID-keyed font stores character identifiers where a plain font stores names, so
-    // the same table answers two different questions depending on the font's kind.
-    if font.isCid
-    {
-        var largest     = 0_u32
-        var differences = 0_u32
-        for gid in glyphCount
-        {
-            let cid = sids[gid]
-            differences |= cid ^ gid
-            largest     = Math.max(largest, cid)
-        }
-
-        font.cidIsIdentity = differences == 0
-        if font.cidIsIdentity
-        {
-            return
-
-            // At this density a table of 16-bit glyph indices uses no more than
-            // eight bytes per glyph. Dispersed CIDs use the sparse index instead.
-        }
-
-        if largest < glyphCount * 4
-        {
-            font.denseCidToGid.resize(largest + 1)
-            let glyphs = font.denseCidToGid.storage()
-            for gid in glyphCount
-            {
-                glyphs[sids[gid]] = cast(u16, gid)
-            }
-        }
-        else
-        {
-            for gid in glyphCount
-            {
-                font.cidToGid[sids[gid]] = gid
-            }
-        }
-
-        return
     }
 
     font.glyphNames.entries.reserve(glyphCount)
@@ -904,7 +1196,7 @@ private func readCffEncoding(font: *CffFont, offset: u64) fail
 }
 
 // Keeps the validated FDSelect table in the owned font buffer.
-private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 fail
+func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 fail
 {
     let glyphCount = font.charStrings.count()
     let fdCount    = font.fdPrivate.count
@@ -918,6 +1210,11 @@ private func readCffFdSelect(font: const *CffFont, offset: u64)->const [..] u8 f
         }
 
         return table
+    }
+
+    if format == 4 and font.isCff2
+    {
+        return try readCff2FdSelect(font, offset)
     }
 
     if format != 3
@@ -1051,4 +1348,14 @@ func parseCffFont(block: const [..] u8)->CffFont fail
     try readCffCharset(&result, cast(u64, top.value(CFF_OP_CHARSET, 0, 0)))
     try readCffEncoding(&result, cast(u64, top.value(CFF_OP_ENCODING, 0, 0)))
     return result
+}
+
+func parseCffProgram(block: const [..] u8, cff2: bool)->CffFont fail
+{
+    if cff2
+    {
+        return try parseCff2Font(block)
+    }
+
+    return try parseCffFont(block)
 }

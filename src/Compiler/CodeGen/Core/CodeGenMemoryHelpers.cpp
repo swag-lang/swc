@@ -1213,6 +1213,41 @@ void CodeGenMemoryHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32
     emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, chunkSize, zeroReg, zero128Reg, countReg);
 }
 
+bool CodeGenMemoryHelpers::tryEmitMemZeroElements(CodeGen& codeGen, MicroReg dstReg, MicroReg countReg, uint32_t elementSize)
+{
+    constexpr uint32_t VectorBytes = 16;
+    if (!codeGen.buildCfgBackend().optimizes() || elementSize >= VectorBytes || !std::has_single_bit(elementSize))
+        return false;
+
+    // Count in elements so that the vector stores cover only complete groups. The destination
+    // need not be aligned and a zero count reaches the scalar tail without touching it.
+    MicroBuilder& builder         = codeGen.builder();
+    const auto    vectorElements  = ApInt(VectorBytes / elementSize, 64);
+    const auto    vectorLoopLabel = builder.createLabel();
+    const auto    tailLabel       = builder.createLabel();
+    const auto    cursorReg       = codeGen.nextVirtualIntRegister();
+    const auto    remainingReg    = codeGen.nextVirtualIntRegister();
+    const auto    vectorZeroReg   = codeGen.nextVirtualFloatRegister();
+
+    builder.emitLoadRegReg(cursorReg, dstReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(remainingReg, countReg, MicroOpBits::B64);
+    builder.emitCmpRegImm(remainingReg, vectorElements, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, tailLabel);
+    builder.emitClearReg(vectorZeroReg, MicroOpBits::B128);
+    builder.placeLabel(vectorLoopLabel);
+    emitMemZeroChunk(builder, cursorReg, 0, VectorBytes, MicroReg::invalid(), vectorZeroReg);
+    builder.emitOpBinaryRegImm(cursorReg, ApInt(VectorBytes, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(remainingReg, vectorElements, MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(remainingReg, vectorElements, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, vectorLoopLabel);
+    builder.placeLabel(tailLabel);
+
+    const auto tail = beginElementLoop(codeGen, cursorReg, remainingReg);
+    emitMemZero(codeGen, tail.cursorReg, elementSize);
+    endElementLoop(codeGen, tail, elementSize);
+    return true;
+}
+
 bool CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, std::span<const std::byte> rawBytes, bool allowNonZeroStores)
 {
     if (rawBytes.empty())

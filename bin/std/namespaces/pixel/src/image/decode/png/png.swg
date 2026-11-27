@@ -79,6 +79,15 @@ private
         interlaceMethod:   InterlaceMethod
     }
 
+    // The validated nonempty IDAT/fdAT chunks for an indexed frame. Other
+    // ancillary chunks may lie between the first and last payload.
+    struct FramePayload
+    {
+        first: const [*] u8?
+        last:  const [*] u8?
+        size:  u64
+    }
+
     struct DecodeChunk
     {
         header: ChunkHeader
@@ -115,6 +124,68 @@ internal struct Decoder
         seenPLTE:      bool                   // Whether a palette chunk was seen.
         input:         const [..] u8?
         animation:     ImageSetInfo
+        defaultData:   FramePayload
+        frameData:     Array!{FramePayload}
+        metadata:      Array!{ImageMetadata}
+        validatedThrough: s32 = -1
+    }
+}
+
+private impl FramePayload
+{
+    mtd add(data: const [..] u8, skip: u64 = 0)
+    {
+        if data.count <= skip
+        {
+            return
+        }
+
+        let chunk = data.buffer - 8
+        if not .first
+        {
+            .first = chunk
+        }
+
+        .last = chunk
+        .size += data.count - skip
+    }
+
+    mtd assemble(joined: *Array!{u8})->const [..] u8
+    {
+        let first = .first
+        if not first
+        {
+            return joined.toSlice()
+        }
+
+        let last = unwrap .last
+        if first == last
+        {
+            let type = Swag.byteSwap(Decoder.read32Be(first + 4))
+            return Swag.makeSlice(first + (type == cast(u32, ChunkType.IDAT) ? 8 : 12), .size)
+        }
+
+        joined.grow(.size)
+        var chunk = first
+        while chunk <= last
+        {
+            let length = Decoder.read32Be(chunk)
+            let type   = Swag.byteSwap(Decoder.read32Be(chunk + 4))
+            switch type
+            {
+            case cast(u32, ChunkType.IDAT):
+                joined.add(Swag.makeSlice(chunk + 8, length))
+            case cast(u32, ChunkType.FDAT):
+                joined.add(Swag.makeSlice(chunk + 12, length - 4))
+            default:
+                break
+            }
+
+            chunk += cast(u64, length) + 12
+        }
+
+        Swag.assert(joined.count == .size)
+        return joined.toSlice()
     }
 }
 
@@ -294,9 +365,7 @@ impl Decoder
         }
     }
 
-    // Expand 1, 2, 4 bits to 8 bits
-
-    mtd doIt(buffer: const [..] u8, selected: s32 = -1)->Image fail
+    mtd(INDEX_FRAMES: bool) doIt(buffer: const [..] u8, selected: s32 = -1)->Image fail
     {
         .stream.reset(buffer)
 
@@ -311,6 +380,10 @@ impl Decoder
         var frameData: Array!{u8}
         var firstIdat: const [..] u8?
         var idatSize:  u64
+        #static if INDEX_FRAMES
+        {
+            var idatSpan: FramePayload
+        }
 
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
@@ -440,6 +513,10 @@ impl Decoder
                     disposal: disposal,
                     blend: blend}
                 .animation.frames.add(frame)
+                #static if INDEX_FRAMES
+                {
+                    .frameData.add({})
+                }
 
             case .FDAT:
                 if not seenIDAT or currentFrame < 0 or ch.length < 4
@@ -456,9 +533,16 @@ impl Decoder
 
                 sequence     += 1
                 frameHasData = true
-                if .decOptions.decodePixels and selected == currentFrame
+                #static if INDEX_FRAMES
                 {
-                    frameData.add(data[4 to])
+                    .frameData[currentFrame].add(data, 4)
+                }
+                else
+                {
+                    if .decOptions.decodePixels and selected == currentFrame
+                    {
+                        frameData.add(data[4 to])
+                    }
                 }
 
             case .TRNS:
@@ -608,6 +692,11 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = try .readChunk(ch)
+                    #static if INDEX_FRAMES
+                    {
+                        idatSpan.add(Decoder.safeDatas(chunk))
+                    }
+
                     if .decOptions.decodePixels and
                        (selected < 0 or selected == currentFrame) and
                        ch.length
@@ -630,6 +719,15 @@ impl Decoder
                     if .stream.isEof()
                     {
                         fail InvalidFormatError{"invalid chunk"}
+                    }
+                }
+
+                #static if INDEX_FRAMES
+                {
+                    .defaultData = idatSpan
+                    if currentFrame >= 0
+                    {
+                        .frameData[currentFrame] = idatSpan
                     }
                 }
 
@@ -819,28 +917,6 @@ impl Decoder
             return result
         }
 
-        // Native-depth rows can be defiltered in the final pixel buffer. For 16-bit samples,
-        // swap byte order once the filters no longer need the encoded byte order.
-        let bytesPerSample = .header.bitDepth == 16 ? 2_u64 : 1_u64
-        .dstPixelsSize = cast(u64, .header.width) * .header.height * .inChannels * bytesPerSample
-        var ownsDestination = false
-        defer if ownsDestination
-        {
-            Memory.free(.dstPixels, .dstPixelsSize)
-            .dstPixels = null
-        }
-
-        let intoResult = .header.bitDepth >= 8 and .inChannels == .outChannels
-        if intoResult
-        {
-            result.allocPixels()
-        }
-        else
-        {
-            .dstPixels      = Memory.alloc(.dstPixelsSize)
-            ownsDestination = true
-        }
-
         // Validate all chunks before assembling the stream. A single payload needs no copy.
         var joined:     Array!{u8}
         var compressed: const [..] u8 = frameData.toSlice()
@@ -879,12 +955,77 @@ impl Decoder
             }
         }
 
+        try .renderPixels(&result, compressed)
+        return result
+    }
+
+    // A previously validated replacement for the canvas can begin replay.
+    // Keep the preceding pixels for any frame that needs Previous disposal.
+    mtd replayFrame(target, next: s32)->s32
+    {
+        var index = Math.min(target, .validatedThrough)
+        while index > next
+        {
+            let frame = &.animation.frames[index]
+            if frame.disposal != .Previous and frame.blend == .Replace and
+               frame.x == 0 and frame.y == 0 and
+               frame.width == .animation.canvasWidth and frame.height == .animation.canvasHeight
+            {
+                return index
+            }
+
+            index -= 1
+        }
+
+        return next
+    }
+
+    mtd renderPixels(result: *Image, compressed: const [..] u8) fail
+    {
+        let is16Bit = .header.bitDepth == 16
+        // Native-depth rows can be defiltered in the final pixel buffer. For 16-bit samples,
+        // swap byte order once the filters no longer need the encoded byte order.
+        let bytesPerSample = .header.bitDepth == 16 ? 2_u64 : 1_u64
+        .dstPixelsSize = cast(u64, .header.width) * .header.height * .inChannels * bytesPerSample
+        var ownsDestination = false
+        defer if ownsDestination
+        {
+            Memory.free(.dstPixels, .dstPixelsSize)
+            .dstPixels = null
+        }
+
+        let intoResult = .header.bitDepth >= 8 and .inChannels == .outChannels
+        let oneBitPalette = .header.bitDepth == 1 and
+                            .header.colorType & .Paletted and
+                            .header.interlaceMethod == .None and
+                            .paletteCount == 2 and
+                            .dstPixelsSize >= 64 * 1024
+        if intoResult or oneBitPalette
+        {
+            result.allocPixels()
+        }
+        else
+        {
+            .dstPixels      = Memory.alloc(.dstPixelsSize)
+            ownsDestination = true
+        }
+
         var dec: Compress.ZLib
         let hintSize = .getExpectedDecompressedSize()
         .dcmpBuf = try dec.decompress(compressed, hintSize)
         if .dcmpBuf.count != hintSize
         {
             fail InvalidFormatError{"invalid PNG decompressed scanline size"}
+        }
+
+        if oneBitPalette
+        {
+            if not .convertOneBitPalette(result)
+            {
+                fail InvalidFormatError{"invalid PNG row filter"}
+            }
+
+            return
         }
 
         // defilter content
@@ -911,12 +1052,11 @@ impl Decoder
                 convert16Samples(pixels, pixels, .dstPixelsSize / 2)
             }
 
-            return result
+            return
         }
 
         result.allocPixels()
-        .convert(&result)
-        return result
+        .convert(result)
     }
 }
 
@@ -927,7 +1067,7 @@ internal impl IImageDecoder for Decoder
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         .decOptions = options
-        return try .doIt(buffer)
+        return try .doIt!{false}(buffer)
     }
 }
 
@@ -935,15 +1075,18 @@ impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        .input      = buffer
-        .decOptions = options
-        .decOptions.decodePixels = false
-        let probe = try .doIt(buffer)
-        if not .animation.frames.count
+        var indexed: Decoder
+        indexed.input      = buffer
+        indexed.decOptions = options
+        indexed.decOptions.decodePixels = false
+        var probe = try indexed.doIt!{true}(buffer)
+        indexed.metadata = #move probe.metadata
+        if not indexed.animation.frames.count
         {
-            .animation.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
+            indexed.animation.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
+        me[] = #move indexed
         return .animation
     }
 
@@ -954,8 +1097,47 @@ impl IImageSetDecoder for Decoder
             fail InvalidFormatError{"PNG image index is out of range"}
         }
 
+        let frame = &.animation.frames[index]
         var decoder: Decoder
         decoder.decOptions = options
-        return try decoder.doIt(unwrap .input, .animation.frames[index].kind == .Animation ? cast(s32, index) : -1)
+        if options.decodeMetadata and not .decOptions.decodeMetadata
+        {
+            return try decoder.doIt!{false}(unwrap .input, frame.kind == .Animation ? cast(s32, index) : -1)
+        }
+
+        // ImageReader owns the bytes that open() validated. Use a fresh output
+        // decoder so the indexed header, palette, and frame spans stay intact.
+        decoder.header        = .header
+        decoder.header.width  = cast(u32, frame.width)
+        decoder.header.height = cast(u32, frame.height)
+        decoder.inChannels    = .inChannels
+        decoder.outChannels   = .outChannels
+        decoder.seenPLTE      = .seenPLTE
+        decoder.seenTRSN      = .seenTRSN
+        decoder.chunkTRNS     = .chunkTRNS
+        decoder.palette       = .palette
+        decoder.paletteCount  = .paletteCount
+
+        try options.checkFrameCount(.animation.frames.count)
+        try options.checkImage(frame.width, frame.height, frame.pixelFormat)
+        var result: #returntype
+        result.init(frame.width, frame.height, frame.pixelFormat)
+        if options.decodeMetadata
+        {
+            result.metadata = .metadata
+        }
+
+        if options.decodePixels
+        {
+            var joined: Array!{u8}
+            let span = frame.kind == .Animation ? &.frameData[index] : &.defaultData
+            try decoder.renderPixels(&result, span.assemble(&joined))
+            if frame.kind == .Animation and cast(s32, index) == .validatedThrough + 1
+            {
+                .validatedThrough += 1
+            }
+        }
+
+        return result
     }
 }

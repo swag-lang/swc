@@ -20,44 +20,44 @@ private alias Blake2sVector = Math.Simd.U32x4
 private const Blake2sSchedule: [40] Blake2sVector = [
     cast(Blake2sVector, [0, 2, 4, 6]),
     cast(Blake2sVector, [1, 3, 5, 7]),
-    cast(Blake2sVector, [8, 10, 12, 14]),
-    cast(Blake2sVector, [9, 11, 13, 15]),
+    cast(Blake2sVector, [14, 8, 10, 12]),
+    cast(Blake2sVector, [15, 9, 11, 13]),
     cast(Blake2sVector, [14, 4, 9, 13]),
     cast(Blake2sVector, [10, 8, 15, 6]),
-    cast(Blake2sVector, [1, 0, 11, 5]),
-    cast(Blake2sVector, [12, 2, 7, 3]),
+    cast(Blake2sVector, [5, 1, 0, 11]),
+    cast(Blake2sVector, [3, 12, 2, 7]),
     cast(Blake2sVector, [11, 12, 5, 15]),
     cast(Blake2sVector, [8, 0, 2, 13]),
-    cast(Blake2sVector, [10, 3, 7, 9]),
-    cast(Blake2sVector, [14, 6, 1, 4]),
+    cast(Blake2sVector, [9, 10, 3, 7]),
+    cast(Blake2sVector, [4, 14, 6, 1]),
     cast(Blake2sVector, [7, 3, 13, 11]),
     cast(Blake2sVector, [9, 1, 12, 14]),
-    cast(Blake2sVector, [2, 5, 4, 15]),
-    cast(Blake2sVector, [6, 10, 0, 8]),
+    cast(Blake2sVector, [15, 2, 5, 4]),
+    cast(Blake2sVector, [8, 6, 10, 0]),
     cast(Blake2sVector, [9, 5, 2, 10]),
     cast(Blake2sVector, [0, 7, 4, 15]),
-    cast(Blake2sVector, [14, 11, 6, 3]),
-    cast(Blake2sVector, [1, 12, 8, 13]),
+    cast(Blake2sVector, [3, 14, 11, 6]),
+    cast(Blake2sVector, [13, 1, 12, 8]),
     cast(Blake2sVector, [2, 6, 0, 8]),
     cast(Blake2sVector, [12, 10, 11, 3]),
-    cast(Blake2sVector, [4, 7, 15, 1]),
-    cast(Blake2sVector, [13, 5, 14, 9]),
+    cast(Blake2sVector, [1, 4, 7, 15]),
+    cast(Blake2sVector, [9, 13, 5, 14]),
     cast(Blake2sVector, [12, 1, 14, 4]),
     cast(Blake2sVector, [5, 15, 13, 10]),
-    cast(Blake2sVector, [0, 6, 9, 8]),
-    cast(Blake2sVector, [7, 3, 2, 11]),
+    cast(Blake2sVector, [8, 0, 6, 9]),
+    cast(Blake2sVector, [11, 7, 3, 2]),
     cast(Blake2sVector, [13, 7, 12, 3]),
     cast(Blake2sVector, [11, 14, 1, 9]),
-    cast(Blake2sVector, [5, 15, 8, 2]),
-    cast(Blake2sVector, [0, 4, 6, 10]),
+    cast(Blake2sVector, [2, 5, 15, 8]),
+    cast(Blake2sVector, [10, 0, 4, 6]),
     cast(Blake2sVector, [6, 14, 11, 0]),
     cast(Blake2sVector, [15, 9, 3, 8]),
-    cast(Blake2sVector, [12, 13, 1, 10]),
-    cast(Blake2sVector, [2, 7, 4, 5]),
+    cast(Blake2sVector, [10, 12, 13, 1]),
+    cast(Blake2sVector, [5, 2, 7, 4]),
     cast(Blake2sVector, [10, 8, 7, 1]),
     cast(Blake2sVector, [2, 4, 6, 5]),
-    cast(Blake2sVector, [15, 9, 3, 13]),
-    cast(Blake2sVector, [11, 14, 12, 0])]
+    cast(Blake2sVector, [13, 15, 9, 3]),
+    cast(Blake2sVector, [0, 11, 14, 12])]
 
 private func blake2sRounds(message: const [*] u32, state: *[4] Blake2sVector)
 {
@@ -94,13 +94,14 @@ private func blake2sRounds(message: const [*] u32, state: *[4] Blake2sVector)
     {
         let schedule = Blake2sSchedule.buffer + round * 4
         mix(gatherWords(words, schedule[0]), gatherWords(words, schedule[1]))
-        b = Swag.vecShuffle(b, Left)
-        c = Swag.vecShuffle(c, Across)
-        d = Swag.vecShuffle(d, Right)
+        // Rotate the diagonal lane order so the preceding mix's last result stays in place.
+        a = Swag.vecShuffle(a, Right)
+        c = Swag.vecShuffle(c, Left)
+        d = Swag.vecShuffle(d, Across)
         mix(gatherWords(words, schedule[2]), gatherWords(words, schedule[3]))
-        b = Swag.vecShuffle(b, Right)
-        c = Swag.vecShuffle(c, Across)
-        d = Swag.vecShuffle(d, Left)
+        a = Swag.vecShuffle(a, Left)
+        c = Swag.vecShuffle(c, Right)
+        d = Swag.vecShuffle(d, Across)
     }
 
     state[][0] = a

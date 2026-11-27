@@ -54,3 +54,53 @@ func rasterizeTrace(image: const *Image)->Image
     Swag.require(result.r >= 240 and result.g == 0 and result.b == 0)
     Swag.require(result.a > 0 and result.a < 255)
 }
+
+// Color bounds keep both the antialiased halo and shared high-alpha pixels.
+#test
+{
+    const Width  = 32
+    const Height = 16
+    var pixels: [Width * Height * 4] u8
+    func paint(pixels: [..] u8, left, top, width, height: s32, color: Color)
+    {
+        for dy in height
+        {
+            let row = (Height - 1 - top - dy) * Width + left
+            for dx in width
+            {
+                let offset = (row + dx) * 4
+                pixels[offset + 0] = color.r
+                pixels[offset + 1] = color.g
+                pixels[offset + 2] = color.b
+                pixels[offset + 3] = color.a
+            }
+        }
+    }
+
+    paint(pixels, 0, 0, 4, 8, Color.fromArgb(220_u8, 220_u8, 50_u8, 30_u8))
+    paint(pixels, 4, 0, 4, 8, Color.fromArgb(200_u8, 220_u8, 50_u8, 30_u8))
+    paint(pixels, 8, 1, 1, 6, Color.fromArgb(112_u8, 220_u8, 50_u8, 30_u8))
+    paint(pixels, 27, 11, 5, 5, Color.fromArgb(240_u8, 25_u8, 70_u8, 190_u8))
+    paint(pixels, 13, 5, 6, 6, Color.fromArgb(145_u8, 45_u8, 180_u8, 50_u8))
+
+    let source   = Image.create(Width, Height, .RGBA8, pixels)
+    let document = Svg.trace(&source, {tolerance: 0, threshold: 160})
+    let text     = document.toString()
+    Swag.require(text.contains("fill=\"#DC321E\" fill-opacity=\"0.824\""))
+    Swag.require(text.contains("fill=\"#1946BE\" fill-opacity=\"0.941\""))
+
+    let drawing = expect Svg.Drawing.parse(text.toString())
+    let image   = drawing.rasterize(Width, Height, 4)
+    let red     = image.pixelColor(2, 3)
+    let edge    = image.pixelColor(8, 4)
+    let blue    = image.pixelColor(30, 14)
+    let shared  = image.pixelColor(15, 7)
+    Swag.require(red.r > red.b and red.a > 200 and red.a < 220)
+    Swag.require(edge.a > 0 and edge.a < red.a)
+    Swag.require(blue.b > blue.r and blue.a > 230)
+    Swag.require(shared.b > shared.r and shared.a > blue.a)
+    Swag.require(image.pixelColor(23, 8).a == 0)
+
+    let empty = Svg.trace(&source, {threshold: 255})
+    Swag.require(empty.bodyText().isEmpty())
+}

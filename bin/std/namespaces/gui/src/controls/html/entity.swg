@@ -14,23 +14,27 @@ struct HtmlEntity
     eat:    u64
 }
 
-// Maps a named character reference to its code points, without the leading `&` and the
-// trailing `;`.
-//
-// The names are the standard's complete list, sorted, so this is a binary search over two
-// thousand entries rather than one comparison per name.
+// Resolves a complete name through the packed table. The exact name bytes distinguish hash collisions.
 private func htmlNamedEntity(name: string)->HtmlEntity
 {
-    var result: #returntype
-    let found = htmlFindNamedRef(HtmlNamedRefs, name)
-    if found == Swag.U64.Max
+    var slot = htmlNamedRefSlot(name)
+    while true
     {
-        return result
-    }
+        let index = HtmlPackedNamedRefs.slots[slot]
+        if not index
+        {
+            return {}
+        }
 
-    result.first  = HtmlNamedRefs[found].first
-    result.second = HtmlNamedRefs[found].second
-    return result
+        let entry = &HtmlPackedNamedRefs.entries[index - 1]
+        if entry.length == name.count and
+           not Swag.memcmp(&HtmlPackedNamedRefs.names[entry.offset], name.buffer, name.count)
+        {
+            return {first: entry.first, second: entry.second}
+        }
+
+        slot = (slot + 1) & (HtmlNamedRefSlotCount - 1)
+    }
 }
 
 // Returns the index of `name` in a table sorted by name, or `Swag.U64.Max`.
@@ -68,7 +72,7 @@ private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
 private func htmlLegacyEntity(text: string, inAttribute: bool)->HtmlEntity
 {
     var result: #returntype
-    var length = Math.min(text.count, HtmlMaxRefName)
+    var length = Math.min(text.count, HtmlMaxLegacyRefName)
     while length >= 2
     {
         let found = htmlFindNamedRef(HtmlLegacyRefs, text[0 until length])

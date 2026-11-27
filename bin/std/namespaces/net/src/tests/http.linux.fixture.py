@@ -2,7 +2,7 @@
 """Run a command against isolated loopback HTTP/HTTPS fixtures with temporary test roots.
 
 Example (from the repository root):
-  python3 bin/std/modules/net/src/tests/http.linux.fixture.py -- \
+  python3 bin/std/namespaces/net/src/tests/http.linux.fixture.py -- \
     python3 tools/linux-tests.py std --compiler /path/to/swc.dm --module net \
     --test-file http.linux.integration.test.swg --test-tag integration.network.http
 

@@ -68,6 +68,26 @@ func isBlaNal(nalType: u32)->bool => nalType >= NalBlaWLp and nalType <= NalBlaW
 // The sub-layer non-reference types are the even ones below sixteen, clause 7.4.2.2.
 func isReferenceNal(nalType: u32)->bool => nalType >= NalBlaWLp or (nalType & 1) != 0
 
+// Reads the common part of an independent slice that identifies its display picture.
+func readSlicePictureFields(reader: *BitReader, sps: const *Sps, pps: const *Pps, nalType: u32)->{ sliceType: u32, output: bool, pocLsb: u32 } fail
+{
+    discard reader.read(pps.numExtraSliceHeaderBits)
+    let kind = reader.ue()
+    if kind > SliceTypeI
+    {
+        fail InvalidFormatError{"HEVC slice declares an unknown slice type"}
+    }
+
+    let output = not pps.outputFlagPresent or reader.bit() != 0
+    if sps.separateColour
+    {
+        discard reader.read(2)
+    }
+
+    let poc = isIdrNal(nalType) ? 0 : reader.read(sps.log2MaxPocLsb)
+    return {kind, output, poc}
+}
+
 // The explicit weights and offsets one reference picture uses, clause 7.3.6.3.
 struct PredWeight
 {
@@ -208,30 +228,13 @@ impl SliceHeader
             return
         }
 
-        for pps.numExtraSliceHeaderBits
-        {
-            discard reader.bit()
-        }
-
-        .sliceType = reader.ue()
-        if .sliceType > SliceTypeI
-        {
-            fail InvalidFormatError{"HEVC slice declares an unknown slice type"}
-        }
-
-        if pps.outputFlagPresent
-        {
-            .picOutputFlag = reader.bit() != 0
-        }
-
-        if sps.separateColour
-        {
-            discard reader.read(2)
-        }
+        let picture = try readSlicePictureFields(reader, sps, pps, nalType)
+        .sliceType     = picture.sliceType
+        .picOutputFlag = picture.output
+        .pocLsb        = picture.pocLsb
 
         if not isIdrNal(nalType)
         {
-            .pocLsb = reader.read(sps.log2MaxPocLsb)
             .shortTermRpsSpsFlag = reader.bit() != 0
             if not .shortTermRpsSpsFlag
             {

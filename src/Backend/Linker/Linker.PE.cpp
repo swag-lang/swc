@@ -924,7 +924,7 @@ namespace
     void appendSymbolTable(LinkImage& image, const std::span<SymbolTable::Entry> symbols)
     {
         LinkSection section;
-        SymbolTable::build(section.bytes, symbols);
+        SymbolTable::buildImage(section.bytes, symbols);
         if (section.bytes.empty())
             return;
 

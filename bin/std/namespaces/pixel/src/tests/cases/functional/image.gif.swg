@@ -114,6 +114,53 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(rgba, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
 }
 
+// Random GIF reads reuse only earlier opaque updates whose disposal is independent.
+#test
+{
+    const Colors: [4, 3] u8 = [[0, 0, 0], [40, 70, 130], [180, 35, 65], [111, 189, 55]]
+    const Header: [25] u8   = [
+        'G', 'I', 'F', '8', '9', 'a', 2, 0, 1, 0, 0x81, 0, 0,
+        0, 0, 0, 40, 70, 130, 180, 35, 65, 111, 189, 55]
+    const PaletteIndices: [9] u8 = [1, 2, 3, 1, 0, 0, 1, 2, 3]
+    for anchorDisposal in [1_u8, 2]
+    {
+        let disposals: [9] u8 = [1_u8, anchorDisposal, 3, 1, 3, 1, 2, 1, 1]
+        var bytes:     Array!{u8}
+        bytes.add(Header)
+        for frameIndex in 9
+        {
+            let color = cast(u16, PaletteIndices[frameIndex])
+            let width = frameIndex == 3 or frameIndex == 5 ? 1_u8 : 2_u8
+            let left  = frameIndex == 3 ? 1_u8 : 0_u8
+            let flags = (disposals[frameIndex] << 2) | cast(u8, frameIndex == 5)
+            let codes = frameIndex == 7 ? 5 :
+                        width == 1 ? (4 | color << 3 | 5 << 6) : (4 | color << 3 | color << 6 | 5 << 9)
+            bytes.add([0x21_u8, 0xF9, 4, flags, 3, 0, 0, 0])
+            bytes.add([0x2C_u8, left, 0, 0, 0, width, 0, 1, 0, 0, 2, 2])
+            bytes.add([cast(u8, codes & 255), cast(u8, codes >> 8), 0])
+        }
+
+        bytes.add(0x3B_u8)
+        var reader = expect ImageReader.decode("replayed.gif", nnBytes(bytes.toSlice()))
+        discard expect reader.read(6)
+        for frameIndex in [3_u32, 5, 0, 6, 3, 5]
+        {
+            let image = expect reader.read(frameIndex)
+            let left  = frameIndex == 0 or frameIndex == 6 ? 1 : anchorDisposal == 1 ? 2 : 0
+            assertGifPixelAt(image, 0, 0, Colors[left, 0], Colors[left, 1], Colors[left, 2], 255)
+            assertGifPixelAt(image, 1, 0, Colors[1, 0], Colors[1, 1], Colors[1, 2], 255)
+        }
+
+        // Even when a later unopened frame covers the canvas, the invalid frame must fail the read.
+        var errorOutcome: Swag.Error
+        discard catch reader.read(8) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+        let recovered = expect reader.read(3)
+        let left      = anchorDisposal == 1 ? 2 : 0
+        assertGifPixelAt(recovered, 0, 0, Colors[left, 0], Colors[left, 1], Colors[left, 2], 255)
+    }
+}
+
 // Loading the first GIF image still applies limits and validates the full container.
 #test
 {
@@ -281,6 +328,121 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 }
 
+// GIF LZW can refer to a phrase being added and finish with fewer than four pixels.
+#test
+{
+    const Bytes: [45] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        21, 0, 1, 0, 0x81, 0, 0,
+        13, 17, 25, 49, 61, 79, 83, 103, 127, 149, 179, 197,
+        0x2C, 0, 0, 0, 0, 21, 0, 1, 0, 0,
+        2, 1, 0x8C, 4, 0x8F, 0x69, 0xB2, 5, 0, 0x3B]
+    let image = expect Image.decode("packed-phrases.gif", Bytes)
+    Swag.require(image.width == 21 and image.height == 1)
+    for x in 21
+    {
+        if x == 17 or x == 20
+        {
+            assertGifPixelAt(image, x, 0, 83, 103, 127, 255)
+        }
+        else
+        {
+            assertGifPixelAt(image, x, 0, 49, 61, 79, 255)
+        }
+    }
+
+    var tooShort = Bytes
+    tooShort[6]  = 20
+    tooShort[30] = 20
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("packed-phrases-overflow.gif", tooShort) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+// Paired short LZW phrases can be followed by self-references, longer phrases, and a clear.
+#test
+{
+    const Bytes: [71] u8 = [
+        'G', 'I', 'F', '8', '9', 'a', 88, 0, 1, 0, 0x81, 0, 0,
+        14, 24, 34, 44, 54, 64, 74, 84, 94, 104, 114, 124,
+        0x2C, 0, 0, 0, 0, 88, 0, 1, 0, 0, 2,
+        4, 68, 52, 1, 50,
+        8, 96, 135, 146, 57, 180, 218, 171, 152,
+        2, 57, 40,
+        15, 153, 67, 76, 1, 153, 128, 177, 67, 201, 28, 148, 204, 65, 169, 0,
+        0, 0x3B]
+    let image = expect Image.decode("paired-lzw-boundaries.gif", Bytes)
+    Swag.require(image.width == 88 and image.height == 1 and image.pixelFormat == .RGB8)
+    Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == 1112078511_u32)
+}
+
+// Dense literals can cross both LZW code widths and GIF sub-block boundaries.
+#test
+{
+    const RunLength       = 530
+    const Width           = 2 * RunLength
+    const WidthLow        = cast(u8, Width & 255)
+    const WidthHigh       = cast(u8, Width >> 8)
+    const Header: [13] u8 = ['G', 'I', 'F', '8', '9', 'a', WidthLow, WidthHigh, 1, 0, 0x87, 0, 0]
+    const Frame:  [11] u8 = [0x2C, 0, 0, 0, 0, WidthLow, WidthHigh, 1, 0, 0, 8]
+    var bytes: Array!{u8}
+    bytes.add(Header)
+    for color in 256
+    {
+        let channel = cast(u8, color)
+        bytes.add([channel, channel, channel])
+    }
+
+    let frameOffset = bytes.count
+    bytes.add(Frame)
+    var payload:   Array!{u8}
+    var bits:      u32
+    var available: u32
+    for i in 2 * (RunLength + 1) + 1
+    {
+        let offset = i % (RunLength + 1)
+        let code   = i == 2 * (RunLength + 1) ? 257 : offset == 0 ? 256 : (offset * 73 + 19) & 255
+        let size   = i == 0 or (offset > 0 and offset <= 255) ? 9 : 10
+        bits      |= cast(u32, code) << available
+        available += size
+        while available >= 8
+        {
+            payload.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    if available
+    {
+        payload.add(cast(u8, bits))
+    }
+
+    var remaining = payload.toSlice()
+    while remaining.count
+    {
+        let length = Math.min(11_u64, remaining.count)
+        bytes.add(cast(u8, length))
+        bytes.add(Swag.makeSlice(remaining.buffer, length))
+        remaining = Swag.makeSlice(remaining.buffer + length, remaining.count - length)
+    }
+
+    bytes.add([0_u8, 0x3B])
+    let image = expect Image.decode("dense-literal-pairs.gif", nnBytes(bytes.toSlice()))
+    Swag.require(image.width == Width and image.height == 1)
+    for pixel in Width
+    {
+        let expected = cast(u8, (((pixel % RunLength + 1) * 73 + 19) & 255))
+        assertGifPixelAt(image, pixel, 0, expected, expected, expected, 255)
+    }
+
+    bytes[6] = WidthLow - 1
+    bytes[frameOffset + 5] = WidthLow - 1
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("dense-literal-overflow.gif", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
 #test
 {
@@ -349,25 +511,28 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(image.pixels.storage(), canvas.pixels.storage(), image.byteCount) == 0)
 }
 
-func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
+func wideGifPaletteFixture(withTransparency, invalidIndex: bool, width: u8 = 33, height: u8 = 9)->Array!{u8}
 {
     const Header: [25] u8 = [
         'G', 'I', 'F', '8', '9', 'a',
         33, 0, 9, 0, 0x81, 0, 0,
         17, 103, 219, 255, 40, 13, 150, 235, 72, 249, 128, 213]
-    const Control:    [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 1, 0]
-    const Descriptor: [11] u8 = [0x2C, 0, 0, 0, 0, 33, 0, 9, 0, 0, 3]
-    const PixelCount          = 33 * 9
+    const Control: [8] u8 = [0x21, 0xF9, 4, 1, 0, 0, 1, 0]
+    let descriptor: [11] u8 = [0x2C, 0, 0, 0, 0, width, 0, height, 0, 0, 3]
+    var header = Header
+    header[6] = width
+    header[8] = height
+    let pixelCount = cast(u32, width) * height
     var bytes: #returntype
-    bytes.add(Header)
+    bytes.add(header)
     if withTransparency
     {
         bytes.add(Control)
     }
 
-    bytes.add(Descriptor)
+    bytes.add(descriptor)
 
-    for offset in PixelCount
+    for offset in pixelCount
     {
         if offset == 0
         {
@@ -375,7 +540,7 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
         }
         else if offset == 255
         {
-            bytes.add(cast(u8, (PixelCount + 1 - 255)))
+            bytes.add(cast(u8, (pixelCount + 1 - 255)))
         }
 
         // Each byte has a four-bit clear code followed by a literal.
@@ -426,6 +591,189 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
     let bytes = wideGifPaletteFixture(true, true)
     var errorOutcome: Swag.Error
     discard catch Image.decode("wide-invalid-palette.gif", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+
+    let canvasBytes = wideGifPaletteFixture(true, true, width: 99, height: 3)
+    var reader      = expect ImageReader.decode("wide-invalid-palette.gif", nnBytes(canvasBytes.toSlice()))
+    var canvasError: Swag.Error
+    discard catch reader.read(0) as canvasError
+    Swag.require(canvasError.value() is Errors.InvalidFormatError)
+}
+
+func gifPalette32Fixture(withAlpha: bool, invalidOffset: s32 = -1)->Array!{u8}
+{
+    const Header:  [13] u8 = ['G', 'I', 'F', '8', '9', 'a', 79, 0, 4, 0, 0x84, 0, 0]
+    const Control: [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 17, 0]
+    const Frame:   [11] u8 = [0x2C, 0, 0, 0, 0, 79, 0, 4, 0, 0, 6]
+    var bytes: #returntype
+    bytes.add(Header)
+    for index in 32
+    {
+        bytes.add([cast(u8, index * 7 + 4), cast(u8, 191 - index * 5), cast(u8, index * 3 + 17)])
+    }
+
+    if withAlpha
+    {
+        bytes.add(Control)
+    }
+
+    bytes.add(Frame)
+    var payload:   Array!{u8}
+    var bits:      u32
+    var available: u32
+    for pixel in 79 * 4 + 1
+    {
+        let colorIndex = pixel == invalidOffset ? 32 : pixel & 31
+        let finalCode  = pixel == 79 * 4
+        bits      |= cast(u32, finalCode ? 65 : (64 | colorIndex << 7)) << available
+        available += finalCode ? 7 : 14
+        while available >= 8
+        {
+            payload.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    if available
+    {
+        payload.add(cast(u8, bits))
+    }
+
+    bytes.add(255_u8)
+    bytes.add(Swag.makeSlice(payload.storage(), 255))
+    bytes.add(255_u8)
+    bytes.add(Swag.makeSlice(payload.storage() + 255, 255))
+    bytes.add(cast(u8, payload.count - 510))
+    bytes.add(Swag.makeSlice(payload.storage() + 510, payload.count - 510))
+    bytes.add([0_u8, 0x3B])
+    return bytes
+}
+
+// A 32-entry palette handles both shuffle banks, RGB and RGBA, and the right edge.
+#test
+{
+    for withAlpha in [false, true]
+    {
+        let bytes = gifPalette32Fixture(withAlpha)
+        let image = expect Image.decode("palette32.gif", nnBytes(bytes.toSlice()))
+        Swag.require(image.width == 79 and image.height == 4)
+        Swag.require(image.pixelFormat == (withAlpha ? .RGBA8 : .RGB8))
+        for y in 4
+        {
+            for x in 79
+            {
+                let index = (y * 79 + x) & 31
+                if withAlpha and index == 17
+                {
+                    assertGifPixelAt(image, x, 3 - y, 0, 0, 0, 0)
+                }
+                else
+                {
+                    assertGifPixelAt(image, x, 3 - y, cast(u8, index * 7 + 4), cast(u8, 191 - index * 5), cast(u8, index * 3 + 17), 255)
+                }
+            }
+        }
+    }
+
+    for offset in [22, 78]
+    {
+        let bytes = gifPalette32Fixture(true, offset)
+        var errorOutcome: Swag.Error
+        discard catch Image.decode("palette32-invalid.gif", nnBytes(bytes.toSlice())) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+    }
+}
+
+func paddedGifPaletteFixture(paletteSize: u32, lastIndex: u16, withTransparency: bool, firstIndex: u8 = 5)->Array!{u8}
+{
+    const Header:  [13] u8 = ['G', 'I', 'F', '8', '9', 'a', 129, 0, 64, 0, 0x87, 0, 0]
+    const Control: [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 5, 0]
+    const Frame:   [11] u8 = [0x2C, 0, 0, 0, 0, 129, 0, 64, 0, 0, 8]
+    var header = Header
+    header[10] = paletteSize == 256 ? 0x87_u8 : 0x84_u8
+    var bytes: #returntype
+    bytes.add(header)
+    for index in paletteSize
+    {
+        bytes.add([cast(u8, index), cast(u8, 255 - index), cast(u8, index ^ 131)])
+    }
+
+    if withTransparency
+    {
+        var control = Control
+        control[6] = firstIndex
+        bytes.add(control)
+    }
+
+    bytes.add(Frame)
+    bytes.add(149_u8)
+    var bits:      u32
+    var available: u32
+    for i in 132
+    {
+        // A run of 8,255 indices followed by a clear and the last literal.
+        let key = i == 0 or i == 129 ? 256_u32 : i == 1 ? cast(u32, firstIndex) :
+                  i < 128 ? cast(u32, 256 + i) : i == 128 ? 383 : i == 130 ? cast(u32, lastIndex) : 257
+        bits      |= key << available
+        available += 9
+        while available >= 8
+        {
+            bytes.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    bytes.add(cast(u8, bits))
+    bytes.add([0_u8, 0x3B])
+    return bytes
+}
+
+// Padded palettes may still need a late high index, even after an LZW clear.
+#test
+{
+    for key in [13_u16, 25, 129]
+    {
+        for transparent in [false, true]
+        {
+            let bytes = paddedGifPaletteFixture(256, key, transparent)
+            let image = expect Image.decode("padded-palette.gif", nnBytes(bytes.toSlice()))
+            Swag.require(image.width == 129 and image.height == 64)
+            assertGifPixelAt(image, 128, 0, cast(u8, key), cast(u8, 255 - key), cast(u8, key ^ 131), 255)
+            if transparent
+            {
+                assertGifPixelAt(image, 127, 0, 0, 0, 0, 0)
+            }
+            else
+            {
+                assertGifPixelAt(image, 127, 0, 5, 250, 134, 255)
+            }
+
+            var reader = expect ImageReader.decode("padded-palette.gif", nnBytes(bytes.toSlice()))
+            let frame  = expect reader.read(0)
+            if transparent
+            {
+                assertGifPixelAt(frame, 127, 0, 0, 0, 0, 0)
+            }
+
+            assertGifPixelAt(frame, 128, 0, cast(u8, key), cast(u8, 255 - key), cast(u8, key ^ 131), 255)
+        }
+    }
+
+    let invalid = paddedGifPaletteFixture(32, 129, false)
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("padded-palette-invalid.gif", nnBytes(invalid.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
+// Skipping a transparent SIMD block still rejects indices outside its palette.
+#test
+{
+    let bytes  = paddedGifPaletteFixture(32, 13, true, firstIndex: 129)
+    var reader = expect ImageReader.decode("invalid-transparent-palette.gif", nnBytes(bytes.toSlice()))
+    var errorOutcome: Swag.Error
+    discard catch reader.read(0) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
@@ -499,6 +847,36 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
     let img = expect Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
     Swag.require(img.pixelFormat == .RGB8)
     Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
+}
+
+// The first occurrence of each gray still determines palette order across narrow rows.
+#test
+{
+    const Width  = 97
+    const Height = 1031
+    let source = Image.create(Width, Height, .Gray8)
+    let pixels = source.pixels.storage()
+    for y in Height
+    {
+        let row = pixels + cast(u64, y) * Width
+        for x in Width
+        {
+            row[x] = cast #wrap(u8, ((Height - 1 - y) * Width + x) * 73)
+        }
+    }
+
+    let encoded = expect source.encodeToBytes("gray-across-rows.gif")
+    Swag.require(Hash.Crc32.compute(encoded.toSlice()) == 4260205349_u32)
+    let decoded = expect Image.decode("gray-across-rows.gif", encoded.toSlice())
+    Swag.require(decoded.width == Width and decoded.height == Height and decoded.pixelFormat == .RGB8)
+    let output = decoded.pixels.storage()
+    for pixel in Width * Height
+    {
+        let gray = pixels[pixel]
+        Swag.require(output[3 * pixel] == gray and
+                     output[3 * pixel + 1] == gray and
+                     output[3 * pixel + 2] == gray)
+    }
 }
 
 // GIF uniform fills use the same transparency threshold when source samples differ.
@@ -710,6 +1088,60 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     assertGifPixelAt(img, 0, 0, 12_u8, 34_u8, 56_u8, 255_u8)
+}
+
+// Direct palette lookups stay valid across repeated dictionary epochs at both table sizes.
+#test
+{
+    for colorCount in [32_u8, 128]
+    {
+        let source = Image.create(colorCount == 32 ? 641 : 769, colorCount == 32 ? 321 : 349, .RGB8)
+        var pixels = source.pixels.storage()
+        var state  = 0x8F01943C_u32
+        for cast(u64, source.width) * source.height
+        {
+            state ^= state << 13
+            state ^= state >> 17
+            state ^= state << 5
+            let index = cast #wrap(u8, state) & (colorCount - 1)
+            pixels[0] = index * #wrap 23_u8
+            pixels[1] = index * #wrap 39_u8
+            pixels[2] = index * #wrap 97_u8
+            pixels    += 3
+        }
+
+        let encoded = expect source.encodeToBytes("direct-palette-epochs.gif")
+        let crc     = colorCount == 32 ? 1974264148_u32 : 839454945_u32
+        Swag.require(Hash.Crc32.compute(encoded.toSlice()) == crc)
+        let decoded = expect Image.decode("direct-palette-epochs.gif", encoded.toSlice())
+        Swag.require(decoded.pixelFormat == .RGB8 and decoded.pixels.count == source.pixels.count)
+        Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.pixels.count) == 0)
+    }
+}
+
+// A dense palette crosses enough dictionary clears to reuse its literal-pair epochs.
+#test
+{
+    let source = Image.create(433, 181, .RGB8)
+    var pixels = source.pixels.storage()
+    var state  = 0x985842A1_u32
+    for cast(u64, source.width) * source.height
+    {
+        state ^= state << 13
+        state ^= state >> 17
+        state ^= state << 5
+        let color = cast #wrap(u8, state)
+        pixels[0] = color
+        pixels[1] = color * #wrap 37_u8
+        pixels[2] = color * #wrap 73_u8
+        pixels    += 3
+    }
+
+    let encoded = expect source.encodeToBytes("dense-pairs.gif")
+    Swag.require(Hash.Crc32.compute(encoded.toSlice()) == 3227398783_u32)
+    let decoded = expect Image.decode("dense-pairs.gif", encoded.toSlice())
+    Swag.require(decoded.pixelFormat == .RGB8 and decoded.pixels.count == source.pixels.count)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.pixels.count) == 0)
 }
 
 // A uniform palette's LZW run codes cross several code widths and clear the dictionary.

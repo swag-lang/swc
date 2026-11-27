@@ -48,3 +48,21 @@ func multiplyAccumulate(left, right, first, second: u64, high: *u64)->u64 =>
     let aliasLow = Swag.mulWide(aliasOutput, 2, aliasOutput, 3, &aliasOutput)
     Swag.require(aliasLow == 0 and aliasOutput == 3)
 }
+
+#test
+{
+    // Cover each compile-time zero addend and aliasing with the high half.
+    var value = Swag.U64.Max
+    var high: u64
+    let firstOnly = Swag.mulWide(value, 2, 3, 0, &high)
+    Swag.require(firstOnly == 1 and high == 2)
+
+    let secondOnly = Swag.mulWide(value, 2, 0, 3, &high)
+    Swag.require(secondOnly == 1 and high == 2)
+
+    let product = Swag.mulWide(value, 2, 0, 0, &high)
+    Swag.require(product == Swag.U64.Max - 1 and high == 1)
+
+    let aliased = Swag.mulWide(value, 2, 0, value, &value)
+    Swag.require(aliased == Swag.U64.Max - 2 and value == 2)
+}

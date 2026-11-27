@@ -272,7 +272,7 @@ private func p256FieldSquareRepeated(value: P256Field, count: u32)->P256Field
     return result
 }
 
-private func p256FieldInverse(value: P256Field)->P256Field
+private func(Clear: bool) p256FieldInverse(value: P256Field)->P256Field
 {
     // Build powers with exponents of the form 2^n - 1. The same 30-bit
     // prefix supplies both the leading word and the shortened low word.
@@ -295,8 +295,11 @@ private func p256FieldInverse(value: P256Field)->P256Field
     prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 32), powers[3])
     let result = p256FieldMultiply(p256FieldSquareRepeated(prefix, 32), powers[4])
 
-    Crypto.secureClear(powers)
-    Crypto.secureClear(Swag.makeSlice(&prefix, 1))
+    #static if Clear
+    {
+        Crypto.secureClear(powers)
+        Crypto.secureClear(Swag.makeSlice(&prefix, 1))
+    }
     return result
 }
 
@@ -568,139 +571,6 @@ private struct P256AffinePoint
     y: P256Field
 }
 
-// Each stripe uses signed columns spaced by 64 bits. The eight entries
-// have a positive highest column. Negation covers the other signs.
-private const P256GeneratorComb: [8][8] P256AffinePoint = [
-    [{P256Field{limbs: [0x52D8A7C9670844E0, 0x00E33BDCEF68A29D, 0x0F3D28484BDB7361, 0x5222C82191C5304D]},
-      P256Field{limbs: [0xEA6D2944DF73FC25, 0xA04C0F550255C81B, 0x29ACDC97EFE488A8, 0xBE2E158F80A560DE]}},
-     {P256Field{limbs: [0xFC8511EE2B13E673, 0xFFC58DEED103ED24, 0x1022523AEA7E99B8, 0x8F43EA394AFC8A17]},
-      P256Field{limbs: [0x8F4E2DBCC5F33D0B, 0x3BC099FAD0AA1681, 0xFFBB7B4179FF9DF1, 0x180DE09DD58B57C4]}},
-     {P256Field{limbs: [0x564307528BD1CDA5, 0x1807577F8E05EDA5, 0x099C699B956896E9, 0x83D6093DF1F0EFB5]},
-      P256Field{limbs: [0xEF5AF17EED97061C, 0x35B977B8030D4C3C, 0x81FA75A249229439, 0xF5A22070A0B6D35D]}},
-     {P256Field{limbs: [0x814C536574F81CF1, 0xE30BAFF70120065B, 0x80AE125615132621, 0x16D2B8CB36A80788]},
-      P256Field{limbs: [0x33D14697ECC50BCA, 0x19A9DFB017AEDD21, 0x523FBCC7EDC3F766, 0x9C4DE6DDB2CF5AFD]}},
-     {P256Field{limbs: [0x5305A9E6CF0D9F6D, 0x5839172F81A9B021, 0xCCA7A4DD75C687CF, 0x36D59B3E844BE22F]},
-      P256Field{limbs: [0xCACE7E62111A53E9, 0x91C843D4F063F3A1, 0xBF77E5F00DA812DA, 0x0E64AF9C437F3176]}},
-     {P256Field{limbs: [0xDBD568BBCF07517D, 0x2F1AFBA2BA6830B9, 0x15B6807CE6C4C2A6, 0x91C7EABCE4966AEF]},
-      P256Field{limbs: [0x716DEA1BD6B2B6E6, 0x248C43D119F85B4B, 0x16DCFD604A315E2A, 0x15FDD303C72B3D0B]}},
-     {P256Field{limbs: [0xE40BF9F442B7DFD5, 0x673689F32D934F2A, 0x8314BEB430A6F50B, 0xD17AF2BC976EC64E]},
-      P256Field{limbs: [0x39F66C4F1EE7DDF1, 0x7F68E18B68EA373C, 0x5166C1F253D0B186, 0x95DDA6017BE58F14]}},
-     {P256Field{limbs: [0x0D5AE35642913074, 0x55491B2748A542B1, 0x469CA665B310732A, 0x29591D525F1A4CC1]},
-      P256Field{limbs: [0xE76F5B6BB84F983F, 0xBE7EEF419F5F84E1, 0x1200D49680BAA189, 0x6376551F18EF332C]}}],
-    [{P256Field{limbs: [0x46F854FD9E082A81, 0x9DD1021A715DBAC6, 0x67E8DA44EBE41989, 0xDF9003A6FF6A3235]},
-      P256Field{limbs: [0x35B8FEACEC7E7F35, 0xEE45ED6076395A83, 0x211B344EAE6FCE90, 0x7C8790FE6EE12BDE]}},
-     {P256Field{limbs: [0x98049E4E3EDFCF09, 0x919B30CB64181986, 0x56776DF2E08A3279, 0x222617C47AE8D762]},
-      P256Field{limbs: [0x7D7C6FAA9D94169E, 0x2CFC046B8C40D3FB, 0x13895C95BB1A6A24, 0xA9C08992E97C0BA0]}},
-     {P256Field{limbs: [0x4F8EF895DC1C2D31, 0xFBC9172662D9677C, 0x76A3B12F681A935E, 0xBDB2804DB875E29F]},
-      P256Field{limbs: [0xAB32245471BF8554, 0xADBEB2F01213207C, 0x7936B51B697E8CDC, 0x9BD05EFC5FB41150]}},
-     {P256Field{limbs: [0x04C931238057CCA1, 0x413F0F23BE89C98C, 0xAB53079D03A3F5E1, 0xEAFFD9A574AE47FF]},
-      P256Field{limbs: [0x0DBAA2EC810B5A31, 0xD0396F4D79A97247, 0xCBCDBE19169AA230, 0x2B4AA27EBE8BEE16]}},
-     {P256Field{limbs: [0x191537F14EF6B9CA, 0x6814F084E8889D0D, 0x4E1173F9A6D7ECCD, 0x3DB55F19FC2C75A9]},
-      P256Field{limbs: [0x90571329F4806696, 0x9F984E0E9998CB4C, 0x9881D2C5D848EE44, 0x98914E45E0DEF8EC]}},
-     {P256Field{limbs: [0x8E95735A5E67BE83, 0x29299E733CA2C26F, 0x878F793EE8BF0E1D, 0xA7129B3E8A0E71B3]},
-      P256Field{limbs: [0x3B2CE4D0CB615159, 0x7F64F020F1E33662, 0xAD41222FFE55B539, 0x1F21FAD06ED8726F]}},
-     {P256Field{limbs: [0x5D3C1ED1631E756B, 0xDF2A16C354B6A1BA, 0xA4E3CBABE7078722, 0x47686E2DFA5CBE02]},
-      P256Field{limbs: [0xA469A3F36E453742, 0xA1B429C909E6122A, 0x08497EF8C7E1FA0B, 0x190B9FDFA6BF6868]}},
-     {P256Field{limbs: [0xF95684F7FC2B4E00, 0x114521ACEF571F04, 0x48D9B5EA4ABB78E3, 0x3DF9C7BADA9891D8]},
-      P256Field{limbs: [0x1CA68374944CAB81, 0x98453F5B76FDB53F, 0x995789B8B1CD8A0E, 0xAFE5E48EE42CE845]}}],
-    [{P256Field{limbs: [0x716A131BA0CF2A60, 0xC4B28B8FD73E9F7F, 0x9D701E9FECDA039B, 0x5A53BCE0113BE564]},
-      P256Field{limbs: [0x81D8E13C2C6A1A74, 0x20AD31765FAB4DED, 0xD2DFDD9EBE1F317F, 0x72C479AE3F203408]}},
-     {P256Field{limbs: [0x061E8041A271449A, 0x90DEBEBDBEE25A60, 0x43879D6E980A84C2, 0x474895C9120732A4]},
-      P256Field{limbs: [0x93866F316F733BD9, 0x0AE4FE2A98D57052, 0x37C4C75445C3A453, 0x55BE778C885FD2C7]}},
-     {P256Field{limbs: [0xA95FA0A921E72751, 0x1A21825B5FB0F501, 0xD62D8DE424A58594, 0xD328E53A5C5426B6]},
-      P256Field{limbs: [0xD29204E6A6D77759, 0x58202B2970F63559, 0x5CB708741A588728, 0x7A29168593835D5A]}},
-     {P256Field{limbs: [0xF46E58C17206CFA7, 0x48019F8FACC7943A, 0x72C32BD57C51ADC3, 0x12337F5FEB447CE7]},
-      P256Field{limbs: [0x74CF7363E140D79E, 0x2798FC68CB11ECBD, 0xF1A1FD5D56A57C37, 0x0CC2AC48FD25E4A2]}},
-     {P256Field{limbs: [0xECD440EEC7EF418D, 0x40C311768B0DB916, 0x6A16C02845FA643D, 0xE845E7CE088DA48A]},
-      P256Field{limbs: [0x746270A22B9C8597, 0x7243751E7D9BCCA0, 0x6EBA4E1FF9F1AF57, 0x27AC551E6E4F3702]}},
-     {P256Field{limbs: [0xF7F7A33BD6AE07B0, 0xD2973A8CA71F4BA0, 0x945E2405775DAD7A, 0x836C634C28799154]},
-      P256Field{limbs: [0xBBE69C99D542F1F9, 0xD55202075942E376, 0x298D569348E3BEB0, 0x41C8BE29946E17FD]}},
-     {P256Field{limbs: [0xBFCB94971145F5E1, 0x482B3B450B15FB95, 0x1B8D3B1F54165CA2, 0xB4DDB9E56E4906CB]},
-      P256Field{limbs: [0xF4E2C2117EED1F05, 0xC6F02CB7F08CC5D0, 0xE80620BF76DCDEB8, 0x1A6484C99578CC66]}},
-     {P256Field{limbs: [0x85FF4F350FEA91E5, 0x32954682AF91BDA6, 0xFE1F173D8EEAAFCA, 0x5BADAB632DA4161B]},
-      P256Field{limbs: [0x2107BC51BF84E659, 0xF4368698AD86CAA0, 0x84AD8CF46E9FBE0E, 0xF7F134ADB45A2551]}}],
-    [{P256Field{limbs: [0xAD90249E0D8663CC, 0x010D85CDFEE9CF9A, 0xE0F6962B43671CC9, 0xF0302CE82A1FA2A3]},
-      P256Field{limbs: [0xE64B02C93352ADAD, 0xB91475676C542133, 0x46F67DDF74377386, 0xB0B4CC079A01C061]}},
-     {P256Field{limbs: [0x9DED8DD69F3866E7, 0x87B1122EA5D85C40, 0x6E5F9FCBF65119CD, 0x3AEB0E43C329C544]},
-      P256Field{limbs: [0x908B8193F04B0EAA, 0xFECD4F31A773717A, 0x6D77D12E34802F1A, 0x8A8677C8B41DFD35]}},
-     {P256Field{limbs: [0x8ACC067F650050E5, 0x854CFCFD90774B85, 0x7D0A28695A50BEBE, 0x18BB26FE2103B87F]},
-      P256Field{limbs: [0xBE46F8E1615B0FE8, 0xD91B49CC7579E67C, 0xC7893CBEFBCB3E13, 0x3B33BFF6408CC627]}},
-     {P256Field{limbs: [0xC57ADE30C9966B30, 0xAFF64CAF7329360B, 0xA3E14295142C0ECC, 0x17D5F5EA557FB857]},
-      P256Field{limbs: [0xDF930851DE290561, 0xF62497A32F61FE61, 0x353075D745F1869B, 0xF74C636C9BE5D4AB]}},
-     {P256Field{limbs: [0x0CDBFEAE8D02BF56, 0xECC8A6DECD3EB0E6, 0xCFC37864D85C5F47, 0x491841E542E9B78B]},
-      P256Field{limbs: [0xD7C65790B7394AD2, 0x8036AFC2B935E459, 0x293CE02C6A66A491, 0xC7AD56546C8CC205]}},
-     {P256Field{limbs: [0x4A19DBA5D26D3997, 0x65CFB89B53352A05, 0x7B99F4A08259A9BF, 0x483587CE665347EC]},
-      P256Field{limbs: [0xC0B144B6B0747813, 0x4398CDFFF8D7A63A, 0x7CB892A9541C6C8B, 0xB256BFAB7F52010A]}},
-     {P256Field{limbs: [0xC517FE72D87D624C, 0x15CA5BE5819E1AD9, 0xC6E6AF63F265FD05, 0x008016785DD78B13]},
-      P256Field{limbs: [0x6496B79EC1F16D06, 0x7840BC7944E2A635, 0x42493826DEDDF768, 0x92668133CC9BDB65]}},
-     {P256Field{limbs: [0x0ED883101610CD52, 0x0DA4DC01236A1040, 0x427CA1F2924A7203, 0xA4737B77AAFD3D7D]},
-      P256Field{limbs: [0x6627522096A5BA97, 0x87C057437EE66858, 0xAEB7CE8837DA5D39, 0xEE946502D4AE3B19]}}],
-    [{P256Field{limbs: [0xB9E5CBC07C4E54F5, 0xC53A1A17E1410E34, 0x3E199130EC454425, 0xB029C97E1700902E]},
-      P256Field{limbs: [0x2DE66E11786423B6, 0x262DC914B41A95BE, 0x51766ABD0451B683, 0x55AD5F3485BB6FB1]}},
-     {P256Field{limbs: [0x074F4F1C9066CB79, 0x1AB31BD630C8B94E, 0x6D3F012FD74275B3, 0xA214D0B19DDCCE40]},
-      P256Field{limbs: [0x24AEDF74D165050A, 0x95F17ECEE0E5DC3E, 0x6ADA9CDAD9224456, 0x1FADB2D12DD60EEA]}},
-     {P256Field{limbs: [0xA3D83091E20CFB9B, 0xAE79C975BA76E0CB, 0xA5F2A588C8858A6E, 0xE897A5F4874A3168]},
-      P256Field{limbs: [0xF6C1EF407D48F096, 0x1F9C516BC35B132C, 0xE1040F9153C479FD, 0x060E881F9DF06743]}},
-     {P256Field{limbs: [0x09E0AD7252A90E51, 0xB7E66EA338C50A96, 0xAB32AD057D997770, 0x0CEAFFE2445671CB]},
-      P256Field{limbs: [0xDFBE753C5D37CC99, 0x95D068CCE0FEA2D5, 0x1E37CDDA4DD77CB6, 0x88C5A4BB55530688]}},
-     {P256Field{limbs: [0x3413F0330C7744F1, 0x23C05C89BC816702, 0x2322EE9A1192B5AC, 0x0C1636A0373180BB]},
-      P256Field{limbs: [0x0FE2F3D4BDDE0207, 0x0E1A093AC23578D8, 0x06E5F0D10C888EAD, 0x9CA285A552A2B660]}},
-     {P256Field{limbs: [0xDAE76995CE923964, 0xCC96493AA34C7993, 0xD19B5144EA73D9E7, 0x04A5C263311E6E34]},
-      P256Field{limbs: [0x7DB5B32BD9A2A443, 0x3754BD332CFD960C, 0x0C5BCC980A430F15, 0x5651201FD9A94574]}},
-     {P256Field{limbs: [0xEBDD8921FC0418FE, 0x37015B3934E20036, 0xCF4FCD8FDF03A353, 0xDC2DE6E1F12CAB16]},
-      P256Field{limbs: [0x9C17CC1AD071DF14, 0xD7C5E6A363415530, 0xB530166068F3FB1E, 0xB5F70BC918269301]}},
-     {P256Field{limbs: [0x2D8DAEFD79EC1A0F, 0x3BBCD6FDCEB39C97, 0xF5575FFC58F61A95, 0xDBD986C4ADF7B420]},
-      P256Field{limbs: [0x81AA881415F39EB7, 0x6EE2FCF5B98D976C, 0x5465475DCF2F717D, 0x8E24D3C46860BBD0]}}],
-    [{P256Field{limbs: [0x9AC68E8AA06383FA, 0xD4B8C399AEBD7360, 0x153A92538B304987, 0x27F30D4F2BF3B560]},
-      P256Field{limbs: [0xAE00B21556F7D761, 0x54AEB406E2D5A6E0, 0x20081DAF1BD5F230, 0x0D625B7B43EF01A3]}},
-     {P256Field{limbs: [0x8A2F93E1C2688D91, 0xA1446DA87196E817, 0x262A18BBF21A0E9B, 0x48A2C8A00C2C916B]},
-      P256Field{limbs: [0xEEDF3B53221D2F4C, 0x8522EB14CF72DB92, 0x1FA89B530D4A963F, 0xD46681B2978B8A61]}},
-     {P256Field{limbs: [0x0B62EE1D33968D53, 0x3EE356122AEC9108, 0xB7C07A8279675936, 0x303D3A0E9031A745]},
-      P256Field{limbs: [0x024622192A4F2B1F, 0x5D85E01C0A5CBB50, 0x1382884A6053FD99, 0x7BBAD6A8DE960F0C]}},
-     {P256Field{limbs: [0x7F9E418F094CB56F, 0x58517960B465EFD0, 0xCF33CBDA24C18E1D, 0x6F9DEB23C0BAF52A]},
-      P256Field{limbs: [0xBA72F95C0CFC63C2, 0x529C7A01E268B866, 0x2D716F12D2E668C5, 0xC6F6D7A2D8CF0B0F]}},
-     {P256Field{limbs: [0x51824670EC10342F, 0x5D08CF4952C2A183, 0xAF6A4ED2830E1806, 0x40EE181DBEC885F9]},
-      P256Field{limbs: [0x7C4A74AFC1D9E055, 0xE689D6478504A968, 0xCAC18384F9A1B90D, 0x1CD8045E3DD252E9]}},
-     {P256Field{limbs: [0x5C8AA2E38A563CF2, 0xB9946BCFF320D88D, 0x2B7B8E1094C44265, 0x07A8015BDAC53E97]},
-      P256Field{limbs: [0xCF1FBAF4B00AB40A, 0x5A5006FD507717D3, 0x7FF8D6ED68EB735D, 0x8A03E1EA713F846A]}},
-     {P256Field{limbs: [0x29354FECAB169F6C, 0x0449CBC9BCC7DDAC, 0x6AB17FA224377583, 0x34130C2C7F9E0AB2]},
-      P256Field{limbs: [0x715BA5DAA53DA9CB, 0x1AF6F4CF844F48F1, 0xB0BABED0B7CC43AB, 0x387AA6EB1CCF3C29]}},
-     {P256Field{limbs: [0xBFCA3418B2630DE5, 0xDB52A23086980A16, 0x732A1969128DD83A, 0x38193F06B3F0C36E]},
-      P256Field{limbs: [0xDEF6B620A449A0EF, 0xF2AA561569F5DE63, 0x87325C3C77945DF2, 0xE088927630E90C8D]}}],
-    [{P256Field{limbs: [0x349D63FE74B3B2B5, 0x0455FFFFE3643FDA, 0x13078808B5554B65, 0x706178287AEF08A2]},
-      P256Field{limbs: [0xBA1224844B19CB81, 0xA14D037B9EC65BB4, 0x5B48EF683E95E388, 0x8B773836A9B3EC25]}},
-     {P256Field{limbs: [0xFB69EA682FE5B0C0, 0x11411E2728AE8EAD, 0x46F7861A22A17FA4, 0x2D46E9898E0A2B46]},
-      P256Field{limbs: [0x477DA4C29E09F032, 0x3BA21660FC369ACD, 0xC8699CC67B689343, 0x603F81770894EFFF]}},
-     {P256Field{limbs: [0x6D94D5B39A053AE6, 0x2EF99DA1B34174E5, 0xF23D766A1CD3C6A5, 0xC0A94B4AC3BFC938]},
-      P256Field{limbs: [0x2CF2038E7527A76D, 0x114F7164F82ECB1A, 0x1C74AF3BF8CDFCF5, 0x10295C08314D984D]}},
-     {P256Field{limbs: [0xBE0DEE24D6D17EBF, 0x745C4CA74B22A7F7, 0x5E2BDA17692980D4, 0xDC04A3FAA522844E]},
-      P256Field{limbs: [0x960D7DA9E72FD0CD, 0xCA50BB854C79A612, 0x4E75E17CA34C6590, 0xDA0A7BBFBD21D868]}},
-     {P256Field{limbs: [0xAA0E7E8EA32A3534, 0x35989737EEE98CA9, 0x3E6B57442B24FB98, 0x4171B92A1C036833]},
-      P256Field{limbs: [0x24CEEA7504CE6029, 0x2F9288D8247378CF, 0xFF80915676738CF7, 0xD4CEA73C7A393C21]}},
-     {P256Field{limbs: [0xA33282E28F7AFB46, 0x81410B2CAE457EE9, 0xB23D45CBB94F9DEF, 0x03D1533EB0426903]},
-      P256Field{limbs: [0x539C2D8F26071972, 0xD993EE4F9C939F4F, 0x309BFAE09598D171, 0x509A4FC9B4379E17]}},
-     {P256Field{limbs: [0x52D6DCC535B74EC6, 0x2B6FF7C952CEAF16, 0x5343F9952F906ED7, 0x3EA6BAB03E298B6A]},
-      P256Field{limbs: [0x9BE35AC25B08AA26, 0x1307A29B6D8B0592, 0x09F4C192ED88F422, 0x8877E81FA3FE4249]}},
-     {P256Field{limbs: [0x8DE0880532237E81, 0xF43684EC874DFAEE, 0xFDBA26B988BEF633, 0xAC2994045D2A9C91]},
-      P256Field{limbs: [0xEEA6A5A0A96659E1, 0xE74A555DD25EC31A, 0x8663B8F1D7D5A482, 0x50B490D71B5845E4]}}],
-    [{P256Field{limbs: [0x9869BE543FA22429, 0x5E52255CBBF78F63, 0x9C1DBBE94E24090E, 0xD165C5748A64F78A]},
-      P256Field{limbs: [0xE686601DCF5480CE, 0x9B58FE722AEE181D, 0xD4076B8CE7C83ABF, 0x65F73D730D4B8243]}},
-     {P256Field{limbs: [0xC0B53540545590F9, 0x9CBE9F3F762B3362, 0x017E3BA8BAAEA52F, 0x91E9FC11F4CF95A0]},
-      P256Field{limbs: [0xA60667CDDB8CD55E, 0x7688C370EA3935B7, 0xDF95B1168C786C62, 0x4CB4A0986E76ADB1]}},
-     {P256Field{limbs: [0x38D18AD1064FF6EB, 0xE3D9D02EBF7D1595, 0xD9B7B13CF77BCFA6, 0xFD73A945A1111A33]},
-      P256Field{limbs: [0x17A7145840EA70F1, 0xC18EB84D58F46306, 0x345A99F2E78DFCE8, 0x8A9034E96F7F41D3]}},
-     {P256Field{limbs: [0xC06C2221E24343DC, 0x2BDAFE82D17DB1E9, 0x6F567D0E38E05228, 0x3121E245DB89FC30]},
-      P256Field{limbs: [0x1786B0F17E51EA7C, 0xB18455C13F28A2D2, 0xE0F57C3132C9B213, 0x1783EF6A9C654649]}},
-     {P256Field{limbs: [0x7E4957AD7BAD7CB8, 0xFE0E56F0C0A7F69E, 0x106C90C2D5FF9935, 0xBDD075747DF182AF]},
-      P256Field{limbs: [0xC6714C1B8B8CDF77, 0x4A8EBFB6A4D35B1B, 0xF89B5906E2B8698A, 0x2B271A08D65FEE09]}},
-     {P256Field{limbs: [0x66A0E646E84087B3, 0xA36EE17C16E17B57, 0x13D12BFE10FE35FE, 0x00E7AE320DE3D428]},
-      P256Field{limbs: [0x290ECC3716AEB17E, 0x9A8E7CD423C04210, 0x62A37DB3B05566A0, 0x18B59474DAB78BCA]}},
-     {P256Field{limbs: [0x5A65BC691A7036B0, 0x2A8C78A8046E8365, 0x26E27CB42EFEB635, 0xAA88289972D244B3]},
-      P256Field{limbs: [0xEB73724922406E08, 0x7B1DFBF3DDA1DC6C, 0x9DAA7156779DBDE7, 0xB399596C7E8E404F]}},
-     {P256Field{limbs: [0xDE4CF2BE00E29B03, 0xDC38C4E35BF6B853, 0x4AF556A862B93D98, 0x493F4823A4E5DB9D]},
-      P256Field{limbs: [0x4BF133B6C3FCC6CC, 0xB83ECD49BCD26660, 0x313C78B6F9B56B20, 0x92C4010E1715E3B2]}}]]
-
-// Homogeneous projective coordinates use (X/Z, Y/Z).
 private struct P256HomogeneousPoint
 {
     x: P256Field
@@ -877,9 +747,82 @@ private func p256MultiplyVerificationPoint(scalar: P256Field, point: P256Point)-
     return result
 }
 
+private const P256GeneratorCombSteps   = 8
+private const P256GeneratorCombColumns = 8
+private const P256GeneratorCombSpacing = 32
+private const P256GeneratorCombStripes = P256GeneratorCombSpacing / P256GeneratorCombSteps
+private const P256GeneratorCombEntries = 1 << (P256GeneratorCombColumns - 1)
+
+// Build the public generator table once in Montgomery coordinates. The
+// last column is positive, and negating the point covers the other signs.
+private func buildP256GeneratorComb()->[P256GeneratorCombStripes][P256GeneratorCombEntries] P256AffinePoint
+{
+    let one = P256Field{limbs: P256MontgomeryOne}
+    var point = P256HomogeneousPoint{
+        x: P256Field{limbs: [0x79E730D418A9143C, 0x75BA95FC5FEDB601, 0x79FB732B77622510, 0x18905F76A53755C6]},
+        y: P256Field{limbs: [0xDDF25357CE95560A, 0x8B4AB8E4BA19E45C, 0xD2E88688DD21F325, 0x8571FF1825885D85]},
+        z: one}
+    var columns: [P256GeneratorCombStripes][P256GeneratorCombColumns] P256HomogeneousPoint
+    for column in P256GeneratorCombColumns
+    {
+        for stripe in P256GeneratorCombStripes
+        {
+            columns[stripe][column] = point
+            for P256GeneratorCombSteps
+            {
+                point = p256HomogeneousDouble(point)
+            }
+        }
+    }
+
+    var points: [P256GeneratorCombStripes][P256GeneratorCombEntries] P256HomogeneousPoint
+    var prefixes: [P256GeneratorCombStripes][P256GeneratorCombEntries] P256Field
+    var product = one
+    for stripe in P256GeneratorCombStripes
+    {
+        for entry in P256GeneratorCombEntries
+        {
+            var value = columns[stripe][P256GeneratorCombColumns - 1]
+            for column in P256GeneratorCombColumns - 1
+            {
+                var term = columns[stripe][column]
+                if not (entry & (1_u64 << column))
+                {
+                    term.y = p256FieldSubtract(P256Field{}, term.y)
+                }
+                value = p256HomogeneousAddProjective(value, term)
+            }
+
+            points[stripe][entry] = value
+            prefixes[stripe][entry] = product
+            product = p256FieldMultiply(product, value.z)
+        }
+    }
+
+    // Recover each affine point with one inversion for the whole table.
+    var inverse = p256FieldInverse!{false}(product)
+    var result: #returntype
+    for s in P256GeneratorCombStripes
+    {
+        let stripe = P256GeneratorCombStripes - 1 - s
+        for e in P256GeneratorCombEntries
+        {
+            let entry = P256GeneratorCombEntries - 1 - e
+            let value = points[stripe][entry]
+            let scale = p256FieldMultiply(inverse, prefixes[stripe][entry])
+            result[stripe][entry] = {p256FieldMultiply(value.x, scale), p256FieldMultiply(value.y, scale)}
+            inverse = p256FieldMultiply(inverse, value.z)
+        }
+    }
+
+    return result
+}
+
+private const P256GeneratorComb = #run buildP256GeneratorComb()
+
 private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
 {
-    const Steps          = 8
+    const Steps          = P256GeneratorCombSteps
     const Adjustment     = P256Field{limbs: [0x0C46353D039CDAAE, 0x4319055258E8617B, 0x0000000000000000, 0x00000000FFFFFFFF]}
     const HalfMontgomery = P256Field{limbs: [0, 0, 0, 0x8000000000000000]}
 
@@ -894,23 +837,38 @@ private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
         result = p256HomogeneousDouble(result)
         for stripe in P256GeneratorComb.count
         {
-            let shift   = Steps - 1 - step + stripe * Steps
-            let digits0 = (adjusted.limbs[0] >> shift) & 1
-            let digits1 = (adjusted.limbs[1] >> shift) & 1
-            let digits2 = (adjusted.limbs[2] >> shift) & 1
-            let digits3 = (adjusted.limbs[3] >> shift) & 1
-            let digit   = digits0 | (digits1 << 1) | (digits2 << 2)
-            let negate  = 0_u64 - (digits3 ^ 1)
-            let entry   = digit ^ (negate & 7)
+            let shift = Steps - 1 - step + stripe * Steps
+            let low0  = (adjusted.limbs[0] >> shift) & 1
+            let high0 = (adjusted.limbs[0] >> (shift + 32)) & 1
+            let low1  = (adjusted.limbs[1] >> shift) & 1
+            let high1 = (adjusted.limbs[1] >> (shift + 32)) & 1
+            let low2  = (adjusted.limbs[2] >> shift) & 1
+            let high2 = (adjusted.limbs[2] >> (shift + 32)) & 1
+            let low3  = (adjusted.limbs[3] >> shift) & 1
+            let high3 = (adjusted.limbs[3] >> (shift + 32)) & 1
 
-            var selection: P256AffinePoint
+            let digit  = low0 | (high0 << 1) | (low1 << 2) | (high1 << 3) | (low2 << 4) | (high2 << 5) | (low3 << 6)
+            let negate = 0_u64 - (high3 ^ 1)
+            let entry  = digit ^ (negate & (P256GeneratorCombEntries - 1))
+
+            using Math.Simd
+
+            var xLow, xHigh, yLow, yHigh: U64x2
             for index in P256GeneratorComb[stripe].count
             {
-                let matched = index == entry
-                let point   = P256GeneratorComb[stripe][index]
-                selection.x = p256FieldSelect(selection.x, point.x, matched)
-                selection.y = p256FieldSelect(selection.y, point.y, matched)
+                let point = &P256GeneratorComb[stripe][index]
+                let mask  = splat(0_u64 - cast(u64, index == entry))
+                xLow  |= load(point.x.limbs.buffer) & mask
+                xHigh |= load(point.x.limbs.buffer + 2) & mask
+                yLow  |= load(point.y.limbs.buffer) & mask
+                yHigh |= load(point.y.limbs.buffer + 2) & mask
             }
+
+            var selection: P256AffinePoint
+            store(selection.x.limbs.buffer, xLow)
+            store(selection.x.limbs.buffer + 2, xHigh)
+            store(selection.y.limbs.buffer, yLow)
+            store(selection.y.limbs.buffer + 2, yHigh)
 
             // These finite table points have nonzero Y.
             var borrow = 0_u64
@@ -944,7 +902,7 @@ private func p256ValidatePublicPoint(point: P256Point)->bool
 
 private func p256AffineX(point: P256Point)->P256Field
 {
-    var inverse = p256FieldInverse(point.z)
+    var inverse = p256FieldInverse!{true}(point.z)
     let result  = p256FieldMultiply(point.x, p256FieldSquare(inverse))
     Crypto.secureClear(Swag.makeSlice(&inverse, 1))
     return result
@@ -966,7 +924,7 @@ func p256PublicKey(privateKey: const [..] u8, publicKey: [..] u8) fail
     var point = p256MultiplyGenerator(&scalar)
     defer Crypto.secureClear(Swag.makeSlice(&point, 1))
 
-    var inverse = p256FieldInverse(point.z)
+    var inverse = p256FieldInverse!{true}(point.z)
     defer Crypto.secureClear(Swag.makeSlice(&inverse, 1))
     var inverseSquared = p256FieldSquare(inverse)
     defer Crypto.secureClear(Swag.makeSlice(&inverseSquared, 1))

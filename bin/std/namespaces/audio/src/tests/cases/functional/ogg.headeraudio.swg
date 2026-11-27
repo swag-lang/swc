@@ -373,6 +373,35 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     Swag.require(Slice.equals((expect oggDecodePcm16(&mixed)).toSlice(), expected.toSlice()))
 }
 
+// A zero Ogg FLAC header count is resolved from the last metadata packet even across pages.
+#test
+{
+    for name in ["flac-stereo-44100.oga", "flac-4.0-20bit-250000.oga"]
+    {
+        let path      = audioGetTestDataPath(name)
+        let reference = expect SoundFile.load(path)
+        let expected  = expect oggDecodePcm16(&reference)
+
+        let source = expect File.readAllBytes(path)
+        let first  = expect oggTestPage(source.toSlice(), 0)
+        let count  = first.header.headerBytes + 7
+        var bytes: Array!{u8}
+        bytes.add(source.toSlice()[until first.bytes])
+        Swag.require(bytes[count] or bytes[count + 1])
+        bytes[count]     = 0
+        bytes[count + 1] = 0
+        oggRefreshTestChecksum(&bytes)
+        bytes.add(source.toSlice()[first.bytes until])
+
+        let changedPath = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-ogg-flac-unknown-headers-%.oga", Guid64.random()))
+        defer discard catch File.delete(changedPath)
+        expect File.writeAllBytes(changedPath, bytes.toSlice())
+        let changed = expect SoundFile.load(changedPath)
+        Swag.require(changed.speakerChannelMask() == reference.speakerChannelMask(), name)
+        Swag.require(Slice.equals((expect oggDecodePcm16(&changed)).toSlice(), expected.toSlice()), name)
+    }
+}
+
 // A frame split across Ogg pages survives intervening pages of another logical stream.
 #test
 {

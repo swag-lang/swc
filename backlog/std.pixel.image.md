@@ -53,7 +53,7 @@ ships; history lives in Git, not here.
 
 ### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
 
-- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
+- Evidence: BC1 through BC5 and BC7 are decoded to RGBA8; KTX2 BasisLZ, ETC, ASTC, and BC6H
   are unsupported; `IRenderer.addImage` accepts decoded `Image` or a planar `YuvPlanarView` (4:2:0 or 4:4:4). KTX2 is designed for
   per-level streaming and Basis Universal transcoding to a GPU-native block format.
 - Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
@@ -212,6 +212,51 @@ ships; history lives in Git, not here.
 - Evidence: packed monochrome compositing
   reduces the 5184-pixel native bitmap from 391 to 382 ms at one CPU and
   from 180 to 172 ms at four, with identical pixels.
+- Evidence: binary stop lookup for long CPU gradients preserves hard transitions and
+  the authored order of unsorted brush stops. In eleven interleaved Release runs,
+  the 96-stop fixture drops from 167.0 to 140.4 ms on one logical CPU, 119.6 to
+  108.3 ms on two, and 103.0 to 96.2 ms on four. resvg 0.50.0 takes 54.5,
+  56.2 and 57.6 ms on the same CPU budgets. The hard-stop fixture drops
+  from 94.4 to 84.6 ms on four. The compared Swag raster checksums match.
+- Evidence: packed gradient tint and coverage reduce the 420-path fixture from
+  121.0 to 110.7 ms on one logical CPU, 101.9 to 92.1 ms on two, and 78.0 to
+  73.2 ms on four, with identical pixels. The 96-stop fixture drops from
+  96.8 to 84.0 ms at four, against 53.7 ms for resvg 0.50.0.
+- Evidence: packed linear and radial gradient coordinates reduce the 420-path
+  fixture from 102.8 to 76.9 ms on one logical CPU, 84.4 to 70.4 ms on two,
+  and 72.4 to 60.9 ms on four. resvg 0.50.0 takes 29.8, 32.0, and 31.6 ms.
+  The 132 comparisons across one and four Swag workers have identical pixels.
+- The embedded image fixture exercises default centered `meet`, explicit alignment,
+  transformed `slice`, and `none`. The mean premultiplied RGBA error against
+  resvg 0.50.0 drops from 36.21 to 0.09 levels per channel and the alpha masks
+  agree. Six public `meet` and `slice` fixtures also agree within 0.6 levels per
+  channel on average.
+- Direct SVG path output reduces four 15,360-contour encoding cases from
+  52.8 to 3.6 ms for integer paths, 73.4 to 15.1 ms for cubics, 282.3 to
+  107.7 ms for flattened paths, and 77.2 to 25.8 ms for separate shapes.
+  The eleven interleaved Release runs exclude disk I/O. The four SVG outputs
+  and their resvg renders match their respective baselines. The flattened
+  baseline includes the correction that writes the coordinate after `M` or `L`.
+  Regression tests cover locale, large coordinates, and flattened curves.
+- Color tracing gathers opacity during the first image pass and traces each
+  color inside its coverage bounds. The 24-color sparse fixture drops from
+  68.3 to 1.7 ms, the repeated-color fixture from 20.5 to 12.8 ms, and the
+  monochrome fixture from 3.37 to 2.81 ms. All 135 SVG output comparisons
+  and the six resvg render comparisons are byte-identical.
+- Consecutive gradient draws share row jobs and keep painting order within
+  each row. Four-worker medians drop from 60.9 to 35.5 ms for 420 paths,
+  from 71.2 to 42.7 ms for 96 stops, and from 62.0 to 38.3 ms for hard
+  stops. resvg takes 29.7, 56.7, and 44.4 ms on the same affinities. The
+  132 before/after raster comparisons match, including one-worker output.
+- Repeated embedded images bypass the URI hash on an exact consecutive hit.
+  On 16 placements of the same 1.1 MiB PNG data URI, parse time drops from
+  8.28 to 5.00 ms at one worker and from 7.84 to 5.04 ms at four. An alternating
+  long-URI control retains its parse time. Eight raster comparisons match,
+  and a regression distinguishes equal-length URIs with identical tails.
+- The SVG reader accepts XML whitespace before attribute equals signs and
+  resolves named and numeric character references in text and spans. The
+  whitespace fixture agrees with resvg pixel for pixel. Each renderer gives
+  identical output for the two equivalent spellings of the text fixture.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.
@@ -266,18 +311,6 @@ ships; history lives in Git, not here.
   metadata behavior is explicit, and decoded distortion/size regressions are measured.
 - Related: std.pixel.001
 
-### std.pixel.image.049 — OpenEXR PIZ compression is not decoded
-
-- Evidence: decode accepts single- and multipart RGB/RGBA/Y scanlines with none, ZIPS, or ZIP compression;
-  encode is uncompressed. OpenEXR identifies PIZ as its wavelet/Huffman lossless option, and files
-  using it are rejected before the otherwise supported half/float channels can be reconstructed.
-- Next: implement PIZ decode for the existing scanline RGB(A)/Y contract and validate it against
-  the reference library before deciding whether PIZ encoding is justified.
-- Done when: half and float PIZ scanline fixtures decode to reference pixels, malformed wavelet
-  and Huffman data fail within std.pixel.image.036 limits, and unsupported channel layouts still fail
-  explicitly.
-- Related: std.pixel.image.036, std.pixel.image.050
-
 ### std.pixel.image.050 — Tiled and multi-resolution OpenEXR images are rejected
 
 - Evidence: OpenEXR tiles provide random rectangular access and can carry mipmap or ripmap levels,
@@ -288,7 +321,7 @@ ships; history lives in Git, not here.
 - Done when: callers can inspect levels and decode a selected tile or bounded region without
   materializing the base image, with reference fixtures for incomplete edge tiles and both level
   rounding modes.
-- Related: std.pixel.image.039, std.pixel.019, std.pixel.image.049
+- Related: std.pixel.image.039, std.pixel.019
 
 ### std.pixel.image.044 — Orientation and common metadata have no typed contract
 
@@ -346,18 +379,6 @@ ships; history lives in Git, not here.
   captures and measure file size on representative animations.
 - Done when: a screen recording with anti-aliased text exports without visible banding at a size
   comparable to the former encoder, and still frames keep their exact palette.
-- Related: std.pixel.image.052
-
-### std.pixel.image.052 — No animated PNG encoding
-
-- Evidence: the PNG encoder writes one image; an animated capture exported losslessly, or with
-  more than 256 colors, has no output.
-- Next: add APNG output (`acTL`, `fcTL`, `fdAT`) on the existing PNG filter and Deflate path,
-  reusing the changed-rectangle reduction of std.pixel.image.051.
-- Done when: an animation written as APNG decodes back with identical pixels and timing, and
-  viewers without APNG support show its first frame.
-- Related: std.pixel.image.051
-
 ---
 
 ### std.pixel.image.053 — Remaining PNG sample conversion needs a current profile

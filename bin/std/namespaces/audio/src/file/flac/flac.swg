@@ -263,7 +263,47 @@ private struct Prologue
     mediaEnd:    u64            // End of the last committed frame when this writer left a checkpoint.
     sampleRate:  u32
     channels:    u32
+    speakerMask: u32
     totalFrames: u64     // Sample frames the stream information states, or zero when unknown.
+}
+
+// A Vorbis comment can override FLAC's default speaker positions with a WAVE mask.
+internal func readQuadSpeakerMask(bytes: const [..] u8)->u32 fail
+{
+    const Key = "WAVEFORMATEXTENSIBLE_CHANNEL_MASK="
+    var reader = ByteStream.openRead(bytes)
+    let header = try reader.readBigEndian!{u32}()
+    if ((header >> 24) & 0x7F) != 4 or (header & 0xFF_FFFF) != bytes.count - 4
+    {
+        return 0
+    }
+
+    let vendor = try reader.readLittleEndian!{u32}()
+    reader.advance(vendor)
+    let comments = try reader.readLittleEndian!{u32}()
+    for comments
+    {
+        let size  = try reader.readLittleEndian!{u32}()
+        let entry = reader.remainingBytes()
+        if size > entry.count
+        {
+            return 0
+        }
+
+        if size > Key.count and not Latin1.compare(entry[until Key.count], Key, ignoreCase: true)
+        {
+            let value = Swag.makeString(entry.buffer + Key.count, size - Key.count)
+            let mask  = catch StrConv.toU32(value) orelse 0
+            if mask <= 0x0003_FFFF and Swag.countOnes(mask) == 4
+            {
+                return mask
+            }
+        }
+
+        reader.advance(size)
+    }
+
+    return 0
 }
 
 // Reads the marker and the metadata blocks that precede the audio.
@@ -287,6 +327,7 @@ private func readPrologue(source: *ByteSource)->Prologue fail
 
     var offset   = 4_u64
     var sawFirst = false
+    var commentsStart, commentsEnd: u64
     for
     {
         if offset > size or size - offset < 4
@@ -314,6 +355,12 @@ private func readPrologue(source: *ByteSource)->Prologue fail
             }
 
             sawFirst = true
+        }
+
+        if kind == 4 and not commentsStart
+        {
+            commentsStart = offset
+            commentsEnd   = offset + 4 + length
         }
 
         if kind == 2 and length == 12
@@ -360,6 +407,13 @@ private func readPrologue(source: *ByteSource)->Prologue fail
     result.sampleRate  = probe.info.sampleRate
     result.channels    = probe.info.channels
     result.totalFrames = probe.info.totalSamples
+
+    if result.channels == 4 and commentsStart
+    {
+        let comment = result.config.toSlice()[commentsStart until commentsEnd]
+        result.speakerMask = catch readQuadSpeakerMask(comment) orelse 0
+    }
+
     return result
 }
 
@@ -488,5 +542,12 @@ internal func openFile(path: string)->SoundFile fail
     }
 
     source.close()
-    return try SoundFile.openPacketStream(path, .Flac, prologue.sampleRate, prologue.channels, frames, packets.toSlice(), prologue.config.toSlice())
+    return try SoundFile.openPacketStream(path,
+                                          .Flac,
+                                          prologue.sampleRate,
+                                          prologue.channels,
+                                          frames,
+                                          packets.toSlice(),
+                                          prologue.config.toSlice(),
+                                          {speakerMask: prologue.speakerMask})
 }

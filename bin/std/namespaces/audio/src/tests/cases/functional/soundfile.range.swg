@@ -161,6 +161,22 @@ using Swag, Core
             return true
         })
         Swag.require(next == 2 * (First + Count) and calls > 1)
+
+        const Guard = 123_s16
+        var output: Array!{s16}
+        output.resize(2 * Count + 2)
+        output[0], output[output.count - 1] = Guard
+        let selected = output.toSlice()[1 until output.count - 1]
+        expect sound.decodePcm16(First, selected)
+        Swag.require(Slice.equals(selected, samples.toSlice()[2 * First until 2 * (First + Count)]))
+        Swag.require(output[0] == Guard and output[output.count - 1] == Guard)
+
+        expect sound.decodePcm16(sound.sampleFrameCount(), output.toSlice()[until 0])
+        var error: Swag.Error
+        catch sound.decodePcm16(0, output.toSlice()[until 1]) as error
+        Swag.require(error.value() is Errors.BadParameterError)
+        catch sound.decodePcm16(sound.sampleFrameCount(), selected) as error
+        Swag.require(error.value() is Errors.BadParameterError)
     }
 }
 
@@ -213,6 +229,10 @@ using Swag, Core
     })
     Swag.require(selected.count == 2_345)
     Swag.require(Slice.equals(selected.toSlice(), whole.toSlice()[12_345 until 14_690]))
+
+    var destination: [2_345] s16
+    expect sound.decodePcm16(12_345, destination)
+    Swag.require(Slice.equals(destination, selected.toSlice()))
 
     let decodedStart   = 1_024_u64 + 12_345
     let decodedEnd     = decodedStart + 2_345

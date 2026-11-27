@@ -129,7 +129,7 @@ internal impl Item
         result += .imageClip.memoryUsage()
         if let pixels = .image.value()
         {
-            result += pixels.byteCount + .image.encoded().bytes.count
+            result += pixels.byteCount + .image.encoded().byteCount()
         }
 
         if .hasMask

@@ -311,6 +311,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::XGetBv:
             encoder.encodeXGetBv();
             break;
+        case MicroInstrOpcode::VecCarrylessProductSum16:
+            encoder.encodeVecCarrylessProductSum16(ops[0].reg, ops[1].reg, ops[2].reg, true);
+            break;
         case MicroInstrOpcode::VecClmulXorQuad:
             encoder.encodeVecClmulXorQuad(ops[0].reg, ops[1].reg, ops[2].reg, static_cast<uint8_t>(ops[3].valueU64), static_cast<uint8_t>(ops[4].valueU64));
             break;

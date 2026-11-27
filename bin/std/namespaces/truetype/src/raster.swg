@@ -254,7 +254,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     }
 }
 
-func renderCurrentOutline(slot: *GlyphSlot) fail
+func renderCurrentOutline(slot: *GlyphSlot, allowEmbeddedBitmap = false) fail
 {
     let faceData = try getSlotImpl(slot)
     let safeSlot = slot
@@ -267,6 +267,10 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
 
     if safeSlot.outline.pointCount <= 0
     {
+        if allowEmbeddedBitmap and not faceData.embeddedBitmapTables.disabled and faceData.outlineSource == .Glyf
+        {
+            renderEmbeddedBitmap(faceData, safeSlot)
+        }
         return
     }
 

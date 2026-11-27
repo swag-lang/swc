@@ -340,6 +340,24 @@ func isZeroScanline(source: const [*] u8, count: u64)->bool
     return true
 }
 
+// With both neighbours on the same side of the corner, its distance
+// cannot beat either. With opposite signs the distances subtract, so
+// the comparison stays in byte lanes and ties still favour Left, then Up.
+#[Swag.Inline]
+func paethPredictBytes(left, up, upLeft: Math.Simd.U8x16)->Math.Simd.U8x16
+{
+    let lowerLeft = Math.min(left, upLeft)
+    let lowerUp   = Math.min(up, upLeft)
+    let distanceLeft = Math.max(up, upLeft) - lowerUp
+    let distanceUp   = Math.max(left, upLeft) - lowerLeft
+    let nearest      = Math.min(distanceLeft, distanceUp)
+    let diagonal     = Math.max(distanceLeft, distanceUp) - nearest
+    let crosses      = (lowerLeft == upLeft) ^ (lowerUp == upLeft)
+    let nearby       = Math.Simd.select(distanceLeft == nearest, left, up)
+    let cornerLoses  = Math.min(diagonal, nearest) == nearest
+    return Math.Simd.select(crosses & ~cornerLoses, upLeft, nearby)
+}
+
 // Paeth-filter two rows along a diagonal. The second row trails one pixel
 // behind the first, making both rows' left, above, and upper-left pixels available.
 func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first, second: [*] u8, count, bytesPerPixel: u64)
@@ -352,21 +370,21 @@ func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first,
     let initialUp     = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, previous)[0]), splat(0_u32)))
     var packed        = cast #bit(U32x4, (initialSource + initialUp))
     cast([*] u32, first)[0] = packed[0]
-    var left   = cast #bit(S16x8, widenLow(cast #bit(U8x16, packed)))
-    var upLeft = cast #bit(S16x8, widenLow(initialUp))
+    var left   = cast #bit(U8x16, packed)
+    var upLeft = initialUp
 
     var offset = bytesPerPixel
     while offset + 4 <= count
     {
         let above  = splat(cast(const [*] u32, (previous + offset))[0])
-        let up     = cast #bit(S16x8, widenLow(cast #bit(U8x16, interleaveLow(above, packed))))
+        let up     = cast #bit(U8x16, interleaveLow(above, packed))
         let top    = splat(cast(const [*] u32, (firstSource + offset))[0])
         let bottom = splat(cast(const [*] u32, (secondSource + offset - bytesPerPixel))[0])
-        let delta  = cast #bit(S16x8, widenLow(cast #bit(U8x16, interleaveLow(top, bottom))))
+        let delta  = cast #bit(U8x16, interleaveLow(top, bottom))
 
-        left   = addPixelLanes(delta, paethPredict(left, up, upLeft))
+        left   = delta + paethPredictBytes(left, up, upLeft)
         upLeft = up
-        packed = cast #bit(U32x4, packUnsigned(left, left))
+        packed = cast #bit(U32x4, left)
         cast([*] u32, (first + offset))[0] = packed[0]
         cast([*] u32, (second + offset - bytesPerPixel))[0] = packed[1]
         offset += bytesPerPixel
@@ -382,6 +400,88 @@ func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first,
     {
         let prediction = filterPaeth(second[i - bytesPerPixel], first[i], first[i - bytesPerPixel])
         second[i] = cast #bit(u8, (secondSource[i] + #wrap prediction))
+    }
+}
+
+// Pack one pixel per dword so the four rows fit into a byte-lane predictor.
+#[Swag.Inline]
+func packPaethPixels(p0, p1, p2, p3: u32)->Math.Simd.U32x4
+{
+    using Core.Math.Simd
+    let first  = cast(u64, p0) | (cast(u64, p1) << 32)
+    let second = cast(u64, p2) | (cast(u64, p3) << 32)
+    return cast #bit(U32x4, interleaveLow(splat(first), splat(second)))
+}
+
+#[Swag.Inline]
+func startingPaethPixel(source: const [*] u8, pixelBytes: u64)->u32
+{
+    var sample = 0_u32
+    Memory.copy(&sample, source, pixelBytes)
+    return sample
+}
+
+// Four rows share the predictor while trailing their preceding row by one pixel.
+// Resolve the starting ramp and the right edge one row at a time.
+func defilterPaethFourRows(input, previous: const [*] u8, output: [*] u8, count: u64, rowStep: s64, pixelBytes: u64)
+{
+    using Core, Math.Simd
+    let inputStep = count + 1
+    let second    = output + rowStep
+    let third     = second + rowStep
+    let fourth    = third + rowStep
+
+    for row in 3
+    {
+        let source = input + row * inputStep
+        let dest   = output + cast(s64, row) * rowStep
+        let above  = row ? cast(const [*] u8, dest - rowStep) : previous
+        for offset in (3 - row) * pixelBytes
+        {
+            let left = offset >= pixelBytes ? dest[offset - pixelBytes] : 0_u8
+            let diag = offset >= pixelBytes ? above[offset - pixelBytes] : 0_u8
+            dest[offset] = cast #bit(u8, (source[offset] + #wrap filterPaeth(left, above[offset], diag)))
+        }
+    }
+
+    #[Swag.Mixin]
+    func word(source: const [*] u8)->u32
+    {
+        return cast(const [*] u32, source)[0]
+    }
+
+    var left = packPaethPixels(startingPaethPixel(output + 2 * pixelBytes, pixelBytes), startingPaethPixel(second + pixelBytes, pixelBytes), startingPaethPixel(third, pixelBytes), 0)
+    var upLeft = packPaethPixels(startingPaethPixel(previous + 2 * pixelBytes, pixelBytes), startingPaethPixel(output + pixelBytes, pixelBytes), startingPaethPixel(second, pixelBytes), 0)
+    var offset = 3 * pixelBytes
+    while offset + 4 <= count
+    {
+        let above = align(splat(word(previous + offset)), left, 12)
+        let delta = packPaethPixels(word(input + offset),
+                                    word(input + inputStep + offset - pixelBytes),
+                                    word(input + 2 * inputStep + offset - 2 * pixelBytes),
+                                    word(input + 3 * inputStep + offset - 3 * pixelBytes))
+        let predictor = paethPredictBytes(cast #bit(U8x16, left), cast #bit(U8x16, above), cast #bit(U8x16, upLeft))
+        left   = cast #bit(U32x4, (cast #bit(U8x16, delta) + predictor))
+        upLeft = above
+
+        cast([*] u32, output + offset)[0] = left[0]
+        cast([*] u32, second + offset - pixelBytes)[0] = left[1]
+        cast([*] u32, third + offset - 2 * pixelBytes)[0] = left[2]
+        cast([*] u32, fourth + offset - 3 * pixelBytes)[0] = left[3]
+        offset += pixelBytes
+    }
+
+    for row in 4
+    {
+        let source = input + row * inputStep
+        let dest   = output + cast(s64, row) * rowStep
+        let above  = row ? cast(const [*] u8, dest - rowStep) : previous
+        for index in offset - row * pixelBytes until count
+        {
+            let leftPixel = index >= pixelBytes ? dest[index - pixelBytes] : 0_u8
+            let diagonal  = index >= pixelBytes ? above[index - pixelBytes] : 0_u8
+            dest[index] = cast #bit(u8, (source[index] + #wrap filterPaeth(leftPixel, above[index], diagonal)))
+        }
     }
 }
 
@@ -456,6 +556,25 @@ private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, 
         let copyPaeth = filter == 4 and isZeroScanline(src, rowBytes)
         if filter == 4 and not copyPaeth and pairPaeth and row + 1 < height and src[rowBytes] == 4
         {
+            let stride = rowBytes + 1
+            let zero = Math.Simd.splat(0_u8)
+            // Keep zero rows on the cheaper copy path when a batch starts
+            // with no residuals in any of its following rows.
+            if rowBytes >= 24 and row + 3 < height and
+               src[2 * stride - 1] == 4 and src[3 * stride - 1] == 4 and
+               Math.Simd.anyTrue(Math.Simd.load(src + stride) != zero) and
+               Math.Simd.anyTrue(Math.Simd.load(src + 2 * stride) != zero) and
+               Math.Simd.anyTrue(Math.Simd.load(src + 3 * stride) != zero)
+            {
+                defilterPaethFourRows(src, up, dest, rowBytes, rowStep, filterOffset)
+                src  += 4 * rowBytes + 3
+                let last = dest + 3 * rowStep
+                up = last
+                dest = last + rowStep
+                row  += 4
+                continue
+            }
+
             let next = dest + rowStep
             defilterPaethPair(src, src + rowBytes + 1, up, dest, next, rowBytes, filterOffset)
             src  += 2 * rowBytes + 1

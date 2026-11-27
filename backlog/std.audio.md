@@ -217,11 +217,7 @@ owned by `bin/std/namespaces/audio` together. [README.md](README.md) has the who
   8 on CPU 1 and 9 on four cores. The corpus exposes
   the remaining channel-layout and single-core issues. libsndfile leads on
   FileSamples WAV decoding in the independent library comparison.
-- Full-file correctness: `sample1.oga` decodes the measured ten-second window,
-  but a full Swag decode reports `FLAC frame has no sync code` with one or four
-  workers. FFmpeg decodes all 5,384,326 stereo frames at 44.1 kHz.
-- Next: inspect the final lacing of `sample1.oga` and compare full PCM against
-  FFmpeg. Reduce one-core Dolby and generated AAC decode time and the PCM WAV
+- Next: reduce one-core Dolby and generated AAC decode time and the PCM WAV
   materialization gap against libsndfile.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native
   FFmpeg on all eight compressed inputs on one core, with format validation and

@@ -1058,6 +1058,88 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     }
 }
 
+// LZW preserves the packed stream across dictionary clears and appends after existing bytes.
+#test
+{
+    const Count = 96 * 1024 + 37
+    var bytes: Array!{u8}
+    bytes.resize(Count)
+    let data   = bytes.storage()
+    var random = 0xCA67_B123_u32
+    for i in Count
+    {
+        random  ^= random << 13
+        random  ^= random >> 17
+        random  ^= random << 5
+        data[i] = cast(u8, (random & 255))
+    }
+
+    var encoded: Array!{u8}
+    encoded.add(37_u8)
+    Tiff.packLzw(&encoded, data, Count)
+    Swag.require(encoded[0] == 37 and encoded.count == 134649 + 1)
+    let payload = Swag.makeSlice(encoded.storage() + 1, encoded.count - 1)
+    Swag.require(Hash.Crc64.compute(payload) == 0x2F3C01CE9052ADE0_u64)
+}
+
+// Exercise cached literals, short words, and references to longer output ranges.
+#test
+{
+    var writer:   TestTiffLzwWriter
+    var expected: Array!{u8}
+    for epoch in 32
+    {
+        writer.write(256, 9)
+        for code in [65_u32, 258, 259, 260, 261, 262, 261, 66, 67, 265, 266, 267, 268, 269, 270, 271, 272, 273]
+        {
+            writer.write(code, 9)
+        }
+
+        for 26
+        {
+            expected.add(65)
+        }
+
+        for sample in "BCBCCBBCCCBBBCCCCBBBBCCCCCBBBBBCCCCC"
+        {
+            expected.add(cast(u8, sample))
+        }
+
+        for index in 100
+        {
+            let sample = cast(u8, ((index * 73 + epoch * 13) & 255))
+            writer.write(cast(u32, sample), 9)
+            expected.add(sample)
+        }
+    }
+
+    writer.write(267, 9)
+    writer.write(257, 9)
+    writer.finish()
+    expected.add(66)
+    expected.add(67)
+    expected.add(67)
+
+    let size = cast(u32, writer.bytes.count)
+    Swag.require(expected.count >= 4096)
+    Swag.require(size >= expected.count - expected.count / 4 and size <= expected.count + expected.count / 8)
+    var output: Array!{u8}
+    output.resize(expected.count + 2)
+    output[0], output[expected.count + 1] = 0xA5
+    var dictionary: Array!{u64}
+    let destination = output.storage() + 1
+    expect Tiff.unpackLzw(destination, expected.count, writer.bytes.storage(), size, &dictionary)
+    Swag.require(output[0] == 0xA5 and output[expected.count + 1] == 0xA5)
+    for sample, index in expected
+    {
+        Swag.require(destination[index] == sample)
+    }
+
+    var truncated: Swag.Error
+    catch { try Tiff.unpackLzw(destination, expected.count, writer.bytes.storage(), size - 1, &dictionary) } as truncated
+    Swag.require(truncated.value() != null)
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

@@ -142,6 +142,13 @@ func(T, CHANNELS: u64) writeScanlinePlanes(destination: [*] u8, source: const [*
                     unpackRgba!{Simd.U32x4}(output, planeBytes, input)
                 }
             }
+            else if CHANNELS == 2 and T == u32
+            {
+                let first  = cast #bit(Simd.U32x4, Simd.load(input))
+                let second = cast #bit(Simd.U32x4, Simd.load(input + 16))
+                Simd.store(output, cast #bit(Simd.U8x16, Simd.deinterleaveOdd(first, second)))
+                Simd.store(output + planeBytes, cast #bit(Simd.U8x16, Simd.deinterleaveEven(first, second)))
+            }
             else
             {
                 let first  = Simd.load(input)

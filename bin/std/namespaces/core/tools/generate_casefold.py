@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -58,26 +59,86 @@ def format_mapping(mapping: list[int]) -> str:
     return f"[{values}]"
 
 
+@dataclass(frozen=True)
+class FoldRange:
+    first: int
+    last: int
+    data: int
+    turkic: int
+    stride_mask: int
+    expands: bool
+
+
+def pack_mappings(
+    mappings: dict[int, list[int]], turkic: dict[int, list[int]]
+) -> tuple[list[FoldRange], list[list[int]]]:
+    sources = sorted(mappings)
+    ranges: list[FoldRange] = []
+    expansions: list[list[int]] = []
+    expansion_indices: dict[tuple[int, ...], int] = {}
+
+    def index_expansion(mapping: list[int]) -> int:
+        key = tuple(mapping)
+        index = expansion_indices.get(key)
+        if index is None:
+            index = len(expansions)
+            expansions.append(mapping)
+            expansion_indices[key] = index
+        return index
+
+    index = 0
+    while index < len(sources):
+        first = sources[index]
+        index += 1
+        mapping = mappings[first]
+        expands = len(mapping) != 1
+        data = index_expansion(mapping) if expands else mapping[0] - first
+        alternate = index_expansion(turkic[first]) + 1 if first in turkic else 0
+
+        last = first
+        step = 1
+        if not expands and not alternate and index < len(sources):
+            gap = sources[index] - first
+            # A gap of two covers alternating uppercase and lowercase code points.
+            if gap in (1, 2):
+                while index < len(sources):
+                    current = sources[index]
+                    if current != last + gap or current in turkic or mappings[current] != [current + data]:
+                        break
+                    last = current
+                    step = gap
+                    index += 1
+        ranges.append(FoldRange(first, last, data, alternate, step - 1, expands))
+
+    if len(expansions) > 0xFFFF:
+        raise ValueError("case-fold expansions exceed the runtime index width")
+    return ranges, expansions
+
+
 def render(mappings: dict[int, list[int]], turkic: dict[int, list[int]]) -> str:
+    ranges, expansions = pack_mappings(mappings, turkic)
     lines = [
         "// @LICENCE: Unicode-3.0",
         "// @ORIGIN: Unicode 17.0.0 CaseFolding.txt",
         "// @MODIFIED: Generated from the UCD input for Swag.",
-        "// @NOTICE: /bin/std/modules/core/tools/data/NOTICE.md",
+        "// @NOTICE: /bin/std/namespaces/core/tools/data/NOTICE.md",
         "",
         "// Generated from tools/data/CaseFolding.txt by tools/generate_casefold.py.",
-        "// Keep the mappings sorted by source code point.",
+        "// Keep the ranges sorted by their first source code point.",
         "#global namespace Unicode",
         "#global internal",
         "",
-        "const TableCaseFold: [?] CaseFoldMapping = [",
+        "const TableCaseFold: [?] CaseFoldRange = [",
     ]
-    for codepoint, mapping in sorted(mappings.items()):
-        special = turkic.get(codepoint, mapping)
+    for entry in ranges:
         lines.append(
-            f"    CaseFoldMapping{{0x{codepoint:04X}, {format_mapping(mapping)}, "
-            f"{len(mapping)}, {format_mapping(special)}, {len(special)}}},"
+            f"    CaseFoldRange{{0x{entry.first:04X}, 0x{entry.last:04X}, {entry.data}, "
+            f"{entry.turkic}, {entry.stride_mask}, {str(entry.expands).lower()}}},"
         )
+
+    lines.extend(["]", "", "const TableCaseFoldExpansions: [?] CaseFoldExpansion = ["])
+    for mapping in expansions:
+        lines.append(f"    CaseFoldExpansion{{{format_mapping(mapping)}, {len(mapping)}}},")
     lines.extend(["]", ""])
     return "\n".join(lines)
 

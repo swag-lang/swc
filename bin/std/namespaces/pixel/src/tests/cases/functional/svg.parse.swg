@@ -76,6 +76,23 @@ using Swag, Core
     Swag.require(sizeError != null)
 }
 
+// XML allows tabs and line endings before the equals sign of an attribute.
+#test
+{
+    const Source = #stringof("<svg width\n='12' height\t='8'>",
+                             "<rect x\n='2' y\t='1' width\r='5' height\n='6' fill\t='#f00'/>",
+                             "</svg>")
+    let size    = expect Svg.parseImageSize(Source)
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(12, 8, 1)
+    Swag.require(size == Math.Vector2{12, 8})
+    Swag.require(drawing.naturalSize() == size)
+    Swag.require(image.pixelColor(1, 3).a == 0)
+    Swag.require(image.pixelColor(2, 1) == Color.fromArgb(Argb.Red))
+    Swag.require(image.pixelColor(6, 6) == Color.fromArgb(Argb.Red))
+    Swag.require(image.pixelColor(7, 3).a == 0)
+}
+
 // A symbol keeps its viewport. An empty href overrides its fallback; an omitted href uses it.
 #test
 {

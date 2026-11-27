@@ -64,6 +64,45 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     vorbisAssertCloseTo("vorbis-5.1-48000", 48_000, 6)
 }
 
+// Seven distinct speaker tones cross a continued Ogg packet, short/long windows and an EOS cut.
+#test
+{
+    const Name = "vorbis-6.1-continued-48000"
+    const Channels = 7_u64
+    let sound = expect SoundFile.load(audioGetTestDataPath("vorbis-6.1-continued-48000.ogg"))
+    Swag.require(sound.numChannels() == Channels and sound.speakerChannelMask() == 0x070F)
+    Swag.require(sound.sampleFrameCount() == 16_003)
+    Swag.require((expect sound.packet(0)).sampleFrameCount == 256)
+    vorbisAssertCloseTo(Name, 48_000, 7)
+
+    let reference = expect File.readAllBytes(audioGetTestDataPath("vorbis-6.1-continued-48000.pcm"))
+    let samples = cast(const [*] s16, reference.storage())
+    const Ranges = [(128_u64, 289_u64), (1_171_u64, 773_u64), (15_929_u64, 74_u64)]
+    for range in Ranges
+    {
+        let (first, frames) = range
+        var offset = first * Channels
+        expect sound.decodePcm16(first, frames, func|samples, &offset|(part)
+        {
+            for value in part
+            {
+                Swag.require(Math.abs(cast(s32, value) - cast(s32, samples[offset])) <= 2)
+                offset += 1
+            }
+
+            return true
+        })
+
+        Swag.require(offset == (first + frames) * Channels)
+    }
+}
+
+// Floor 0 uses decibel amplitudes and reconstructs both odd and even LSP orders.
+#test
+{
+    vorbisAssertCloseTo("vorbis-floor0-5.1-48000", 48_000, 6)
+}
+
 // Mono Vorbis uses a center speaker mask even though its lone channel needs no reordering.
 #test
 {

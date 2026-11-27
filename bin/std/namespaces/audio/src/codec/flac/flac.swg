@@ -1468,8 +1468,9 @@ private impl Codec
 
             var start = at
             var skip  = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
-            for size in page.lacing[until page.segments]
+            for index in page.segments
             {
+                let size = page.lacing[index]
                 at += size
                 if size == 255
                 {
@@ -1482,6 +1483,13 @@ private impl Codec
                 }
                 else
                 {
+                    // Older muxers can write an empty packet after the last FLAC frame.
+                    if start == at and .oggFrame.isEmpty() and
+                       index + 1 == page.segments and (page.flags & Ogg.LastPage) != 0
+                    {
+                        break
+                    }
+
                     var frame = pages[start until at]
                     if not .oggFrame.isEmpty()
                     {

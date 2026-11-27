@@ -8,7 +8,7 @@ rasterize their SVG at runtime.
 Regenerate after changing the SVG or rasterizer, from the repository root:
 
 ```text
-bin/swc.dm.exe run -f bin/std/modules/gui/tools/rasterize-theme.swgs --num-cores 6
+bin/swc.dm.exe run -f bin/std/namespaces/gui/tools/rasterize-theme.swgs --num-cores 6
 tools/std.bat dm test gui --test-file theme.rasters.swg --test-file theme.resources.swg
 tools/std.bat dm test gui -bc release --test-file theme.rasters.swg
 ```
@@ -17,7 +17,7 @@ The ten default TrueType faces are embedded as lossless zlib streams to reduce e
 Regenerate them after changing a source font, from the repository root:
 
 ```text
-bin/swc.dm.exe run -f bin/std/modules/gui/tools/compress-theme-fonts.swgs
+bin/swc.dm.exe run -f bin/std/namespaces/gui/tools/compress-theme-fonts.swgs
 ```
 
 `Resources.Bundle.load` decodes compressed embedded resources transparently, so resource names,

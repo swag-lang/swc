@@ -1,5 +1,8 @@
 using Swag, Core
 
+// Two full validation vectors plus the leading glyph.
+private const PackedBaseMinimum = 17
+
 func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteIndex: u16)->Array!{ColorGlyphLayer} fail
 {
     var result: Array!{ColorGlyphLayer}
@@ -14,8 +17,10 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         return result
     }
 
-    let colr        = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
-    let colrVersion = try readU16(colr, 0)
+    let colr = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
+    try assertRange(colr, 0, 14)
+    let colrHeader  = colr.buffer
+    let colrVersion = Math.make16(colrHeader[0], colrHeader[1])
     if colrVersion > 1
     {
         try fault(0x07)
@@ -23,12 +28,15 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
 
     // Both headers describe the v0 layer records in their first 14 bytes.
     let colrHeaderSize = colrVersion == 0 ? 14_u64 : 34_u64
-    try assertRange(colr, 0, colrHeaderSize)
+    if colrVersion == 1
+    {
+        try assertRange(colr, 0, colrHeaderSize)
+    }
 
-    let baseGlyphCount     = try readU16(colr, 2)
-    let baseRecordsOffset  = cast(u64, try readU32(colr, 4))
-    let layerRecordsOffset = cast(u64, try readU32(colr, 8))
-    let layerRecordCount   = try readU16(colr, 12)
+    let baseGlyphCount     = Math.make16(colrHeader[2], colrHeader[3])
+    let baseRecordsOffset  = cast(u64, readPackedOffset(colrHeader + 4, 4))
+    let layerRecordsOffset = cast(u64, readPackedOffset(colrHeader + 8, 4))
+    let layerRecordCount   = Math.make16(colrHeader[12], colrHeader[13])
     if baseGlyphCount and baseRecordsOffset < colrHeaderSize
     {
         try fault(0x08)
@@ -49,38 +57,32 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
         try fault(0x08)
     }
 
-    var baseRecord           = 0_u64
-    var foundBase            = false
-    var previousBaseGlyph    = 0_u16
-    var hasPreviousBaseGlyph = false
-    for index in baseGlyphCount
+    let records = colr.buffer + baseRecordsOffset
+    var selected: const [*] u8?
+    if baseGlyphCount < PackedBaseMinimum
     {
-        let record = baseRecordsOffset + cast(u64, index) * 6
-        let glyph  = try readU16(colr, record)
-        if glyph >= faceData.face.glyphCount or
-           (hasPreviousBaseGlyph and glyph <= previousBaseGlyph)
+        selected = try scanColorBases(records, baseGlyphCount, faceData.face.glyphCount, baseGlyph)
+    }
+    else
+    {
+        // Concurrent first queries can validate the same immutable records independently.
+        let validated = &faceData.colorBaseGlyphsValidated
+        if not validated.isRaised()
         {
-            try fault(0x08)
+            try validateColorBases(records, baseGlyphCount, faceData.face.glyphCount)
+            cast #unconst (*Swag.AtomicFlag, validated).raise()
         }
 
-        if glyph == baseGlyph
-        {
-            baseRecord = record
-            foundBase  = true
-        }
-
-        previousBaseGlyph    = glyph
-        hasPreviousBaseGlyph = true
+        selected = findColorBaseGlyph(records, baseGlyphCount, baseGlyph)
     }
 
-    if not foundBase
+    if not selected
     {
         return result
     }
 
-    let selected   = baseRecord
-    let firstLayer = try readU16(colr, selected + 2)
-    let layerCount = try readU16(colr, selected + 4)
+    let firstLayer = Math.make16(selected[2], selected[3])
+    let layerCount = Math.make16(selected[4], selected[5])
     if cast(u32, firstLayer) + cast(u32, layerCount) > layerRecordCount
     {
         try fault(0x08)
@@ -94,16 +96,17 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
 
     let cpal = try getSlice(faceData.fontBytes(), cpalRecord.offset, cpalRecord.length)
     try assertRange(cpal, 0, 12)
-    let cpalVersion = try readU16(cpal, 0)
+    let cpalHeader  = cpal.buffer
+    let cpalVersion = Math.make16(cpalHeader[0], cpalHeader[1])
     if cpalVersion > 1
     {
         try fault(0x07)
     }
 
-    let paletteEntryCount  = try readU16(cpal, 2)
-    let paletteCount       = try readU16(cpal, 4)
-    let colorRecordCount   = try readU16(cpal, 6)
-    let colorRecordsOffset = cast(u64, try readU32(cpal, 8))
+    let paletteEntryCount  = Math.make16(cpalHeader[2], cpalHeader[3])
+    let paletteCount       = Math.make16(cpalHeader[4], cpalHeader[5])
+    let colorRecordCount   = Math.make16(cpalHeader[6], cpalHeader[7])
+    let colorRecordsOffset = cast(u64, readPackedOffset(cpalHeader + 8, 4))
     if paletteIndex >= paletteCount
     {
         try fault(0x06)
@@ -141,17 +144,22 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
 
     try assertRange(cpal, colorRecordsOffset, cast(u64, colorRecordCount) * 4)
 
-    let paletteFirstColor = try readU16(cpal, 12 + cast(u64, paletteIndex) * 2)
+    let paletteIndexRecord = cpal.buffer + 12 + cast(u64, paletteIndex) * 2
+    let paletteFirstColor  = Math.make16(paletteIndexRecord[0], paletteIndexRecord[1])
     if cast(u32, paletteFirstColor) + cast(u32, paletteEntryCount) > colorRecordCount
     {
         try fault(0x08)
     }
 
+    // The record ranges already cover the layer run and the selected palette.
+    let colors = cpal.buffer + colorRecordsOffset + cast(u64, paletteFirstColor) * 4
+    let layers = result.emplaceAddress(layerCount)
+    var record = colr.buffer + layerRecordsOffset + cast(u64, firstLayer) * 4
     for layerIndex in layerCount
     {
-        let record = layerRecordsOffset + (cast(u64, firstLayer) + layerIndex) * 4
-        let glyph  = try readU16(colr, record)
-        let entry  = try readU16(colr, record + 2)
+        let glyph = Math.make16(record[0], record[1])
+        let entry = Math.make16(record[2], record[3])
+        record += 4
         if glyph >= faceData.face.glyphCount
         {
             try fault(0x08)
@@ -166,25 +174,123 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
                 try fault(0x08)
             }
 
-            let colorRecord = cast(u32, paletteFirstColor) + cast(u32, entry)
-            if colorRecord >= colorRecordCount
-            {
-                try fault(0x08)
-            }
-
-            let colorOffset = colorRecordsOffset + cast(u64, colorRecord) * 4
-            let blue        = cast(u32, try readU8(cpal, colorOffset))
-            let green       = cast(u32, try readU8(cpal, colorOffset + 1))
-            let red         = cast(u32, try readU8(cpal, colorOffset + 2))
-            let alpha       = cast(u32, try readU8(cpal, colorOffset + 3))
-            argb     = (alpha << 24) | (red << 16) | (green << 8) | blue
+            let color = colors + cast(u64, entry) * 4
+            argb     = Math.make32(color[3], color[2], color[1], color[0])
             hasColor = true
         }
 
-        var layer: ColorGlyphLayer
-        layer.init(glyph, entry, hasColor, argb)
-        result.add(layer)
+        layers[layerIndex].init(glyph, entry, hasColor, argb)
     }
 
     return result
+}
+
+private func scanColorBases(records: const [*] u8, count: u16, glyphCount, baseGlyph: u32)->const [*] u8? fail
+{
+    var selected:      const [*] u8?
+    var entry = records
+    var previousGlyph: u16
+    for index in count
+    {
+        let glyph = Math.make16(entry[0], entry[1])
+        if glyph >= glyphCount or (index and glyph <= previousGlyph)
+        {
+            try fault(0x08)
+        }
+
+        if glyph == baseGlyph
+        {
+            selected = entry
+        }
+
+        previousGlyph = glyph
+        entry         += 6
+    }
+
+    return selected
+}
+
+private func findColorBaseGlyph(records: const [*] u8, count: u16, baseGlyph: u32)->const [*] u8?
+{
+    var low  = 0_u64
+    var high = cast(u64, count)
+    while low < high
+    {
+        let index  = low + (high - low) / 2
+        let record = records + index * 6
+        let glyph  = Math.make16(record[0], record[1])
+        if glyph == baseGlyph
+        {
+            return record
+        }
+
+        if glyph < baseGlyph
+        {
+            low = index + 1
+        }
+        else
+        {
+            high = index
+        }
+    }
+
+    return null
+}
+
+private func validateColorBases(records: const [*] u8, count: u16, glyphCount: u32) fail
+{
+    var previousGlyph = Math.make16(records[0], records[1])
+    var entry         = records + 6
+    var remaining     = count - 1
+
+    #static if Math.nativeToBigEndian(1_u16) != 1
+    {
+        // Gather the big-endian glyph indices out of eight six-byte records in 48 bytes.
+        const ZeroByte = 0x80_u8
+        const First    = cast(Math.Simd.U8x16, [1_u8, 0, 7, 6, 13, 12, ZeroByte, ZeroByte,
+                                                ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte])
+        const Middle = cast(Math.Simd.U8x16, [ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, 3, 2,
+                                              9, 8, 15, 14, ZeroByte, ZeroByte, ZeroByte, ZeroByte])
+        const Last = cast(Math.Simd.U8x16, [ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte, ZeroByte,
+                                            ZeroByte, ZeroByte, ZeroByte, ZeroByte, 5, 4, 11, 10])
+        var previous = Math.Simd.splat(previousGlyph)
+        var unordered: Math.Simd.U16x8
+        while remaining >= 8
+        {
+            let first          = Math.Simd.shuffle(Math.Simd.load(entry), First)
+            let middle         = Math.Simd.shuffle(Math.Simd.load(entry + 16), Middle)
+            let last           = Math.Simd.shuffle(Math.Simd.load(entry + 32), Last)
+            let glyphs         = cast #bit(Math.Simd.U16x8, first | middle | last)
+            let previousGlyphs = Math.Simd.align(previous, glyphs, 14)
+            unordered |= glyphs <= previousGlyphs
+            previous  = glyphs
+            entry     += 48
+            remaining -= 8
+        }
+
+        if Math.Simd.anyTrue(unordered)
+        {
+            try fault(0x08)
+        }
+
+        previousGlyph = previous[7]
+    }
+
+    for remaining
+    {
+        let glyph = Math.make16(entry[0], entry[1])
+        if glyph <= previousGlyph
+        {
+            try fault(0x08)
+        }
+
+        previousGlyph = glyph
+        entry         += 6
+    }
+
+    // A strictly increasing directory is bounded if its last glyph is valid.
+    if previousGlyph >= glyphCount
+    {
+        try fault(0x08)
+    }
 }

@@ -281,6 +281,9 @@ struct FaceImpl
     sharedProgramTables: const *ProgramTables?
     hasCMap:             bool
 
+    // The color lookup checks a packed base directory once for each face.
+    colorBaseGlyphsValidated: Swag.AtomicFlag
+
     // Current point scales are shared by all simple outlines of a composite glyph.
     pointScaleKey: u64 = Swag.U64.Max
     pointScaleX:   PointScale

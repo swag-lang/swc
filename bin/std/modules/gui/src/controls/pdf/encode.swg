@@ -843,7 +843,8 @@ private impl Writer
             .bytes.add(cast(const [..] u8, entry))
         }
 
-        .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n%%EOF\n", nextObject, CatalogObject, InfoObject, xref).toString())
+        .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n", nextObject, CatalogObject, InfoObject, xref).toString())
+        .append("%%EOF\n")
     }
 
     mtd writePage(page: const *Page, objects: const *PageObjects, fonts: const [..] StandardFont, fontObjects: const [..] u32, nextObject: *u32) fail

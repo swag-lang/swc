@@ -470,11 +470,14 @@ before relying on them.
   pays for semantic analysis, specialization, inlining, and lowering. Prior delayed-body work
   showed that native and JIT preparation can need semantic completion of methods reached
   indirectly through allocation-failure reporting.
-- Semantic analysis dominates warm work. In three Linux Release samples with four workers,
-  the median `gui1` one-constant edit took 5.94 s, including 4.84 s of sema over 1,500 files.
-  The compiler peaked at 1,638 MiB RSS by median, with at least 9,732 of 9,814 Micro functions
-  reused in each sample. The PNG-decoding script took a median 3.48 s, including 3.12 s of
-  sema over 1,073 files, with a median peak of 1,131 MiB RSS.
+- Semantic analysis dominates warm work. Sharing the generated signal arguments by arity
+  reduced the median `gui1` one-constant edit from 8.12 s to 7.34 s across six paired Linux
+  Release runs with four workers. The latter spent 6.89 s in sema over 1,500 files, peaked at
+  a median 1,730 MiB RSS, and reused at least 9,732 of 9,814 Micro functions. Signal forwarding
+  uses `ConstExpr` to read the parameter count and types. The direct reflection variant was
+  faster but intermittently failed to resolve a pointer parameter or fold the count.
+  In an earlier series the PNG-decoding script took a median 3.48 s, including 3.12 s of sema
+  over 1,073 files, with a median peak of 1,131 MiB RSS.
 - Only runtime bodies and generic-instance methods are analyzed on demand
   (`canDelayFunctionBody`). A prototype deferred every source-dependency body, free functions
   and methods: call sites kept only the signature, native code generation analyzed reached
@@ -511,8 +514,9 @@ before relying on them.
   verifies the manifest's checksum. A same-size private-body edit with a restored write time
   updates both the `#run` result and the executable. An added overload changes the selected
   call, a signature edit matches a forced build's diagnostic, and a damaged manifest that
-  omits a discovered `#include` is rebuilt. The workspace shortcut can still suppress source
-  warnings and output from a compile-time `#run` statement on a hit.
+  omits a discovered `#include` is rebuilt. Over seven Linux Release pairs, the median
+  unchanged `gui1` build went from 20 ms to 21 ms. The workspace shortcut can still suppress
+  source warnings and output from a compile-time `#run` statement on a hit.
 - Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
   metadata properties and external inputs each generator observes, and analyze restored text
   in the destination scope. Start with a proof that allows replay only for effect-free

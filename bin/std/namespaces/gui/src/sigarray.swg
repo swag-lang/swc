@@ -2,6 +2,19 @@
 
 using Core
 
+#[Swag.ConstExpr]
+private func(F) signalParameterType(index: u64)->typeinfo
+{
+    return cast(typeinfo, unwrap (#typeof(F).parameters)![index].pointedType)
+}
+
+#[Swag.ConstExpr]
+private func(F) signalParameterCount()->u64
+{
+    let parameters = #typeof(F).parameters
+    return parameters ? parameters!.count : 0
+}
+
 private struct(First: u64, Count: u64) SignalArgumentSource
 {
     #static if Count == 0
@@ -10,8 +23,8 @@ private struct(First: u64, Count: u64) SignalArgumentSource
     }
     else if Count == 1
     {
-        const Text = #stringof("assume cast(#decltype(cast(typeinfo, #typeof(fn).parameters![", First,
-                               "].pointedType)), params[", First, "])")
+        const Text = #stringof("assume cast(#decltype(signalParameterType!{#decltype(fn)}(", First,
+                               ")), params[", First, "])")
     }
     else
     {
@@ -86,8 +99,7 @@ impl SigArray
         }
 
         // The arguments are forwarded by position, so their count must match the signature.
-        const SignatureParameters = #typeof(#type T).parameters
-        const ParameterCount      = SignatureParameters ? SignatureParameters!.count : 0
+        const ParameterCount = signalParameterCount!{T}()
         Swag.assert(params.count == ParameterCount)
 
         for fn in .callbacks

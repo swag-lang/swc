@@ -2,6 +2,25 @@
 
 using Core
 
+private struct(First: u64, Count: u64) SignalArgumentSource
+{
+    #static if Count == 0
+    {
+        const Text = ""
+    }
+    else if Count == 1
+    {
+        const Text = #stringof("assume cast(#decltype(cast(typeinfo, #typeof(fn).parameters![", First,
+                               "].pointedType)), params[", First, "])")
+    }
+    else
+    {
+        const Half = Count / 2
+        const Text = #stringof(SignalArgumentSource!{First, Half}.Text, ", ",
+                               SignalArgumentSource!{First + Half, Count - Half}.Text)
+    }
+}
+
 // Ordered collection of callbacks that can be suspended as a nested scope.
 //
 // A callback connected through `owner.signal` receives `owner` with its own type, so a handler
@@ -67,32 +86,13 @@ impl SigArray
         }
 
         // The arguments are forwarded by position, so their count must match the signature.
-        Swag.assert(params.count == (#typeof(T).parameters).count)
+        const SignatureParameters = #typeof(#type T).parameters
+        const ParameterCount      = SignatureParameters ? SignatureParameters!.count : 0
+        Swag.assert(params.count == ParameterCount)
 
         for fn in .callbacks
         {
-            #ast
-            {
-                var sb: StrConv.StringBuilder
-                let ts = #typeof(T)
-
-                sb.appendString("fn(")
-                if let tsParams = ts.parameters
-                {
-                    for i in tsParams.count
-                    {
-                        if i
-                        {
-                            sb.appendString(",")
-                        }
-
-                        sb.appendFormat("assume cast (%, params[%])", tsParams[i].pointedType!.fullname, i)
-                    }
-                }
-
-                sb.appendString(")\n")
-                return sb.toString()
-            }
+            #ast("fn(", SignalArgumentSource!{0, ParameterCount}.Text, ")")
         }
     }
 }

@@ -1763,6 +1763,57 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(pixel[0] == 255 and pixel[1] == 0)
 }
 
+// Full one-bit palettes expand directly from packed rows, including the partial last byte.
+#test
+{
+    const Width = 515
+    const Height = 131
+    const Palette: [6] u8 = [17, 59, 143, 237, 178, 71]
+    const Alpha: [1] u8 = [42]
+    const RowBytes = (Width + 7) / 8
+
+    var rows: ConcatBuffer
+    for y in Height
+    {
+        rows.addNative(0_u8)
+        for byte in RowBytes
+        {
+            rows.addNative(((y + byte) & 1) ? 0x55_u8 : 0xAA_u8)
+        }
+    }
+
+    rows.makeLinear()
+
+    for hasAlpha in [false, true]
+    {
+        var encoded: ConcatBuffer
+        addPngSignature(&encoded)
+        addPngHeader(&encoded, Width, Height, 1, 3)
+        addPngChunk(&encoded, "PLTE", Palette)
+        if hasAlpha
+        {
+            addPngChunk(&encoded, "tRNS", Alpha)
+        }
+
+        addPngImageData(&encoded, nnBytes(rows.toSlice()))
+        addPngChunk(&encoded, "IEND", "")
+        let image = expect Image.decode("one-bit-table.png", nnBytes(encoded.toSlice()))
+        assertImage(image, Width, Height, hasAlpha ? .RGBA8 : .RGB8)
+        for y in Height
+        {
+            for x in Width
+            {
+                let sample = 1 - ((x + (x / 8) + y) & 1)
+                let color  = image.pixelColor(x, y)
+                Swag.require(color.r == Palette[3 * sample] and
+                             color.g == Palette[3 * sample + 1] and
+                             color.b == Palette[3 * sample + 2] and
+                             color.a == (hasAlpha and not sample ? 42 : 255))
+            }
+        }
+    }
+}
+
 // Decode palette and tRNS transparency chunks.
 #test
 {

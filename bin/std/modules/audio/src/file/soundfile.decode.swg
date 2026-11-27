@@ -85,22 +85,17 @@ impl SoundFile
         var byteOffset    = firstFrame * bytesPerFrame
         let byteEnd       = byteOffset + frameCount * bytesPerFrame
 
-        // A contiguous PCM payload can reuse one read window for the whole range.
         let contiguous = .packets.isEmpty()
         let direct     = contiguous and .encoding == .Pcm16
-        var source: ByteSource
-        if contiguous
+        let preloaded  = contiguous and .isDataPreloaded()
+        let readSize   = Math.max(SoundDecodeReadSize, bytesPerFrame)
+        var stream: File.FileStream
+        var window: Array!{u8}
+        if contiguous and not preloaded
         {
-            if .isDataPreloaded()
-            {
-                source = ByteSource.openMemory(.data.toSlice())
-                try source.seek(byteOffset)
-            }
-            else
-            {
-                source = try ByteSource.openFile(.path.toString(), .ReadWrite)
-                try source.seek(.dataOffset + byteOffset)
-            }
+            stream = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+            try stream.seek(.Begin, .dataOffset + byteOffset)
+            window.reserve(Math.min(readSize, byteEnd - byteOffset))
         }
 
         var decoded: Array!{s16}
@@ -108,7 +103,7 @@ impl SoundFile
         {
             // Keep reads bounded, except when one complete interleaved frame is larger than
             // the window. A non-empty range always has at least one full frame remaining.
-            var wantedBytes = Math.min(Math.max(SoundDecodeReadSize, bytesPerFrame), byteEnd - byteOffset)
+            var wantedBytes = Math.min(readSize, byteEnd - byteOffset)
             wantedBytes -= wantedBytes % bytesPerFrame
             if not wantedBytes
             {
@@ -124,8 +119,20 @@ impl SoundFile
                     fail InvalidFormatError{"sound payload is truncated"}
                 }
 
-                let window = try source.peek(wantedBytes)
-                input = window[until wantedBytes]
+                if preloaded
+                {
+                    input = .data.toSlice()[byteOffset until byteOffset + wantedBytes]
+                }
+                else
+                {
+                    let read = Swag.makeSlice(window.storage(), wantedBytes)
+                    if not (try stream.readExact(read))
+                    {
+                        fail InvalidFormatError{"sound payload is truncated"}
+                    }
+
+                    input = read
+                }
             }
             else
             {
@@ -147,23 +154,19 @@ impl SoundFile
             }
             else
             {
-                decoded.resize(input.count / bytesPerSample)
-                let outputBytes = decoded.count * #sizeof(s16)
+                let samples = input.count / bytesPerSample
+                decoded.reserve(samples)
+                let outputBytes = samples * #sizeof(s16)
                 let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
                 if progress.bytesRead != input.count or progress.bytesWritten != outputBytes
                 {
                     fail InvalidFormatError{"sound payload decoded to an unexpected size"}
                 }
 
-                if not consumer(decoded.toSlice())
+                if not consumer(Swag.makeSlice(decoded.storage(), samples))
                 {
                     return
                 }
-            }
-
-            if contiguous
-            {
-                try source.skip(wantedBytes)
             }
 
             byteOffset += wantedBytes

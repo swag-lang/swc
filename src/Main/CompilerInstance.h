@@ -413,6 +413,7 @@ public:
     std::vector<SourceFile*> files() const;
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
     bool                     jitHasUntrackedEffects() const { return jitHasUntrackedEffects_.load(std::memory_order_relaxed); }
+    const void*              jitUntrackedEffectAddress() const { return &jitHasUntrackedEffects_; }
     void                     recordUntrackedJitEffect() const { jitHasUntrackedEffects_.store(true, std::memory_order_relaxed); }
     Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location);
     Result                   registerModuleSetupLoad(const fs::path& filePath);

@@ -494,8 +494,9 @@ before relying on them.
   bytes, runtime inputs, and safety and warning settings. Other operations continue through
   the regular JIT path. A private callee edit and a competing overload produced distinct
   keys, a signature edit preserved the fresh build's diagnostic, and a corrupted entry was
-  recalculated. Four concurrent writers left a reusable entry. A signed overflow wrapped
-  in fresh and warm Release builds and reported the same diagnostic location in fresh and
+  recalculated. Editing one provider file recalculated its result and reused the result
+  from a second provider file. Four concurrent writers left a reusable entry. Signed overflow
+  wrapped in fresh and warm Release builds and reported the same diagnostic location in fresh and
   warm Release Safe builds. Across six alternating pairs on Linux Release with four
   workers, compared with e001896f14, the median `gui1` edit took 7.46 s before and
   7.34 s with the cache (1,714 to 1,717 MiB peak RSS). The PNG script took 3.55 s
@@ -534,8 +535,12 @@ before relying on them.
   prevent publication of the corresponding setup snapshot or workspace manifest. On Linux
   setting an environment variable updates both the setup-selected executable name and a
   value calculated during compilation. Stable setup results still allow native artifact
-  reuse. A direct file read through `fopen` and `fgetc` can still reuse a stale value after
-  an edit to the external file. Guard foreign dependencies outside tracked compiler inputs.
+  reuse. Direct calls to foreign functions declared outside the runtime now mark execution
+  in the JIT. Materializing a foreign function address conservatively prevents publication
+  while preserving the address. On Linux, builds that read through `fopen` and `fgetc`
+  see an edited file, and an untaken foreign call still allows an unchanged artifact to
+  be reused. The guard covers the sixth Swag integer argument and the System V variadic
+  argument state. Runtime host inputs outside the guarded APIs still need tracking.
   A prototype reused an analyzed short integer expression after a caller edit and missed
   after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
   proof, so it is not merged.

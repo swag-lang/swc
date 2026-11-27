@@ -2319,6 +2319,64 @@ const Observed = #run readEnvironment()
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ForeignFileReadsPreventStaleArtifacts)
+{
+    const LinkerTestDirectory directory("jit_foreign_file");
+    SWC_RESULT(directory.write("modules/app/module.swg", ""));
+    SWC_RESULT(directory.write("settings.txt", "A"));
+    const auto writeProgram = [&](const bool readFile) {
+        return directory.write("modules/app/src/main.swg", std::format(R"(
+#[Swag.Foreign("libc.so.6", link: "c", callconv: .C)]
+{{
+    func fopen(path: const [*] u8, mode: const [*] u8)->*void?
+    func fgetc(file: *void)->s32
+    func fclose(file: *void)->s32
+}}
+
+#[Swag.NoInline]
+func readSettings(enabled: bool)->s32
+{{
+    if not enabled
+    {{
+        return 17
+    }}
+    let file = unwrap fopen("settings.txt".buffer, "r".buffer)
+    defer discard fclose(file)
+    return fgetc(file)
+}}
+const Observed = #run readSettings({})
+#main {{ Swag.print("settings=", Observed, "\n") }}
+)", readFile));
+    };
+    const auto run = [&](const int expected, const bool reuse, const bool force = false) -> Result {
+        std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (force)
+            arguments.push_back("--rebuild");
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains(std::format("settings={}", expected)) || output.contains("module up-to-date") != reuse)
+        {
+            std::println(stderr, "[compile-time foreign file read] {}", output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+
+    SWC_RESULT(writeProgram(false));
+    SWC_RESULT(run(17, false));
+    SWC_RESULT(run(17, true));
+
+    SWC_RESULT(writeProgram(true));
+    SWC_RESULT(run(65, false));
+    SWC_RESULT(directory.write("settings.txt", "B"));
+    SWC_RESULT(run(66, false));
+    SWC_RESULT(run(66, false, true));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

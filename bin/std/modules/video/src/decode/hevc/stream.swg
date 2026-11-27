@@ -90,6 +90,7 @@ struct HevcStream
     dropped:             Array!{u64}     // Display ranks of pictures the standard says not to show.
     decodeLimit:         u64 = Swag.U64.Max
     skippedNonReference: u64
+    readsAnnexB:         bool
     width:               s32
     height:              s32
     sampleAspectWidth:   u32 = 1
@@ -98,8 +99,8 @@ struct HevcStream
 
 impl HevcStream
 {
-    // Configures the decoder from a container's decoder configuration and installs the samples.
-    mtd open(config: const [..] u8, frames: #move Array!{SampleEntry}) fail
+    // Configures the decoder from the stream parameter sets and installs the samples.
+    mtd open(config: const [..] u8, frames: #move Array!{SampleEntry}, readsAnnexB = false) fail
     {
         if not config.count
         {
@@ -108,6 +109,7 @@ impl HevcStream
 
         .config.clear()
         .config.add(config)
+        .readsAnnexB = readsAnnexB
         for lane in HevcMaxFrameThreads
         {
             try .configure(&.decoders[lane])
@@ -128,7 +130,7 @@ impl HevcStream
             .laneCount = Math.min(.laneCount, 4_u32)
         }
 
-        .installFrames(#move frames)
+        try .installFrames(#move frames)
     }
 
     // Wavefront pictures already spend the global workers across their independently coded rows.
@@ -160,11 +162,49 @@ impl HevcStream
         .skipBefore  = 0
         .decodeLimit = Swag.U64.Max
         .dropped.clear()
-        .installFrames(#move frames)
+        try .installFrames(#move frames)
+    }
+
+    private mtd configure(decoder: *Decoder) fail
+    {
+        if .readsAnnexB
+        {
+            .lengthSize = 4
+            let config = .config.toSlice()
+            var offset = 0_u64
+            while offset < config.count
+            {
+                let length = try .unitLength(config, &offset)
+                discard try decoder.readNalUnit(config[offset until offset + length])
+                offset += length
+            }
+        }
+        else
+        {
+            try .readConfigurationArrays(decoder)
+        }
+
+        // The geometry the reader reports comes from the sequence the sets describe.
+        var sequence: const *Sps?
+        for index in 16_u32 where decoder.sps[index].valid
+        {
+            sequence = &decoder.sps[index]
+            break
+        }
+
+        if not sequence
+        {
+            fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
+        }
+
+        .width              = cast(s32, sequence.visibleWidth())
+        .height             = cast(s32, sequence.visibleHeight())
+        .sampleAspectWidth  = sequence.sampleAspectWidth
+        .sampleAspectHeight = sequence.sampleAspectHeight
     }
 
     // Reads the parameter sets a container carries beside the stream, ISO/IEC 14496-15.
-    private mtd configure(decoder: *Decoder) fail
+    private mtd readConfigurationArrays(decoder: *Decoder) fail
     {
         let config = .config.toSlice()
         if config.count < 23
@@ -209,28 +249,10 @@ impl HevcStream
                 offset += length
             }
         }
-
-        // The geometry the reader reports comes from the sequence the sets describe.
-        var sequence: const *Sps?
-        for index in 16_u32 where decoder.sps[index].valid
-        {
-            sequence = &decoder.sps[index]
-            break
-        }
-
-        if not sequence
-        {
-            fail InvalidFormatError{"H.265 decoder configuration has no sequence parameter set"}
-        }
-
-        .width              = cast(s32, sequence.visibleWidth())
-        .height             = cast(s32, sequence.visibleHeight())
-        .sampleAspectWidth  = sequence.sampleAspectWidth
-        .sampleAspectHeight = sequence.sampleAspectHeight
     }
 
     // Builds the display order of the installed samples from their presentation times.
-    private mtd installFrames(frames: #move Array!{SampleEntry})
+    private mtd installFrames(frames: #move Array!{SampleEntry}) fail
     {
         .frames = #move frames
         let count = .frames.count
@@ -245,6 +267,17 @@ impl HevcStream
             while position > 0 and .frames[cast(u64, order[position - 1])].presentationTime > .frames[index].presentationTime
             {
                 position -= 1
+                if .readsAnnexB and index - position > MaxReorderDepth
+                {
+                    fail InvalidFormatError{"H.265 Annex B stream exceeds the picture reorder limit"}
+                }
+            }
+
+            if .readsAnnexB and
+               position > 0 and
+               .frames[cast(u64, order[position - 1])].presentationTime == .frames[index].presentationTime
+            {
+                fail InvalidFormatError{"H.265 Annex B pictures share the same order count"}
             }
 
             order.insertAt(position, cast(u32, index))
@@ -293,7 +326,7 @@ impl HevcStream
             merged.add(entry[])
         }
 
-        .installFrames(#move merged)
+        try .installFrames(#move merged)
     }
 
     mtd opDrop()
@@ -597,7 +630,16 @@ impl HevcStream
         let sample  = .nextDecode
         let entry   = .frames[sample]
         let payload = &.payloads[lane]
-        try readStoredFrame(source, entry, .prefix.toSlice(), payload)
+        if .readsAnnexB
+        {
+            try source.seek(entry.offset)
+            let bytes = try source.peek(entry.size)
+            try packAnnexAccessUnit(bytes[until entry.size], payload)
+        }
+        else
+        {
+            try readStoredFrame(source, entry, .prefix.toSlice(), payload)
+        }
 
         .nextDecode += 1
         let frameThread = &.frameThreads[lane]
@@ -663,6 +705,7 @@ impl HevcStream
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
         .ensureFrameThreads()
+
         // A file-backed reader can append packets after this window has been exhausted.
         while .threadedCount < .laneCount and .nextDecode < Math.min(.frames.count, .decodeLimit)
         {

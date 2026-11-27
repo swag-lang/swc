@@ -3,9 +3,9 @@
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
 It reads YUV4MPEG2, raw Motion JPEG and Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in
-ISO-BMFF or Matroska, and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed RGB555 16-bit and RGB 24-/32-bit
-frames and exposes integer PCM tracks; ISO-BMFF
-sample-table tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
+Annex B, ISO-BMFF or Matroska, and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed
+RGB555 16-bit and RGB 24-/32-bit frames and exposes integer PCM tracks. ISO-BMFF sample-table
+tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
 Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
 reference pictures, and bounded picture and audio buffers.
 
@@ -699,14 +699,16 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   stays bounded, audio timestamps remain aligned, and `.webm` is advertised by the reader.
 - Related: std.video.010, std.video.011
 
-### std.video.038 — Extend Annex B video decoding to HEVC and parameter changes
+### std.video.038 — Extend Annex B video decoding to open groups and parameter changes
 
-- Evidence: `.h264` and `.264` index progressive AVC with a stable SPS and PPS, reorder by
-  picture order and seek from IDRs. A three-slice B-picture fixture matches FFmpeg 9.1's
-  display-order planes. Timing uses the nominal VUI rate or 25 frames per second when it
-  is absent. FileSamples also contains raw `.hevc` streams.
-- Next: reuse the Annex B scanner to index HEVC slices and derive presentation order.
-  Extend AVC indexing across parameter changes and POC resets while preserving seek setup.
-- Done when: `.h264`/`.264` and `.hevc`/`.h265` elementary streams decode and seek against
-  reference planes, missing timing follows the documented contract, and malformed access
-  units fail safely.
+- Evidence: `.h264` and `.264` index progressive AVC with a stable SPS and PPS. `.hevc`
+  and `.h265` index progressive Main and Main 10 HEVC with a stable VPS, SPS and PPS
+  in closed IDR groups. Both reorder by picture order, seek from IDRs, and use the
+  SPS VUI rate or 25 frames per second. The AVC and HEVC reference fixtures cover
+  reordered B pictures, multiple slices and streams without nominal timing. The
+  HEVC reader rejects a valid open-GOP CRA fixture before playback begins.
+- Next: support CRA and BLA in raw HEVC. Index the leading RADL and RASL pictures
+  consistently across playback and seeking. Extend indexing across parameter changes
+  and codec picture-order resets without losing seek setup.
+- Done when: open groups and configuration changes decode and seek against reference
+  planes, with stable display numbering and bounded handling of incomplete access units.

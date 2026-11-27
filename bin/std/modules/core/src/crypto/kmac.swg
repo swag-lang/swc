@@ -47,53 +47,28 @@ private func kmacEncodeRight(value: u64, destination: *[9] u8)->u64
     return byteCount + 1
 }
 
-private func kmacAbsorbBytepad(shake: *Hash.Shake, rate: u64, block: *[Hash.Sha3MaxRate] u8, prefixLength: u64, value: const [..] u8)
-{
-    // The header is already in the zero-padded first block. Later blocks absorb the value directly.
-    defer Crypto.secureClear(block[])
-    let firstLength = Math.min(value.count, rate - prefixLength)
-    if firstLength
-    {
-        Swag.memcpy(block[].buffer + prefixLength, value.buffer, firstLength)
-    }
-
-    shake[].update(block[][until rate])
-
-    if firstLength < value.count
-    {
-        let tail = value[firstLength to]
-        shake[].update(tail)
-        let padding = (rate - tail.count % rate) % rate
-        if padding
-        {
-            Swag.memset(block[].buffer, 0, padding)
-            shake[].update(block[][until padding])
-        }
-    }
-}
-
-private func kmacBytepadString(shake: *Hash.Shake, rate: u64, value: const [..] u8) fail
+private func kmacBytepadString(state: *[25] u64, rate: u64, value: const [..] u8) fail
 {
     if value.count > Swag.U64.Max / 8
     {
         fail Errors.BadParameterError{"KMAC string is too long to encode"}
     }
 
-    var prefix: [Hash.Sha3MaxRate] u8
+    var prefix: [11] u8
     prefix[0] = 1
     prefix[1] = cast(u8, rate)
     let length = 2 + kmacEncodeLeft(value.count * 8, prefix.buffer + 2)
-    kmacAbsorbBytepad(shake, rate, &prefix, length, value)
+    Hash.absorbKmacBytepad(state, rate, prefix[until length], value)
 }
 
-private func kmacBytepadPrefix(shake: *Hash.Shake, rate: u64, customization: const [..] u8) fail
+private func kmacBytepadPrefix(state: *[25] u64, rate: u64, customization: const [..] u8) fail
 {
     if customization.count > Swag.U64.Max / 8
     {
         fail Errors.BadParameterError{"KMAC customization is too long to encode"}
     }
 
-    var prefix: [Hash.Sha3MaxRate] u8
+    var prefix: [17] u8
     prefix[0] = 1
     prefix[1] = cast(u8, rate)
     prefix[2] = 1
@@ -103,7 +78,7 @@ private func kmacBytepadPrefix(shake: *Hash.Shake, rate: u64, customization: con
     prefix[6] = 'A'
     prefix[7] = 'C'
     let length = 8 + kmacEncodeLeft(customization.count * 8, prefix.buffer + 8)
-    kmacAbsorbBytepad(shake, rate, &prefix, length, customization)
+    Hash.absorbKmacBytepad(state, rate, prefix[until length], customization)
 }
 
 private func kmacCompute(securityBits: u64, key, message, customization: const [..] u8, output: [..] u8, xof: bool) fail
@@ -119,21 +94,24 @@ private func kmacCompute(securityBits: u64, key, message, customization: const [
         fail Errors.BadParameterError{"KMAC input or output is too long to encode"}
     }
 
-    let rate  = securityBits == 128 ? 168_u64 : 136_u64
-    var shake = try Hash.Shake.createCShake(securityBits, emptyKmacPrefix: not customization.count)
+    let rate = securityBits == 128 ? 168_u64 : 136_u64
+    var state: [25] u64
+    defer Crypto.secureClear(state)
     if customization.count
     {
-        try kmacBytepadPrefix(&shake, rate, customization)
+        try kmacBytepadPrefix(&state, rate, customization)
+    }
+    else
+    {
+        Hash.seedEmptyKmacKeccak(&state, rate)
     }
 
-    try kmacBytepadString(&shake, rate, key)
-    shake.update(message)
+    try kmacBytepadString(&state, rate, key)
 
     var outputLengthEncoding: [9] u8
     let outputBits    = xof ? 0 : output.count * 8
     let encodedLength = kmacEncodeRight(outputBits, &outputLengthEncoding)
-    shake.update(Swag.makeSlice(&outputLengthEncoding[0], encodedLength))
-    try shake.finalize(output)
+    Hash.finalizeKmacKeccak(&state, rate, message, outputLengthEncoding[until encodedLength], output)
     Crypto.secureClear(outputLengthEncoding)
 }
 

@@ -241,7 +241,7 @@ impl Reader
     // Raw Motion JPEG indexes up to 1,048,576 pictures at open and assumes 25 frames per second.
     // It needs consecutive complete JPEG pictures of constant dimensions.
     //
-    // An H.264 Annex B stream is scanned for picture offsets when opened. Its nominal
+    // An H.264 or H.265 Annex B stream is scanned for picture offsets at open. Its nominal
     // cadence comes from the sequence's VUI timing, or is 25 frames per second when
     // timing is absent. Frame times are derived from display order and this cadence.
     //
@@ -642,4 +642,5 @@ impl Reader
     Reader.registerDecoder!{Matroska.Decoder}()
     Reader.registerDecoder!{Mjpeg.Decoder}()
     Reader.registerDecoder!{H264.AnnexBReader}()
+    Reader.registerDecoder!{Hevc.AnnexBReader}()
 }

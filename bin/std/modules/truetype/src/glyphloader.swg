@@ -329,8 +329,8 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
         return
     }
 
-    let glyf  = try getTableSlice(faceData, TAG_GLYF, 0x8E)
-    let data  = try getSlice(glyf, range.start, range.stop - range.start)
+    // Both offsets were checked against this table when the face opened.
+    let data  = Swag.makeSlice(faceData.glyphOutlines.buffer + range.start, range.stop - range.start)
     let count = peekS16(data, 0)
     if count >= 0
     {

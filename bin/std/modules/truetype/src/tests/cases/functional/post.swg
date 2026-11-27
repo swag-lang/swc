@@ -150,6 +150,44 @@ using Swag, Core
     Swag.require(rejected.value() != null)
 }
 
+// Long runs of equal-length names can include irregular strings and a partial tail.
+#test
+{
+    const GlyphCount = 1027_u16
+    const Names      = ["uni1234", "uni1235", "longerName", "A", "tail"]
+    var table:    Array!{u8}
+    var expected: Array!{string}
+    table.resize(34 + GlyphCount * 2)
+    writeBigU16(&table, 32, GlyphCount)
+    for index in GlyphCount
+    {
+        writeBigU16(&table, 34 + index * 2, cast(u16, 258 + index))
+        let name  = index == 8 ? Names[2] : (index == 61 ? Names[3] : Names[index % 2])
+        let value = index + 1 == GlyphCount ? Names[4] : name
+        expected.add(value)
+        table.add(cast(u8, value.count))
+        table.add(cast(const [..] u8, value))
+    }
+
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(GlyphCount)
+    expect parsePostGlyphNames(&faceData.postNames, GlyphCount, table.toSlice(), 0x00020000)
+    for index in GlyphCount
+    {
+        Swag.require(faceData.face.glyphName(cast(u32, index)) == expected[index])
+    }
+
+    Swag.require(faceData.face.glyphIndexByName(Names[1]) == 1)
+    Swag.require(faceData.face.glyphIndexByName(Names[4]) == GlyphCount - 1)
+
+    var truncated: FaceImpl
+    truncated.face.setGlyphCount(GlyphCount)
+    table.removeBack()
+    var rejected: Swag.Error
+    catch parsePostGlyphNames(&truncated.postNames, GlyphCount, table.toSlice(), 0x00020000) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A shared post table owns its names and lazily built reverse index until the last face closes.
 #test
 {

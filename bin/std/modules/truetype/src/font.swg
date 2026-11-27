@@ -247,6 +247,7 @@ struct FaceImpl
     verticalMetrics:        *VerticalMetricTable?
     ownsVerticalMetrics:    bool
     glyphLocations:         const [..] u8?
+    late glyphOutlines:     const [..] u8
     late horizontalMetrics: const [..] u8
     late chosenCMap:        const [..] u8
     cmapFormat:             u16

@@ -494,8 +494,9 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
 
 #test
 {
-    // A row of HALF 1.0 has two short literal packets and two repeated plane values.
-    const Encoded: [8] u8 = [0xFF, 0, 126, 128, 0xFF, 188, 126, 128]
+    // The compressed HALF 1.0 row has short packets throughout, including its tail.
+    const Encoded: [24] u8 = [0xFF, 0, 2, 128, 6, 128, 10, 128, 15, 128, 89, 128,
+                              0xFF, 188, 94, 128, 15, 128, 4, 128, 2, 128, 7, 128]
     var stored: [256] u8
     for x in 128
     {

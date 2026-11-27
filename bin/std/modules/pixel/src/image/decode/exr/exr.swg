@@ -229,6 +229,8 @@ func undoZipPredictor(data: [..] u8, reordered: *Array!{u8})
 
 private func decodeRleScanline(packed: const [..] u8, expected: u64, decoded: *Array!{u8}) fail
 {
+    // Complete later packets overwrite any unconsumed bytes in the scratch row.
+    const VectorBytes = #sizeof(Simd.U8x16)
     decoded.grow(expected)
     let output = decoded.storage()
     var source, target: u64
@@ -238,25 +240,49 @@ private func decodeRleScanline(packed: const [..] u8, expected: u64, decoded: *A
         source += 1
         if tag >= 128
         {
-            let count = 256 - tag
-            if count > packed.count - source or count > expected - target
+            let count        = 256 - tag
+            let remainingIn  = packed.count - source
+            let remainingOut = expected - target
+            if count > remainingIn or count > remainingOut
             {
                 fail InvalidFormatError{"OpenEXR RLE literal exceeds the scanline"}
             }
 
-            Memory.copy(output + target, packed.buffer + source, count)
+            if count == 1
+            {
+                output[target] = packed[source]
+            }
+            else if count <= VectorBytes and remainingIn >= VectorBytes and remainingOut >= VectorBytes
+            {
+                Simd.store(output + target, Simd.load(packed.buffer + source))
+            }
+            else
+            {
+                Memory.copy(output + target, packed.buffer + source, count)
+            }
+
             source += count
             target += count
         }
         else
         {
-            let count = tag + 1
-            if source == packed.count or count > expected - target
+            let count        = tag + 1
+            let remainingOut = expected - target
+            if source == packed.count or count > remainingOut
             {
                 fail InvalidFormatError{"OpenEXR RLE repeat exceeds the scanline"}
             }
 
-            Memory.set(output + target, packed[source], count)
+            let value = packed[source]
+            if count <= VectorBytes and remainingOut >= VectorBytes
+            {
+                Simd.store(output + target, Simd.splat(value))
+            }
+            else
+            {
+                Memory.set(output + target, value, count)
+            }
+
             source += 1
             target += count
         }

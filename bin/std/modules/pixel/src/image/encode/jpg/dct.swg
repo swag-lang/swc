@@ -28,6 +28,20 @@ impl Encoder
     // and the luma one carries the level shift of the format.
     mtd loadFromRGB(source: const [*] u8, columns, rows: u32)
     {
+        using Math.Simd
+
+        #[Swag.Inline]
+        func(A: s32, B: s32, Rounding: s32) pairComponent(first, second: S16x8)->S16x8
+        {
+            const Weights = cast(S16x8, [cast(s16, A), cast(s16, B), cast(s16, A), cast(s16, B),
+                                         cast(s16, A), cast(s16, B), cast(s16, A), cast(s16, B)])
+            let a    = cast #bit(U16x8, first)
+            let b    = cast #bit(U16x8, second)
+            let low  = mulAddPairs(cast #bit(S16x8, interleaveLow(a, b)), Weights)
+            let high = mulAddPairs(cast #bit(S16x8, interleaveHigh(a, b)), Weights)
+            return packSigned((low + Rounding) >> 16, (high + Rounding) >> 16)
+        }
+
         var edge: [32] u8
         let padded = cast([*] u8, edge)
         let luma   = cast([*] s16, &.duY[0])
@@ -37,7 +51,6 @@ impl Encoder
         let redLanes   = .redLanes
         let greenLanes = .greenLanes
         let blueLanes  = .blueLanes
-        let levelShift = Math.Simd.splat(128_s32)
         var pos        = 0
 
         for line in 8
@@ -57,24 +70,23 @@ impl Encoder
                 row = padded
             }
 
-            let low       = Math.Simd.load(row)
-            let high      = Math.Simd.load(row + .rightOffset)
-            let redLow    = channelOf(low, redLanes)
-            let greenLow  = channelOf(low, greenLanes)
-            let blueLow   = channelOf(low, blueLanes)
-            let redHigh   = channelOf(high, .redLanesHigh)
-            let greenHigh = channelOf(high, .greenLanesHigh)
-            let blueHigh  = channelOf(high, .blueLanesHigh)
+            let low         = load(row)
+            let high        = load(row + .rightOffset)
+            let redPixels   = packSigned(channelOf(low, redLanes), channelOf(high, .redLanesHigh))
+            let greenPixels = packSigned(channelOf(low, greenLanes), channelOf(high, .greenLanesHigh))
+            let bluePixels  = packSigned(channelOf(low, blueLanes), channelOf(high, .blueLanesHigh))
 
-            Math.Simd.store(luma + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffYR, CoeffYG, CoeffYB, 32_768) - levelShift,
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffYR, CoeffYG, CoeffYB, 32_768) - levelShift))
-            Math.Simd.store(blue + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCbR, CoeffCbG, CoeffCbB, 32_767),
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCbR, CoeffCbG, CoeffCbB, 32_767)))
-            Math.Simd.store(red + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCrR, CoeffCrG, CoeffCrB, 32_767),
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)))
+            // The luma weights sum to 65536 and each chroma row sums to zero.
+            // Channel differences keep both weights of each dot product in signed 16-bit lanes.
+            let redGreen  = redPixels - greenPixels
+            let blueGreen = bluePixels - greenPixels
+            let redBlue   = redGreen - blueGreen
+            let y         = pairComponent!{CoeffYR, CoeffYB, 32_768}(redGreen, blueGreen) + greenPixels - 128_s16
+            let cb        = pairComponent!{CoeffCbR, -CoeffCbG, 32_767}(redBlue, blueGreen)
+            let cr        = pairComponent!{-CoeffCrG, -CoeffCrB, 32_767}(redGreen, redBlue)
+            store(luma + pos, y)
+            store(blue + pos, cb)
+            store(red + pos, cr)
 
             pos += 8
         }

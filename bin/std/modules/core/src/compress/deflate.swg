@@ -66,8 +66,9 @@ internal
         26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
         28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]
 
+    const DefaultMaxProbes    = 88
     const NumProbes: [11] u32 = [
-        0, 1, 6, 32, 16, 32, 128, 256, 512, 768, 1500]
+        0, 1, 6, 32, 16, 32, DefaultMaxProbes, 256, 512, 768, 1500]
 
     const MaxSupportedHuffCodeSize = 32
     const MaxHuffTables   = 3
@@ -117,9 +118,8 @@ internal
     const FilterMatches           = 0x20000
     const ForceAllStaticBlocks    = 0x40000
 
-    const HuffmanOnly      = 0
-    const DefaultMaxProbes = 128
-    const MaxProbesMask    = 0xFFF
+    const HuffmanOnly   = 0
+    const MaxProbesMask = 0xFFF
 
     struct SymFreq
     {

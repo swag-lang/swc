@@ -18,16 +18,14 @@ outcomes owned by `core` together.
 
 ### std.core.018 — Rebaseline and reduce Deflate match-search cost
 
-- Evidence: match search dominates `Compress.Deflate` level 6 on filtered PNG data, which also
-  sets the cost of `TagBin` and future containers. Level 6 walks up to 132 candidates per
-  position for matches three to six bytes long, while level 1 compresses the same input about 4x
-  faster for about 5% more bytes. The two untried levers are zlib's `nice_match` (stop the chain
-  once a match is long enough, 128 at level 6) and tuning the lazy-match rule inherited from
-  miniz. Both change which matches are chosen, so each must report compressed size beside time.
-  Older timings predate a compiler spill fix, so they are not a baseline. Any remaining backend
-  cause belongs in [compiler.optimization.md](compiler.optimization.md).
-- Next: remeasure the current compiler and match finder on the same PNG and `.scc` corpus,
-  then compare each search-policy change against that recorded baseline.
+- Evidence: match search dominates `Compress.Deflate` level 6 on filtered PNG data. A budget of
+  88 probes improves throughput by 15% on filtered PNG, BGRA, and SCC fixtures compared with the
+  128-probe baseline at `91907e8173`. The stored size grows by 0.27% on that group. A budget of
+  80 grows individual files by over 1%. Stopping the search at a 128-byte match has negligible
+  effect on these inputs. Any remaining backend cause belongs in
+  [compiler.optimization.md](compiler.optimization.md).
+- Next: measure dictionary refill and candidate selection independently. Compare the cost and
+  compressed size of tuning the lazy-match rule on the same image fixtures.
 - Done when: level 6 on the PNG and `.scc` fixtures is at least 1.5x faster than that
   baseline with no more than 1% growth in compressed size, and every `core` compression test
   still round-trips.

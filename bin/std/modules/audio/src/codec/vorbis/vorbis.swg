@@ -1580,7 +1580,6 @@ private impl Codec
         let order     = floor.order
         let amplitude = cast(f64, curve[order])
         let offset    = cast(f64, floor.amplitudeOffset)
-        let maximum   = cast(f64, ((1_u32 << floor.amplitudeBits) - 1))
 
         var cosines: Array!{f64}
         cosines.resize(order)
@@ -1626,7 +1625,7 @@ private impl Codec
                 q *= (1.0 + cosw) / 2.0
             }
 
-            let value = cast(f32, Math.exp(0.11512925 * (amplitude * offset / (maximum * Math.sqrt(p + q)) - offset)))
+            let value = cast(f32, Math.exp(0.11512925 * (amplitude / Math.sqrt(p + q) - offset)))
             while line < half and map[line] == bin
             {
                 spectrum[line] *= value

@@ -360,18 +360,6 @@ ships; history lives in Git, not here.
   captures and measure file size on representative animations.
 - Done when: a screen recording with anti-aliased text exports without visible banding at a size
   comparable to the former encoder, and still frames keep their exact palette.
-- Related: std.pixel.image.052
-
-### std.pixel.image.052 — No animated PNG encoding
-
-- Evidence: the PNG encoder writes one image; an animated capture exported losslessly, or with
-  more than 256 colors, has no output.
-- Next: add APNG output (`acTL`, `fcTL`, `fdAT`) on the existing PNG filter and Deflate path,
-  reusing the changed-rectangle reduction of std.pixel.image.051.
-- Done when: an animation written as APNG decodes back with identical pixels and timing, and
-  viewers without APNG support show its first frame.
-- Related: std.pixel.image.051
-
 ---
 
 ### std.pixel.image.053 — Remaining PNG sample conversion needs a current profile

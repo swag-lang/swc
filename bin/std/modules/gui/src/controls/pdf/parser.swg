@@ -1569,7 +1569,7 @@ impl PdfParser
     //
     // With `stopAtImageCodec`, a trailing image codec is left untouched and its input
     // bytes are returned, which is what imageCodec names.
-    mtd decodeStream(nodeId: u32, stopAtImageCodec = false)->Array!{u8} fail
+    mtd decodeStream(nodeId: u32, stopAtImageCodec = false, outputHint = 0_u64)->Array!{u8} fail
     {
         let id = .resolve(nodeId)
         if id == InvalidNode or .nodes[id].kind != .Dictionary
@@ -1577,12 +1577,20 @@ impl PdfParser
             fail InvalidFormatError{"PDF stream dictionary is missing"}
         }
 
-        var result: Array!{u8} = .nodes[id].stream
         let filters = #move .streamFilters(id)
         var count   = filters.count
         if stopAtImageCodec and count and .imageCodec(id).count
         {
             count -= 1
+        }
+
+        // A lone Flate filter can borrow the stored payload. Other filter chains and
+        // unfiltered results start from their own buffer.
+        let directFlate = count == 1 and (filters[0] == "FlateDecode" or filters[0] == "Fl")
+        var result: Array!{u8}
+        if not directFlate
+        {
+            result = .nodes[id].stream
         }
 
         for index in count
@@ -1591,8 +1599,13 @@ impl PdfParser
             switch filters[index].toString()
             {
             case "FlateDecode", "Fl":
+                let input = directFlate ? .nodes[id].stream.toSlice() : result.toSlice()
+
+                // Dimensions suggest the size, but inflate still sizes the output. Limit
+                // this unverified hint by the stored payload size and a fixed ceiling.
+                let reserve = directFlate and parameters == InvalidNode ? Math.min(outputHint, Math.min(input.count * 8, 16_777_216_u64)) : 0_u64
                 var zlib: Compress.ZLib
-                var decoded = #move try zlib.decompress(result.toSlice())
+                var decoded = #move try zlib.decompress(input, hintSize: reserve)
                 result.free()
                 result = #move decoded
                 if parameters != InvalidNode

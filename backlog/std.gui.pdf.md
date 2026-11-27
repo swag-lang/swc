@@ -310,8 +310,13 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Direct grayscale and RGB JPEGs also apply the declared component ranges before composition.
   The public mask page's mean RGB difference against PDFium drops from 8.64 to 1.25 levels.
   A large default JPEG soft mask loads in 16.29 ms, down from 24.15 ms, with the same raster.
-- Color-key-masked and resource-named DCT paths and RGB `DecodeParms` remain open. The direct
-  CMYK path uses a device-colour approximation without an ICC transform.
+- Direct grayscale and RGB DCT color keys now test the decoded JPEG samples before color
+  mapping. The inverted grayscale fixture matches PDFium pixel for pixel. The partial-range
+  RGB fixture's mean channel difference against PDFium drops from 62.31 to 0.47 levels.
+- Composing the keyed RGB samples straight into RGBA reduces load on the large JPEG key
+  fixture from 75.08 to 56.47 ms against the new key-aware reader, with identical Swag pixels.
+- Resource-named DCT paths, CMYK masks and RGB `DecodeParms` remain open. Direct CMYK refers
+  to device colours without an ICC transform.
 - Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and
   colour spaces.
 - Related: std.gui.pdf.002
@@ -631,6 +636,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   PDFium takes 277 and 448 ms in those series. Of 88 pages, 87 keep their bitmap checksums
   and the remaining forms page differs by one level in one pixel. The native stroke comparison
   goes from 34.86 to 29.77 ms against AGG's 19.27 ms with the same Swag coverage.
+- Borrowing single-Flate inputs and reserving a bounded raster row estimate takes the
+  public RGB16 page from 12.44 to 9.51 ms of load and from 21.53 to 19.29 ms total.
+  The same runs measure PDFium at 16.69 ms. Seven tested pages keep their bitmap checksums.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

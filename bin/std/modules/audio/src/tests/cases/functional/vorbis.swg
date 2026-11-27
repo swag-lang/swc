@@ -97,6 +97,12 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     }
 }
 
+// Floor 0 uses decibel amplitudes and reconstructs both odd and even LSP orders.
+#test
+{
+    vorbisAssertCloseTo("vorbis-floor0-5.1-48000", 48_000, 6)
+}
+
 // Mono Vorbis uses a center speaker mask even though its lone channel needs no reordering.
 #test
 {

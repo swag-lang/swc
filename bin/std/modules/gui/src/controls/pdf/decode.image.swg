@@ -832,10 +832,11 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
     let depth = cast(u32, bits)
 
     let space      = #move try resolveImageSpace(parser, parser.dictRaw(nodeId, "ColorSpace"), resourcesId, 0)
-    let bytes      = #move try parser.decodeStream(nodeId)
     let pixelCount = cast(u64, width) * cast(u64, height)
     let rowBytes   = (cast(u64, space.components) * cast(u64, depth) * cast(u64, width) + 7) / 8
-    if bytes.count < rowBytes * cast(u64, height)
+    let byteCount  = rowBytes * cast(u64, height)
+    let bytes      = #move try parser.decodeStream(nodeId, outputHint: byteCount)
+    if bytes.count < byteCount
     {
         fail InvalidFormatError{"PDF image stream is truncated"}
     }
@@ -1047,16 +1048,70 @@ private func applyColorKeyMask(parser: *PdfParser, nodeId: u32, plane: *SamplePl
     }
 }
 
+private struct JpegDecodeRanges
+{
+    minimum:   [3] f64
+    maximum:   [3] f64 = [1.0, 1.0, 1.0]
+    inverted:  u8
+    identity:  bool    = true
+    canonical: bool
+}
+
+private func readJpegDecodeRanges(parser: *PdfParser, decodeId: u32, components: u8)->JpegDecodeRanges
+{
+    let count = cast(u64, components) * 2
+    var result: #returntype
+    if decodeId == InvalidNode or
+       parser.nodes[decodeId].kind != .Array or
+       parser.nodes[decodeId].values.count < count
+    {
+        return result
+    }
+
+    result.canonical = parser.nodes[decodeId].values.count == count
+    for channel in components
+    {
+        let lower = parser.nodes[decodeId].values[channel * 2]
+        let upper = parser.nodes[decodeId].values[channel * 2 + 1]
+        let start = parser.number(lower, Swag.F64.NaN)
+        let end   = parser.number(upper, Swag.F64.NaN)
+        if not Math.isFinite(start) or not Math.isFinite(end)
+        {
+            return {}
+        }
+
+        result.minimum[channel] = start
+        result.maximum[channel] = end
+        if start == 0 and end == 1
+        {
+            continue
+        }
+
+        result.identity = false
+        if start == 1 and end == 0
+        {
+            result.inverted |= 1_u8 << channel
+        }
+        else
+        {
+            result.canonical = false
+        }
+    }
+
+    return result
+}
+
+private func jpegMappedSample(ranges: JpegDecodeRanges, channel, sample: u64)->u8
+{
+    let ratio = cast(f64, sample) / 255.0
+    let value = ranges.minimum[channel] * (1.0 - ratio) + ranges.maximum[channel] * ratio
+    return componentByte(cast(f32, Math.clamp(value, 0.0, 1.0)))
+}
+
 // Remap JPEG device samples before compositing. Returns their inversion bits when
 // the original stream and its identity or reversed ranges can be written unchanged.
 private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: const [..] u8, image: *Image, components: u8)->s32
 {
-    if parser.nodes[decodeId].kind != .Array or
-       parser.nodes[decodeId].values.count < cast(u64, components) * 2
-    {
-        return -1
-    }
-
     // Pixel already knows that Gray8 came from a single-component frame. A BGR8 result
     // alone cannot distinguish a three-component frame from a converted grayscale or CMYK one.
     if image.pixelFormat != .Gray8 and not matchesJpegFrame(raw, image.width, image.height, components)
@@ -1069,46 +1124,15 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
         return -1
     }
 
-    var minimum, maximum: [3] f64
-    let sampleCount = cast(u64, components) * 2
-    var canonical   = parser.nodes[decodeId].values.count == sampleCount
-    var identity    = true
-    var invertedSamples:  u8
-    for channel in components
-    {
-        let lower = parser.nodes[decodeId].values[channel * 2]
-        let upper = parser.nodes[decodeId].values[channel * 2 + 1]
-        minimum[channel] = parser.number(lower, Swag.F64.NaN)
-        maximum[channel] = parser.number(upper, Swag.F64.NaN)
-        if not Math.isFinite(minimum[channel]) or not Math.isFinite(maximum[channel])
-        {
-            return -1
-        }
-
-        if minimum[channel] == 0 and maximum[channel] == 1
-        {
-            continue
-        }
-
-        identity = false
-        if minimum[channel] == 1 and maximum[channel] == 0
-        {
-            invertedSamples |= 1_u8 << channel
-        }
-        else
-        {
-            canonical = false
-        }
-    }
-
-    let retained = canonical ? cast(s32, invertedSamples) : -1
-    if identity
+    let ranges   = readJpegDecodeRanges(parser, decodeId, components)
+    let retained = ranges.canonical ? cast(s32, ranges.inverted) : -1
+    if ranges.identity
     {
         return retained
     }
 
     let pixels = image.pixels.storage()
-    if invertedSamples == (1_u8 << components) - 1
+    if ranges.inverted == (1_u8 << components) - 1
     {
         invertSamples8(pixels, pixels, image.byteCount)
         return retained
@@ -1119,9 +1143,7 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
     {
         for sample in 256
         {
-            let ratio = cast(f64, sample) / 255.0
-            let value = minimum[channel] * (1.0 - ratio) + maximum[channel] * ratio
-            maps[channel][sample] = componentByte(cast(f32, Math.clamp(value, 0.0, 1.0)))
+            maps[channel][sample] = jpegMappedSample(ranges, channel, sample)
         }
     }
 
@@ -1146,6 +1168,55 @@ private func applyJpegDecode(parser: *PdfParser, nodeId, decodeId: u32, raw: con
     }
 
     return retained
+}
+
+// Each entry holds the mapped color and that sample's contribution to opacity.
+// OR-ing the component entries writes a pixel whose alpha sees the original samples.
+private func keyedJpegImage(parser: *PdfParser, decodeId, keyId: u32, decoded: const *Image, components: u8)->Image fail
+{
+    if parser.nodes[keyId].values.count < cast(u64, components) * 2
+    {
+        fail InvalidFormatError{"PDF color key mask does not cover every component"}
+    }
+
+    let ranges = readJpegDecodeRanges(parser, decodeId, components)
+    var maps: [3][256] u32
+    for channel in components
+    {
+        let lowNode  = parser.nodes[keyId].values[channel * 2]
+        let highNode = parser.nodes[keyId].values[channel * 2 + 1]
+        let lower    = parser.integer(lowNode)
+        let upper    = parser.integer(highNode)
+        for sample in 256
+        {
+            let value   = cast(u32, jpegMappedSample(ranges, channel, sample))
+            let color   = components == 1 ? value * 0x0001_0101_u32 : (value << (channel * 8))
+            let outside = cast(s64, sample) < lower or cast(s64, sample) > upper
+            maps[channel][sample] = color | (outside ? 0xFF00_0000_u32 : 0)
+        }
+    }
+
+    var result = #move Image.create(decoded.width, decoded.height, .RGBA8)
+    let target = cast([*] u32, result.pixels.storage())
+    let count  = cast(u64, decoded.width) * cast(u64, decoded.height)
+    var source = decoded.pixels.storage()
+    if components == 1
+    {
+        for i in count
+        {
+            target[i] = maps[0][source[i]]
+        }
+    }
+    else
+    {
+        for i in count
+        {
+            target[i] = maps[2][source[0]] | maps[1][source[1]] | maps[0][source[2]]
+            source    += 3
+        }
+    }
+
+    return #move result
 }
 
 // Reads an image XObject as an 8-bit coverage plane, which is what a soft mask carries.
@@ -1625,8 +1696,21 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             fail UnsupportedFormatError{"PDF image codec is not supported"}
         }
 
+        let hasKey = maskId == InvalidNode and
+                     explicitMask != InvalidNode and
+                     parser.nodes[explicitMask].kind == .Array
+        var keyComponents: u8
+        if hasKey
+        {
+            switch colorName
+            {
+            case "DeviceGray": keyComponents = 1
+            case "DeviceRGB" where parser.dict(nodeId, "DecodeParms") == InvalidNode: keyComponents = 3
+            }
+        }
+
         var raw            = #move try parser.decodeStream(nodeId, true)
-        let options        = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
+        let options        = DecodeOptions{keepJpegGrayscale: keyComponents == 1 or (deviceOnly and colorName == "DeviceGray")}
         var decoded:         Image
         var canReuseDecode = false
         var invertedSamples: u8
@@ -1681,6 +1765,13 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         else
         {
             decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
+            if (keyComponents == 1 and decoded.pixelFormat == .Gray8) or
+               (keyComponents == 3 and matchesJpegFrame(raw.toSlice(), decoded.width, decoded.height, 3))
+            {
+                var keyed = #move try keyedJpegImage(parser, decodeId, explicitMask, &decoded, keyComponents)
+                return cacheDecodedImage(parser, nodeId, resourcesId, false, #move keyed)
+            }
+
             if decodeId != InvalidNode and (maskId != InvalidNode or explicitMask == InvalidNode)
             {
                 var directions = -1_s32

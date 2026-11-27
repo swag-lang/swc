@@ -325,7 +325,7 @@ impl Encoder
 impl Encoder
 {
     #[Swag.Inline]
-    mtd encodeScanlines(image: Image) fail
+    mtd encodeScanlines(image: Image, x: s32 = 0, y: s32 = 0) fail
     {
         try .calculateSubImages()
 
@@ -361,7 +361,7 @@ impl Encoder
         let directRows = not .ihdr.interlaceMethod and not .swapRB and not .encodeFlags.toBigEndian
         for
         {
-            let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
+            let ioffset = ((image.height - y - .rowInfo.rowNum - 1) * image.width + x) * image.bytesPerPixel
             let row     = srcPixels + ioffset
 
             // Reuse input rows in encoded channel and byte order.
@@ -377,17 +377,17 @@ impl Encoder
         }
     }
 
-    func encodeAnimationFrame(image: Image, options: EncodeOptions, compressor: *Compress.ZLib)->Array!{u8} fail
+    func encodeAnimationFrame(image: Image, area: FrameRectangle, options: EncodeOptions, compressor: *Compress.ZLib)->Array!{u8} fail
     {
         var encoder: Encoder
         encoder.userOptions = options
-        encoder.ihdr = {width: cast(u32, image.width),
-                        height: cast(u32, image.height),
+        encoder.ihdr = {width: cast(u32, area.width),
+                        height: cast(u32, area.height),
                         bitDepth: 8,
                         colorType: .AlphaColor,
                         interlaceMethod: options.interlace ? 1 : 0}
         encoder.swapRB = image.pixelFormat == .BGRA8
-        try encoder.encodeScanlines(image)
+        try encoder.encodeScanlines(image, area.x, area.y)
         return try compressor.compress(encoder.bufferToCompress.toSlice(), options.compressionLevel)
     }
 }

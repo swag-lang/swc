@@ -1,6 +1,6 @@
 //! Format: OpenEXR scanline decoder.
 //! Supported: Single-part and multipart RGB, RGBA, or Y scanline images with half/float channels and
-//!            no compression, ZIPS, ZIP, or PIZ lossless compression.
+//!            no compression, RLE, ZIPS, ZIP, or PIZ lossless compression.
 //! Not supported: Tiled, deep, subsampled, UINT, PXR24/B44/DWA/HTJ2K data,
 //!                or layered channel names.
 //! Role: This file reconstructs high-dynamic-range channels into half/full-float Pixel images.
@@ -10,6 +10,7 @@
 using Core, Core.Errors, Core.Math
 
 const Magic = 20000630_u32
+const RleCompression   = 1_u8
 const ParallelZipBytes = 512_u64 * 1024
 
 #[Swag.Inline]
@@ -224,6 +225,49 @@ func undoZipPredictor(data: [..] u8, reordered: *Array!{u8})
     {
         reordered[offset * 2] = data[offset]
     }
+}
+
+private func decodeRleScanline(packed: const [..] u8, expected: u64, decoded: *Array!{u8}) fail
+{
+    decoded.grow(expected)
+    let output = decoded.storage()
+    var source, target: u64
+    while source < packed.count
+    {
+        let tag = cast(u64, packed[source])
+        source += 1
+        if tag >= 128
+        {
+            let count = 256 - tag
+            if count > packed.count - source or count > expected - target
+            {
+                fail InvalidFormatError{"OpenEXR RLE literal exceeds the scanline"}
+            }
+
+            Memory.copy(output + target, packed.buffer + source, count)
+            source += count
+            target += count
+        }
+        else
+        {
+            let count = tag + 1
+            if source == packed.count or count > expected - target
+            {
+                fail InvalidFormatError{"OpenEXR RLE repeat exceeds the scanline"}
+            }
+
+            Memory.set(output + target, packed[source], count)
+            source += 1
+            target += count
+        }
+    }
+
+    if target != expected
+    {
+        fail InvalidFormatError{"OpenEXR RLE scanline has an invalid decoded size"}
+    }
+
+    decoded.count = expected
 }
 
 func channelComponent(name: string)->s32
@@ -819,12 +863,9 @@ impl Part
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
         }
 
-        if result.compression != 0 and
-           result.compression != 2 and
-           result.compression != 3 and
-           result.compression != PizCompression
+        if result.compression > PizCompression
         {
-            fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, ZIP, or PIZ"}
+            fail UnsupportedFormatError{"OpenEXR compression is not NONE, RLE, ZIPS, ZIP, or PIZ"}
         }
 
         let width  = cast(s64, xMax) - xMin + 1
@@ -980,12 +1021,20 @@ impl Part
             else
             {
                 scratch.unpacked.clear()
-                try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
-                if scratch.unpacked.count != chunk.expected
+                if .compression == RleCompression
                 {
-                    fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                    try decodeRleScanline(pixels, chunk.expected, &scratch.unpacked)
+                }
+                else
+                {
+                    try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
+                    if scratch.unpacked.count != chunk.expected
+                    {
+                        fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                    }
                 }
 
+                // RLE and ZIP share the same byte-plane predictor.
                 if layout.grayHalf and image.pixelFormat == .GrayF16
                 {
                     writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)

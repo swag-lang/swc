@@ -916,7 +916,7 @@ private func logarithmicAdd(a, b: s32)->s32
 {
     let difference = a - b
     let address    = Math.min(Math.abs(difference) >> 1, 255)
-    return difference >= 0 ? a + LATAB[address] : b + LATAB[address]
+    return Math.max(a, b) + LATAB[address]
 }
 
 private func lowCompensation(value, first, second, bin: s32)->s32
@@ -1126,19 +1126,20 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         fail InvalidFormatError{"Dolby bit-allocation bands exceed the core limit"}
     }
 
-    var source = start
-    var band   = bandStart
+    var index = 0_s32
+    var band  = bandStart
     while band < bandEnd
     {
-        let last = Math.min(BNDTAB[band] + BNDSZ[band], end)
-        bandPsd[band] = 3072 - (exponents[source - start] << 7)
-        source        += 1
-        while source < last
+        let last = Math.min(BNDTAB[band] + BNDSZ[band], end) - start
+        var sum  = 3072 - (exponents[index] << 7)
+        index   += 1
+        while index < last
         {
-            bandPsd[band] = logarithmicAdd(bandPsd[band], 3072 - (exponents[source - start] << 7))
-            source        += 1
+            sum    = logarithmicAdd(sum, 3072 - (exponents[index] << 7))
+            index += 1
         }
 
+        bandPsd[band] = sum
         band += 1
     }
 
@@ -1224,11 +1225,11 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         }
     }
 
-    source = start
-    band   = bandStart
-    while source < end
+    index = 0
+    band  = bandStart
+    while index < end - start
     {
-        let last   = Math.min(BNDTAB[band] + BNDSZ[band], end)
+        let last   = Math.min(BNDTAB[band] + BNDSZ[band], end) - start
         var masked = mask[band] - snrOffset - floor
         if masked < 0
         {
@@ -1239,15 +1240,14 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
         // One exponent step removes 128 PSD units, or four address units.
         let addressBase = (3072 - masked) >> 5
-        while source < last
+        while index < last
         {
-            let index    = source - start
             let exponent = exponents[index]
             let address  = Math.clamp(addressBase - (exponent << 2), 0, 63)
             let prepared = PreparedMantissaAddress[address]
             result[index] = cast(s32, prepared & 31)
             gains[index]  = PreparedMantissaGain[(prepared >> 5) + cast(u32, exponent)]
-            source        += 1
+            index         += 1
         }
 
         band += 1

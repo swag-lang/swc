@@ -150,39 +150,34 @@ impl Encoder
         destination[3] = cast #bit(Math.Simd.F32x4, Math.Simd.interleaveHigh(high0, high1))
     }
 
-    // Every shifted 16-bit sample fits exactly in the fraction at 2^23.
+    // Interleave each biased word with the high half of 2^23, then subtract 2^23 + 32768.
     #[Swag.Inline]
-    func floatSamples(samples: Math.Simd.S32x4)->Math.Simd.F32x4
-    {
-        let shifted = cast #bit(Math.Simd.U32x4, (samples + 32768))
-        let biased  = shifted | 0x4B000000_u32
-        return cast #bit(Math.Simd.F32x4, biased) - 8421376.0_f32
-    }
-
-    #[Swag.Inline]
-    func(High: bool) widenHorizontal(values: Math.Simd.S16x8)->Math.Simd.F32x4
-    {
-        #static if High
-        {
-            return floatSamples(Math.Simd.widenHigh(values))
-        }
-        else
-        {
-            return floatSamples(Math.Simd.widenLow(values))
-        }
-    }
-
-    #[Swag.Inline]
-    func(High: bool) finishHorizontal(dc, even4, evenBase, evenMix, odd10, odd11, odd12, odd7: Math.Simd.S16x8, left, right: [*] Math.Simd.F32x4)
+    func(High: bool) floatSamples(biased: Math.Simd.U16x8)->Math.Simd.F32x4
     {
         using Math.Simd
 
-        let base = widenHorizontal!{High}(evenBase)
-        let z1   = widenHorizontal!{High}(evenMix) * 0.707106781_f32
-        let o10  = widenHorizontal!{High}(odd10)
-        let o11  = widenHorizontal!{High}(odd11)
-        let o12  = widenHorizontal!{High}(odd12)
-        let tmp7 = widenHorizontal!{High}(odd7)
+        let exponent = splat(0x4B00_u16)
+        #static if High
+        {
+            return cast #bit(F32x4, interleaveHigh(biased, exponent)) - 8421376.0_f32
+        }
+        else
+        {
+            return cast #bit(F32x4, interleaveLow(biased, exponent)) - 8421376.0_f32
+        }
+    }
+
+    #[Swag.Inline]
+    func(High: bool) finishHorizontal(dc, even4, evenBase, evenMix, odd10, odd11, odd12, odd7: Math.Simd.U16x8, left, right: [*] Math.Simd.F32x4)
+    {
+        using Math.Simd
+
+        let base = floatSamples!{High}(evenBase)
+        let z1   = floatSamples!{High}(evenMix) * 0.707106781_f32
+        let o10  = floatSamples!{High}(odd10)
+        let o11  = floatSamples!{High}(odd11)
+        let o12  = floatSamples!{High}(odd12)
+        let tmp7 = floatSamples!{High}(odd7)
         let z5   = (o10 - o12) * 0.382683433_f32
         let z2   = Math.mulAdd(o10, splat(0.541196100_f32), z5)
         let z4   = o12 * 1.306562965_f32 + z5
@@ -191,8 +186,8 @@ impl Encoder
         let z13  = tmp7 - z3
 
         var values: [8] F32x4 = [
-            widenHorizontal!{High}(dc), z11 + z4, base + z1, z13 - z2,
-            widenHorizontal!{High}(even4), z13 + z2, base - z1, z11 - z4]
+            floatSamples!{High}(dc), z11 + z4, base + z1, z13 - z2,
+            floatSamples!{High}(even4), z13 + z2, base - z1, z11 - z4]
         transposeFour(values, left)
         transposeFour(cast([*] F32x4, values) + 4, right)
     }
@@ -228,14 +223,22 @@ impl Encoder
         let tmp11 = tmp1 + tmp2
         let tmp12 = tmp1 - tmp2
 
-        let dc      = tmp10 + tmp11
-        let even4   = tmp10 - tmp11
-        let evenMix = tmp12 + tmp13
-        let odd10   = tmp4 + tmp5
-        let odd11   = tmp5 + tmp6
-        let odd12   = tmp6 + tmp7
-        finishHorizontal!{false}(dc, even4, tmp13, evenMix, odd10, odd11, odd12, tmp7, left, right)
-        finishHorizontal!{true}(dc, even4, tmp13, evenMix, odd10, odd11, odd12, tmp7, left + 4, right + 4)
+        let dc        = tmp10 + tmp11
+        let even4     = tmp10 - tmp11
+        let evenMix   = tmp12 + tmp13
+        let odd10     = tmp4 + tmp5
+        let odd11     = tmp5 + tmp6
+        let odd12     = tmp6 + tmp7
+        let biasedDc  = cast #bit(U16x8, dc) ^ 0x8000_u16
+        let biased4   = cast #bit(U16x8, even4) ^ 0x8000_u16
+        let biased13  = cast #bit(U16x8, tmp13) ^ 0x8000_u16
+        let biasedMix = cast #bit(U16x8, evenMix) ^ 0x8000_u16
+        let biased10  = cast #bit(U16x8, odd10) ^ 0x8000_u16
+        let biased11  = cast #bit(U16x8, odd11) ^ 0x8000_u16
+        let biased12  = cast #bit(U16x8, odd12) ^ 0x8000_u16
+        let biased7   = cast #bit(U16x8, tmp7) ^ 0x8000_u16
+        finishHorizontal!{false}(biasedDc, biased4, biased13, biasedMix, biased10, biased11, biased12, biased7, left, right)
+        finishHorizontal!{true}(biasedDc, biased4, biased13, biasedMix, biased10, biased11, biased12, biased7, left + 4, right + 4)
     }
 
     // Expands a row's eight occupancy bits to the corresponding entropy-order positions.

@@ -56,6 +56,7 @@ struct Writer
         sink:          ByteSink
         pending:       Array!{s16}
         frame:         Array!{u8}
+        residuals:     Array!{u32}
         checksum:      Hash.Md5
         bitBuffer:     u64
         bufferedBits:  u32
@@ -725,36 +726,36 @@ private impl Writer
 
     mtd(Trimmed: bool) writePredictedChannel(input: const [*] s16, channel, stride: u64, count, wasted: u32)
     {
-        let samples        = input + channel
-        let depth          = Trimmed ? 16 - wasted : 16_u32
-        let header         = Trimmed ? 14_u64 + wasted : 14_u64
-        var residual1: [WriterBlockFrames - 1] u32
-        var residual2: [WriterBlockFrames - 2] u32
+        let samples = input + channel
+        let depth   = Trimmed ? 16 - wasted : 16_u32
+        let header  = Trimmed ? 14_u64 + wasted : 14_u64
+        .residuals.growResize(3 * count)
+        let residual1      = .residuals.storage()
+        let residual2      = residual1 + count
         let depthBudget    = count >= 64 ? 31 - cast(u32, Swag.leadingZeros(count >> 3)) : 0
         let availableOrder = count >= 64 ? Math.min(WriterMaxPartitionOrder, depthBudget, cast(u32, Swag.trailingZeros(count))) : 0
-        var sums           = fillFixedPairs(input, channel, stride, count, availableOrder, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
+        var sums           = fillFixedPairs(input, channel, stride, count, availableOrder, residual1, residual2)
 
         let verbatimBits    = cast(u64, count) * depth + 8 + wasted
-        let firstResiduals  = Swag.makeSlice(&residual1[0], count - 1)
-        let secondResiduals = Swag.makeSlice(&residual2[0], count - 2)
+        let firstResiduals  = Swag.makeSlice(residual1, count - 1)
+        let secondResiduals = Swag.makeSlice(residual2, count - 2)
         var order           = 1_u32
         var chosen          = firstResiduals
         var bestBits        = verbatimBits
         var bestRice        = 15_u32
         var plannedOrder    = 0_u32
-        var partitionPlan:   WriterRicePlan
+        var partitionPlan: WriterRicePlan
         let estimateNeeded  = availableOrder or count >= 256
         let firstEstimate   = estimateNeeded ? estimatePartitions(&sums.partitionSums[0, 0], count, 1, availableOrder, header + depth) : verbatimBits
         let secondEstimate  = estimateNeeded ? estimatePartitions(&sums.partitionSums[1, 0], count, 2, availableOrder, header + 2 * depth) : verbatimBits
         let estimatedBase   = Math.min(firstEstimate, secondEstimate)
-        var higherResiduals: [WriterBlockFrames - 3] u32
         let pilotDepth      = Math.min(availableOrder, 3_u32)
         if estimatedBase < verbatimBits and (count >> pilotDepth) >= 256
         {
             let predictor = chooseHigherOrder(secondResiduals, count, pilotDepth, estimatedBase, header, depth)
             if predictor
             {
-                let destination = cast([*] u32, &higherResiduals[0])
+                let destination = residual2 + count
                 let higher      = Swag.makeSlice(destination, count - predictor)
                 let parts       = predictor == 3 ? fillHigherOrder!{3}(secondResiduals, count, availableOrder, destination) :
                                   fillHigherOrder!{4}(secondResiduals, count, availableOrder, destination)
@@ -1269,10 +1270,26 @@ private impl Writer
         var queued     = .bitBuffer
         var buffered   = .bufferedBits
         var cursor     = 0_u64
-        for value in residuals
+        var index      = 0_u64
+        while index < residuals.count
         {
+            let value = residuals[index]
             let zeros = value >> parameter
             var width = zeros + suffixBits
+            var bits  = marker | (cast(u64, value) & mask)
+            index += 1
+            if index < residuals.count
+            {
+                let next      = residuals[index]
+                let nextWidth = (next >> parameter) + suffixBits
+                if width + nextWidth <= 32
+                {
+                    bits  = (bits << nextWidth) | marker | (cast(u64, next) & mask)
+                    width += nextWidth
+                    index += 1
+                }
+            }
+
             if width > 32
             {
                 let room = 32 - buffered
@@ -1300,7 +1317,6 @@ private impl Writer
                 width = suffixBits
             }
 
-            let bits = marker | (cast(u64, value) & mask)
             queued = (queued << width) | bits
             let used = buffered + width
             buffered = used & 31

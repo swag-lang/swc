@@ -53,7 +53,7 @@ ships; history lives in Git, not here.
 
 ### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
 
-- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, ETC, ASTC, BC6H, and BC7
+- Evidence: BC1 through BC5 and BC7 are decoded to RGBA8; KTX2 BasisLZ, ETC, ASTC, and BC6H
   are unsupported; `IRenderer.addImage` accepts decoded `Image` or a planar `YuvPlanarView` (4:2:0 or 4:4:4). KTX2 is designed for
   per-level streaming and Basis Universal transcoding to a GPU-native block format.
 - Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then

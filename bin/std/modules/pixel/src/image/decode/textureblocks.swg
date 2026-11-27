@@ -1,6 +1,6 @@
 //! Format: GPU block-compression reconstruction shared by texture containers.
-//! Supported: BC1, BC2, BC3, BC4 unsigned, and BC5 unsigned blocks.
-//! Not supported: Signed BC4/BC5, BC6H, BC7, ETC, ASTC, or encoder-side compression.
+//! Supported: BC1, BC2, BC3, BC4 unsigned, BC5 unsigned, and BC7 blocks.
+//! Not supported: Signed BC4/BC5, BC6H, ETC, ASTC, or encoder-side compression.
 //! Role: This file turns independently stored 4x4 GPU blocks into displayable RGBA pixels.
 //
 #global namespace TextureBlocks
@@ -15,15 +15,16 @@ internal enum Format
     BC3
     BC4
     BC5
+    BC7
 }
 
 internal func blockBytes(format: Format)->u64
 {
     switch #complete format
     {
-    case .None:            unreachable
-    case .BC1, .BC4:       return 8
-    case .BC2, .BC3, .BC5: return 16
+    case .None:      unreachable
+    case .BC1, .BC4: return 8
+    case .BC2, .BC3, .BC5, .BC7: return 16
     }
 }
 
@@ -186,6 +187,19 @@ private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, 
             let firstX = blockX * 4
             let countX = Math.min(4_u64, width - firstX)
             let block  = sourceRow + blockX * oneBlock
+
+            #static if FMT == .BC7
+            {
+                var rgba: [16] u32
+                decodeBc7Block(block, &rgba)
+                for row in countY
+                {
+                    let target = targetRow + cast(s64, row) * rowStep + firstX
+                    Memory.copy(target, &rgba[row * 4], countX * 4)
+                }
+
+                continue
+            }
 
             var colors:                      Simd.U32x4
             var firstPalette, secondPalette: [8] u8
@@ -463,5 +477,6 @@ internal func decode(image: *Image, source: const [..] u8, format: Format, sourc
     case .BC3:  decodeBlocks!{.BC3}(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
     case .BC4:  decodeBlocks!{.BC4}(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
     case .BC5:  decodeBlocks!{.BC5}(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
+    case .BC7:  decodeBlocks!{.BC7}(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
     }
 }

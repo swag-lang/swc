@@ -1,6 +1,6 @@
 //! Format: Khronos Texture 2 decoder.
 //! Supported: All mip levels, array layers, cube faces, and depth slices of Vulkan RGB(A), grayscale, 16-bit and float formats;
-//!            BC1 through BC5 blocks; and optional per-level Zstandard or ZLIB supercompression.
+//!            BC1 through BC5 and BC7 blocks; and optional per-level Zstandard or ZLIB supercompression.
 //! Not supported: BasisLZ, ETC/ASTC, or signed/depth pixel formats.
 //! Role: This file validates KTX2 indices and decodes individual texture subresources.
 //
@@ -51,6 +51,7 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
     case 137, 138: blocks[] = .BC3
     case 139:      blocks[] = .BC4
     case 141:      blocks[] = .BC5
+    case 145, 146: blocks[] = .BC7
     default:       return false
     }
 

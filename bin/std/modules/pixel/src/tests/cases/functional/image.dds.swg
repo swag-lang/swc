@@ -451,3 +451,22 @@ func ddsRoundtrip(source: Image)->Image
         }
     }
 }
+
+// The eight BC7 modes agree with the reference on a two-row block texture.
+#test
+{
+    const Name = "bc7-eight-modes.dds"
+    let texture = expect File.readAllBytes(getTestDataPath(Name))
+    let result  = expect Image.decode(Name, texture.toSlice())
+    assertImage(result, 16, 8, .RGBA8)
+    Swag.require(Hash.Crc64.compute(result.pixels.toSlice()) == 17406574498934867642_u64)
+
+    let probe = expect Image.decode(Name, texture.toSlice(), {decodePixels: false})
+    Swag.require(probe.pixelFormat == .RGBA8 and
+                 probe.width == 16 and
+                 probe.height == 8 and
+                 probe.pixels.isEmpty())
+    var truncated: Swag.Error
+    discard catch Image.decode(Name, texture.toSlice()[until texture.count - 1]) as truncated
+    Swag.require(truncated.value() != null)
+}

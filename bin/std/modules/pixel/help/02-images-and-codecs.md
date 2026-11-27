@@ -129,7 +129,7 @@ write straight-alpha file samples.
 PNG preserves 8- and 16-bit grayscale or RGB samples with optional alpha. EXR
 preserves half- and full-float Y, YA, RGB, and RGBA scanlines. DDS and KTX2 preserve
 their supported uncompressed integer and floating layouts; their decoders also read
-BC1 through BC5 block-compressed textures. Other general-purpose codecs convert to
+BC1 through BC5 and BC7 block-compressed textures. Other general-purpose codecs convert to
 the nearest supported 8-bit RGB/RGBA representation.
 
 The PSD decoder imports the flattened composite from PSD version 1 RGB or grayscale files with

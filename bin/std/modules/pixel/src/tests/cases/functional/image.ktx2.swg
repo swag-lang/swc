@@ -38,7 +38,7 @@ func ktx2Roundtrip(source: Image)->Image
     var plain      = unwrap encoded.toSlice()
     let dataOffset = cast(const *u64, (plain.buffer + 80))[]
     let rawLength  = cast(const *u64, (plain.buffer + 96))[]
-    let level = plain[dataOffset until dataOffset + rawLength]
+    let level      = plain[dataOffset until dataOffset + rawLength]
     var oversized: Array!{u8}
     oversized.add(level)
     oversized.add(0)
@@ -48,7 +48,7 @@ func ktx2Roundtrip(source: Image)->Image
         var zlib: Compress.ZLib
         for invalid in [false, true]
         {
-            let input = invalid ? oversized.toSlice() : level
+            let input      = invalid ? oversized.toSlice() : level
             let compressed = scheme == 2 ? Compress.Zstd.compress(input) : expect zlib.compress(input)
 
             plain[44] = scheme
@@ -153,7 +153,7 @@ func ktx2Roundtrip(source: Image)->Image
 #test
 {
     const Name = "ktx2-rgba-packed-srgb.ktx2"
-    var fixture = expect File.readAllBytes(getTestDataPath(Name))
+    var fixture  = expect File.readAllBytes(getTestDataPath(Name))
     let metadata = cast(const *u32, fixture.storage() + 56)[]
     let entry    = cast(*u32, fixture.storage() + metadata)
     let suffix   = metadata + 4 + entry[] - 1
@@ -166,4 +166,17 @@ func ktx2Roundtrip(source: Image)->Image
     entry[] -= 1
     let image = expect Image.decode(Name, fixture.toSlice())
     Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 6821568150130671602_u64)
+}
+
+// BC7 sRGB retains its stored values and clips both edges of its last block row.
+#test
+{
+    let path   = getTestDataPath("bc7-srgb-clipped.ktx2")
+    let result = expect Image.load(path)
+    assertImage(result, 13, 7, .RGBA8)
+    Swag.require(Hash.Crc64.compute(result.pixels.toSlice()) == 1839993950864328395_u64)
+
+    var reader = expect ImageReader.load(path)
+    let frame  = expect reader.read(0)
+    Swag.require(Slice.equals(result.pixels.toSlice(), frame.pixels.toSlice()))
 }

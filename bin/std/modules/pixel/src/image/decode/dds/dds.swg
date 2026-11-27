@@ -1,7 +1,7 @@
 //! Format: DirectDraw Surface decoder.
 //! Supported: Mip levels, array layers, cube faces, and volume slices of legacy or DX10 DDS files; RGB/luminance integer pixels,
-//!            RGBA 8/16-bit and half/full-float D3D9 or DXGI pixels, and BC1 through BC5 compression.
-//! Not supported: Signed blocks, BC6H, BC7, or palette data.
+//!            RGBA 8/16-bit and half/full-float D3D9 or DXGI pixels, and BC1 through BC5 or BC7 compression.
+//! Not supported: Signed blocks, BC6H, or palette data.
 //! Role: This file validates DDS headers and exposes their base texture as a Pixel image.
 //
 #global namespace Dds
@@ -101,6 +101,7 @@ func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.For
     case 77, 78: blocks[] = .BC3
     case 80:     blocks[] = .BC4
     case 83:     blocks[] = .BC5
+    case 98, 99: blocks[] = .BC7
     case 87, 91: pixelFormat[] = .BGRA8
     case 88, 93: pixelFormat[] = .BGRA8
     default:     return false

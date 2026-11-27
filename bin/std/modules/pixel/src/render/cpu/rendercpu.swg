@@ -3435,7 +3435,13 @@ private impl RenderCpu
         let paintMin = t.transformPoint({paintRect.x, paintRect.y})
         let deviceW  = t.m11 * paintWidth
         let deviceH  = t.m22 * paintHeight
-        var columns: Array!{LinearSample}
+
+        // Short image spans can keep their sample columns on the stack.
+        var localColumns: [128] LinearSample
+        var ownedColumns: Array!{LinearSample}
+        var columns:      [..] LinearSample = []
+        let width  = cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1)
+        let height = cast(u64, triangle.bounds.maxY - triangle.bounds.minY + 1)
 
         // A stencil path previously sampled barycentrically, so keep that rounding.
         if not Stenciled and
@@ -3447,10 +3453,18 @@ private impl RenderCpu
            Math.isFinite(deviceH) and
            deviceW != 0 and
            deviceH != 0 and
-           cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1) *
-           cast(u64, triangle.bounds.maxY - triangle.bounds.minY + 1) >= 4096
+           width * height >= (width <= localColumns.count ? 64 : 4096)
         {
-            columns.resize(cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1))
+            if width <= localColumns.count
+            {
+                columns = localColumns[until width]
+            }
+            else
+            {
+                ownedColumns.resize(width)
+                columns = ownedColumns.toSlice()
+            }
+
             for index in columns.count
             {
                 let center = cast(f32, triangle.bounds.minX + cast(s32, index)) + 0.5
@@ -3469,7 +3483,7 @@ private impl RenderCpu
             const PackedOpaque = Format == .Gray8 or Format == .BGR8 or Format == .RGB8
             if (PackedOpaque or not cacheRows) and columns.count >= 16
             {
-                groups = #move packLinearSamples(columns.toSlice())
+                groups = #move packLinearSamples(columns)
             }
         }
 
@@ -3508,10 +3522,10 @@ private impl RenderCpu
                         swap(&filteredTop, &filteredBottom)
                     }
 
-                    filterTextureRow!{Format}(&filteredTop, top, columns.toSlice(), groups.toSlice(), sampleY.low)
+                    filterTextureRow!{Format}(&filteredTop, top, columns, groups.toSlice(), sampleY.low)
                     if twoRows
                     {
-                        filterTextureRow!{Format}(&filteredBottom, bottom, columns.toSlice(), groups.toSlice(), sampleY.high)
+                        filterTextureRow!{Format}(&filteredBottom, bottom, columns, groups.toSlice(), sampleY.high)
                     }
 
                     let first  = cast(u64, x0 - triangle.bounds.minX)

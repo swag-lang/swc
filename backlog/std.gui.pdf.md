@@ -635,6 +635,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Packed constant CCITT tables take the six-image CCITT fixture from 0.178 to 0.107 ms
   of load, and the large fax page from 5.95 to 5.74 ms. The three measured rasters are exact
   matches for the previous Swag output.
+- Keeping short separable resampling tables on the stack allows smaller axis-aligned
+  images to use the packed CPU sampler. At 1200 px, the stencil page changes from 113 to
+  45 ms, inline images from 62 to 31 ms, and repeated images from 82 to 54 ms. PDFium takes
+  24, 14 and 71 ms in the same series. Image differences are at most one level per channel.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

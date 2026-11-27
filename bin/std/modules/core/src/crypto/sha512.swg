@@ -38,18 +38,30 @@ private const Sha512Constants: [80] u64 = [
     0x28DB77F523047D84, 0x32CAAB7B40C72493, 0x3C9EBE0A15C9BEBC, 0x431D67C49C100D4C,
     0x4CC5D4BECB3E42B6, 0x597F299CFC657E2A, 0x5FCB6FAB3AD6FAEC, 0x6C44198C4A475817]
 
+// Retaining one schedule window keeps the dependencies close to each round.
+private const Sha512ScheduleWords = 16
+
+#[Swag.Inline]
+private func loadSha512SchedulePair(schedule: [*] u64, index: u64)->Math.Simd.U64x2
+{
+    return Math.Simd.load(schedule + (index & (Sha512ScheduleWords - 1)))
+}
+
 // Both words depend on earlier pairs, so they can share the packed rotations.
 #[Swag.Inline]
 private func sha512ExtendPair(schedule: [*] u64, index: u64)->Math.Simd.U64x2
 {
     using Math
 
-    let x        = Simd.load(schedule + index - 15)
-    let y        = Simd.load(schedule + index - 2)
+    let x        = loadSha512SchedulePair(schedule, index - 15)
+    let y        = loadSha512SchedulePair(schedule, index - 2)
     let sigma0   = Swag.ror(x, 1_u8) ^ Swag.ror(x, 8_u8) ^ (x >> 7)
     let sigma1   = Swag.ror(y, 19_u8) ^ Swag.ror(y, 61_u8) ^ (y >> 6)
-    let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
-    Simd.store(schedule + index, expanded)
+    let expanded = loadSha512SchedulePair(schedule, index - 16) + sigma0 + loadSha512SchedulePair(schedule, index - 7) + sigma1
+    let offset = index & (Sha512ScheduleWords - 1)
+
+    Simd.store(schedule + offset, expanded)
+    Simd.store(schedule + offset + Sha512ScheduleWords, expanded)
     return expanded
 }
 
@@ -230,15 +242,18 @@ impl Sha512Core
     private mtd transformBlocks(buf: const [*] u8, blockCount = 1_u64)
     {
         using Math
-        var words: [80] u64
+        // Mirror the window so an odd pair spanning its boundary stays contiguous.
+        var words: [Sha512ScheduleWords * 2] u64
         let schedule = words.buffer
         for block in blockCount
         {
             let input = cast(const [*] u64, buf + block * Sha512BlockSize)
-            for pair in 8
+            for pair in Sha512ScheduleWords / 2
             {
                 let index = pair * 2
-                Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
+                let converted = Math.bigEndianToNative(Simd.load(input + index))
+                Simd.store(schedule + index, converted)
+                Simd.store(schedule + index + Sha512ScheduleWords, converted)
             }
 
             var a = .state[0]

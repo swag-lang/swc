@@ -2,8 +2,14 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/RuntimeName.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerCacheStore.h"
+#include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Support/Os/Os.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -210,6 +216,89 @@ SWC_TEST_BEGIN(CompilerCacheStore_RejectsSegmentExtentOverflow)
     if (CompilerCacheStoreTestAccess::measure(entries, extent, K_LIMIT))
         return Result::Error;
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_ModuleSetupTracksInputBytes)
+{
+    CacheStoreTestDirectory directory;
+    const fs::path          moduleFile = directory.path / "module.swg";
+    const fs::path          settings   = directory.path / "settings.swg";
+    const fs::path          version    = directory.path / "version.bin";
+
+    std::string setup = R"(#run
+{
+    const Version = #include("version.bin")
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.name = "SetupFirst"
+    cfg.moduleVersion = Version[0]
+}
+)";
+    SWC_RESULT(CompilerTestFile::writeText(moduleFile, "#load(\"settings.swg\")\n"));
+    SWC_RESULT(CompilerTestFile::writeText(settings, setup));
+    SWC_RESULT(CompilerTestFile::writeText(version, std::string_view("\x01", 1)));
+
+    CommandLine command;
+    command.command        = CommandKind::Sema;
+    command.targetOs       = hostTargetOs();
+    command.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(command);
+
+    const auto checkSetup = [&](std::string_view name, uint32_t moduleVersion) -> Result {
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      setupCtx(compiler);
+        SWC_RESULT(compiler.runModuleSetup(setupCtx));
+        const auto& cfg = compiler.buildCfg();
+        if (std::string_view(cfg.name.ptr, cfg.name.length) != name || cfg.moduleVersion != moduleVersion)
+            return Result::Error;
+        return Result::Continue;
+    };
+
+    SWC_RESULT(checkSetup("SetupFirst", 1));
+    const uint64_t files = Stats::get().numFiles.load(std::memory_order_relaxed);
+    SWC_RESULT(checkSetup("SetupFirst", 1));
+    if (Stats::get().numFiles.load(std::memory_order_relaxed) != files)
+        return Result::Error;
+
+    const auto editPreservingTime = [](const fs::path& path, std::string_view contents) -> Result {
+        std::error_code ec;
+        const auto      previous = fs::last_write_time(path, ec);
+        if (ec)
+            return Result::Error;
+        SWC_RESULT(CompilerTestFile::writeText(path, contents));
+        fs::last_write_time(path, previous, ec);
+        return ec ? Result::Error : Result::Continue;
+    };
+
+    setup.replace(setup.find("SetupFirst"), std::string_view("SetupFirst").size(), "SetupLater");
+    SWC_RESULT(editPreservingTime(settings, setup));
+    SWC_RESULT(checkSetup("SetupLater", 1));
+    SWC_RESULT(editPreservingTime(version, std::string_view("\x02", 1)));
+    SWC_RESULT(checkSetup("SetupLater", 2));
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_ModuleSetupPreservesDiagnostic)
+{
+    CacheStoreTestDirectory directory;
+    const auto              moduleFile = directory.path / "module.swg";
+    SWC_RESULT(CompilerTestFile::writeText(moduleFile, "#warning(\"module setup diagnostic\")\n"));
+
+    CommandLine command;
+    command.command        = CommandKind::Sema;
+    command.targetOs       = hostTargetOs();
+    command.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(command);
+
+    const uint64_t warnings = Stats::get().numWarnings.load(std::memory_order_relaxed);
+    for (uint32_t run = 1; run <= 2; ++run)
+    {
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      setupCtx(compiler);
+        SWC_RESULT(compiler.runModuleSetup(setupCtx));
+        if (Stats::get().numWarnings.load(std::memory_order_relaxed) != warnings + run)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

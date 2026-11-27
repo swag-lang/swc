@@ -414,7 +414,7 @@ public:
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
     Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location);
     Result                   registerModuleSetupLoad(const fs::path& filePath);
-    void                     registerCompilerInputFile(const fs::path& filePath);
+    void                     registerCompilerInputFile(const fs::path& filePath, std::optional<std::span<const std::byte>> contents = {});
     std::set<fs::path>       compilerInputFiles() const;
 
     template<typename T, typename... ARGS>
@@ -444,6 +444,8 @@ private:
     friend class CompilerMessageTypeInfoJob;
     friend class TaskContext;
 
+    using SetupInputChecksums = std::map<fs::path, std::array<uint8_t, 32>>;
+
     struct ModuleSetupSnapshot
     {
         Runtime::BuildCfg                  buildCfg{};
@@ -451,6 +453,7 @@ private:
         std::vector<ModuleSetupImport>     imports;
         std::set<fs::path>                 loadedFiles;
         std::set<fs::path>                 compilerInputFiles;
+        SetupInputChecksums               inputChecksums;
         std::vector<std::unique_ptr<Utf8>> ownedStrings;
 
         ModuleSetupSnapshot()                                          = default;
@@ -568,6 +571,8 @@ private:
     std::set<fs::path>                     moduleSetupLoadedFiles_;
     mutable std::mutex                     moduleInputsMutex_;
     std::set<fs::path>                     compilerInputFiles_;
+    SetupInputChecksums                    moduleSetupInputChecksums_;
+    bool                                   moduleSetupInputsConsistent_ = true;
 
     std::vector<std::unique_ptr<Utf8>> ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*         precomputedModuleSetup_    = nullptr;

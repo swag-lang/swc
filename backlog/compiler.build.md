@@ -507,6 +507,9 @@ before relying on them.
   membership, layout, constants, generic arguments, inline and macro bodies, and compiler hook
   inputs. Try reuse before body analysis and lowering. Measure time saved and lookup and
   restoration cost on applications and scripts that share the same dependency.
+  The workspace artifact manifest still trusts input timestamps. A same-size private-body edit
+  preserving the timestamp ran the old executable, while a forced rebuild ran the edited body.
+  Check that artifact reuse sees the same source changes as the semantic cache.
 - Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
   metadata properties and external inputs each generator observes, and analyze restored text
   in the destination scope. Start with a proof that allows replay only for effect-free
@@ -515,9 +518,10 @@ before relying on them.
   with block generators when assessing this cache.
 - Cache contract: persist stable identities and remap them into each compiler invocation.
   Preserve namespace membership, source locations, safety and ABI information, and the
-  required effects of compile-time code. Validate compiler and target identity, relevant
-  configuration, and tracked dependencies. Publish complete entries atomically and fall
-  back to analysis for invalid entries or untracked effects.
+  required effects of compile-time code. Fingerprint files from the bytes the compiler
+  consumed, including loaded and included inputs. Validate compiler and target identity,
+  relevant configuration, and tracked dependencies. Publish complete entries atomically and
+  fall back to analysis for invalid entries or effects the cache cannot replay.
 - Done when: a private-body edit reanalyzes the changed file and the affected consumers.
   A signature or overload change invalidates each affected lookup. Fresh and reused builds
   agree on diagnostics, compile-time execution, safety, and native results. Concurrent

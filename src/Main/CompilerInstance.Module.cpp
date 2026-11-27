@@ -414,14 +414,14 @@ namespace
     // reader restores each string into storage the snapshot owns, exactly as ownBuildCfgStrings
     // does after a live setup. A compiler of another build never reads it, because the compiler's
     // identity is part of the fingerprint.
-    constexpr uint32_t K_MODULE_SETUP_CACHE_MAGIC = 0x51555357; // Source setup format
+    constexpr uint32_t K_MODULE_SETUP_CACHE_MAGIC = 0x52555357; // Source setup format with input checksums
+    constexpr size_t   K_MODULE_SETUP_CHECKSUM_SIZE = 32;
 
     struct ModuleSetupCacheWriter
     {
         ByteArray bytes;
 
         void u32(const uint32_t value) { bytes.appendLe32(value); }
-        void u64(const uint64_t value) { bytes.appendLe64(value); }
 
         void blob(const void* data, const size_t size)
         {
@@ -462,15 +462,6 @@ namespace
             return value;
         }
 
-        uint64_t u64()
-        {
-            if (!has(sizeof(uint64_t)))
-                return 0;
-            const uint64_t value = bytes.readLe64(offset);
-            offset += sizeof(value);
-            return value;
-        }
-
         std::string_view str()
         {
             const uint32_t size = u32();
@@ -487,38 +478,20 @@ namespace
         }
     };
 
-    // One input of a setup, dated the way the artifact manifest dates its inputs: by write time,
-    // plus the size so a rewrite that lands on the same tick still misses.
-    bool stampModuleSetupInput(ModuleSetupCacheWriter& writer, const fs::path& path, const fs::file_time_type inputsReadTime)
-    {
-        std::error_code    ec;
-        fs::file_time_type writeTime = fs::last_write_time(path, ec);
-        if (ec || writeTime > inputsReadTime)
-            return false;
-        const uintmax_t size = fs::file_size(path, ec);
-        if (ec)
-            return false;
-
-        writer.path(path);
-        writer.u64(static_cast<uint64_t>(writeTime.time_since_epoch().count()));
-        writer.u64(static_cast<uint64_t>(size));
-        return true;
-    }
-
     bool moduleSetupInputMatches(ModuleSetupCacheReader& reader, fs::path& outPath)
     {
-        outPath                   = reader.path();
-        const uint64_t writeCount = reader.u64();
-        const uint64_t storedSize = reader.u64();
-        if (reader.failed)
+        outPath                         = reader.path();
+        const std::string_view checksum = reader.str();
+        if (reader.failed || checksum.size() != K_MODULE_SETUP_CHECKSUM_SIZE)
             return false;
 
-        std::error_code          ec;
-        const fs::file_time_type writeTime = fs::last_write_time(outPath, ec);
-        if (ec || static_cast<uint64_t>(writeTime.time_since_epoch().count()) != writeCount)
+        ByteArray               contents;
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::readBinaryFile(outPath, contents, ioError) != Result::Continue)
             return false;
-        const uintmax_t size = fs::file_size(outPath, ec);
-        return !ec && static_cast<uint64_t>(size) == storedSize;
+
+        const auto current = sha256(contents.span());
+        return std::memcmp(current.data(), checksum.data(), current.size()) == 0;
     }
 
     // Everything a setup can observe that is not a file: the compiler that runs it, and the
@@ -573,21 +546,25 @@ namespace
         ModuleSetupCacheWriter writer;
         writer.u32(K_MODULE_SETUP_CACHE_MAGIC);
 
-        // The inputs the next command must find unchanged: module.swg, and every file the setup
-        // pulled in through '#load' or registered as a compiler input. An input changed after
-        // setup began cannot certify the snapshot captured from its earlier contents.
-        writer.u32(static_cast<uint32_t>(1 + snapshot.loadedFiles.size() + snapshot.compilerInputFiles.size()));
-        if (!stampModuleSetupInput(writer, moduleFile, snapshot.inputsReadTime))
+        // Publish the checksums of the bytes the setup used. Reading the files at publication
+        // could cache the old build configuration under an edit that arrived during setup.
+        const auto& checksums = snapshot.inputChecksums;
+        const auto  module    = checksums.find(FileSystem::normalizePath(moduleFile));
+        if (module == checksums.end())
             return;
-        for (const fs::path& path : snapshot.loadedFiles)
+        const auto hasChecksum = [&checksums](const fs::path& path) { return checksums.contains(FileSystem::normalizePath(path)); };
+        if (!std::ranges::all_of(snapshot.loadedFiles, hasChecksum) || !std::ranges::all_of(snapshot.compilerInputFiles, hasChecksum))
+            return;
+
+        writer.u32(static_cast<uint32_t>(checksums.size()));
+        writer.path(module->first);
+        writer.blob(module->second.data(), module->second.size());
+        for (const auto& [path, checksum] : checksums)
         {
-            if (!stampModuleSetupInput(writer, path, snapshot.inputsReadTime))
-                return;
-        }
-        for (const fs::path& path : snapshot.compilerInputFiles)
-        {
-            if (!stampModuleSetupInput(writer, path, snapshot.inputsReadTime))
-                return;
+            if (path == module->first)
+                continue;
+            writer.path(path);
+            writer.blob(checksum.data(), checksum.size());
         }
 
         writer.u32(static_cast<uint32_t>(snapshot.imports.size()));
@@ -621,7 +598,7 @@ namespace
     bool readModuleSetupCache(auto& out, const Utf8& key, const fs::path& moduleFile)
     {
         const auto record = CompilerCacheStore::get().read(key);
-        constexpr size_t checksumSize = 32;
+        constexpr size_t checksumSize = K_MODULE_SETUP_CHECKSUM_SIZE;
         if (!record || record.bytes.size() <= checksumSize)
             return false;
 
@@ -1735,14 +1712,26 @@ std::set<fs::path> CompilerInstance::moduleSetupLoadedFiles() const
     return moduleSetupLoadedFiles_;
 }
 
-void CompilerInstance::registerCompilerInputFile(const fs::path& filePath)
+void CompilerInstance::registerCompilerInputFile(const fs::path& filePath, std::optional<std::span<const std::byte>> contents)
 {
     if (filePath.empty())
         return;
 
-    const fs::path         normalizedPath = FileSystem::normalizePath(filePath);
+    const fs::path normalizedPath = FileSystem::normalizePath(filePath);
+    const auto     checksum       = moduleSetupMode_ && contents ? std::optional{sha256(*contents)} : std::nullopt;
+
     const std::scoped_lock lock(moduleInputsMutex_);
     compilerInputFiles_.insert(normalizedPath);
+    if (checksum)
+    {
+        const auto [entry, inserted] = moduleSetupInputChecksums_.try_emplace(normalizedPath, *checksum);
+        if (!inserted && entry->second != *checksum)
+            moduleSetupInputsConsistent_ = false;
+    }
+    else if (moduleSetupMode_)
+    {
+        moduleSetupInputsConsistent_ = false;
+    }
 }
 
 std::set<fs::path> CompilerInstance::compilerInputFiles() const
@@ -1897,6 +1886,28 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+
+        // A cached setup has no diagnostics to replay. Let a warning-producing setup
+        // run again so its diagnostic remains visible on every invocation.
+        if (!setupCompiler.moduleSetupInputsConsistent_ || !setupCompiler.reportedDiagnostics_.empty())
+            return;
+
+        auto& checksums = outSnapshot.inputChecksums;
+        checksums       = std::move(setupCompiler.moduleSetupInputChecksums_);
+        for (const SourceFile* file : setupCompiler.files())
+        {
+            if (!file->hasFlag(FileFlagsE::Module) || file->hasFlag(FileFlagsE::CustomSrc) || !file->ast().hasSourceView())
+                continue;
+
+            const fs::path path = FileSystem::normalizePath(file->path());
+            const auto checksum = setupCompiler.sourceFileChecksum(*file);
+            const auto [entry, inserted] = checksums.try_emplace(path, checksum);
+            if (!inserted && entry->second != checksum)
+            {
+                checksums.clear();
+                return;
+            }
+        }
     };
 
     if (files.empty())

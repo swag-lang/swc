@@ -21,14 +21,13 @@
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC                = 0x3745444f434d5753; // SWMCODE7
+    constexpr uint64_t K_MAGIC                = 0x3845444f434d5753; // SWMCODE8
     constexpr uint32_t K_CHECKSUM_OFFSET      = 56;
     constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE      = 28;
@@ -206,36 +205,17 @@ namespace
         return relocation.targetAddress <= std::numeric_limits<uint32_t>::max() && segment.findAllocation(out, static_cast<uint32_t>(relocation.targetAddress));
     }
 
-    struct ConstantLeaf
-    {
-        std::string_view payload;
-        uint32_t         alignment;
-        uint32_t         hash;
-
-        bool operator==(const ConstantLeaf& other) const
-        {
-            return alignment == other.alignment && payload == other.payload;
-        }
-    };
-
-    struct ConstantLeafHash
-    {
-        size_t operator()(const ConstantLeaf& leaf) const noexcept { return leaf.hash; }
-    };
-
-    // Data pointers in constants are edges, not bytes. Number allocations in traversal
-    // order to preserve sharing and cycles without persisting shard offsets or addresses.
-    // A pointer-free allocation is numbered by its bytes instead: constant shards intern
-    // their own copy of a string, and which copy a constant points to is not an input.
+    // Number directly referenced allocations and constant refs in instruction order.
+    // Equal bytes can belong to distinct allocations. Value numbering depends on
+    // those identities, so the key preserves equality without persisting addresses.
     struct InputIdentity
     {
-        TaskContext*                                                 ctx = nullptr;
-        FlatKeyMap<uint32_t, uint64_t>                               allocations;
-        std::unordered_map<ConstantLeaf, uint32_t, ConstantLeafHash> leaves;
-        uint32_t                                                     numAllocations = 0;
-        std::unordered_map<const SymbolFunction*, uint32_t>          functions;
-        FlatKeyMap<uint32_t, uint64_t>                               sources;
-        std::unordered_map<uint64_t, uint32_t>                       globals;
+        TaskContext*                                        ctx = nullptr;
+        FlatKeyMap<uint32_t, uint64_t>                       allocations;
+        FlatKeyMap<uint32_t>                                 constantRefs;
+        std::unordered_map<const SymbolFunction*, uint32_t>  functions;
+        FlatKeyMap<uint32_t, uint64_t>                       sources;
+        std::unordered_map<uint64_t, uint32_t>               globals;
         // Valid source refs cannot pack to the all-ones sentinel.
         uint64_t lastSourceBinding = std::numeric_limits<uint64_t>::max();
         uint32_t lastSourceIndex   = 0;
@@ -294,47 +274,54 @@ namespace
             return !inserted || appendFunction(out, *ctx, function);
         }
 
-        bool appendConstant(ByteArray& out, const DataSegmentRef source, const uint32_t depth = 0)
+        bool appendConstant(ByteArray& out, const DataSegmentRef source, const MicroRelocation& target)
         {
-            if (depth >= 128 || numAllocations >= 4096 || out.size() >= K_MAX_IMAGE_SIZE)
+            if (out.size() >= K_MAX_IMAGE_SIZE)
                 return false;
             const DataSegment&    segment = ctx->cstMgr().shardDataSegment(source.shardIndex);
             DataSegmentAllocation allocation;
             if (!segment.findAllocation(allocation, source.offset))
                 return false;
-            if (allocation.size > K_MAX_IMAGE_SIZE - std::min<size_t>(out.size(), K_MAX_IMAGE_SIZE))
+            const std::byte* payload  = segment.ptr<std::byte>(allocation.offset);
+            const uint32_t   interior = source.offset - allocation.offset;
+            if (!payload || reinterpret_cast<uint64_t>(payload + interior) != target.targetAddress)
                 return false;
-            const uint64_t key = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
-            // Use one-based ordinals so a new slot starts at zero.
-            uint32_t&                             ordinal  = allocations.getOrInsert(key);
-            bool                                  inserted = ordinal == 0;
-            SmallVector<DataSegmentRelocation, 4> relocations;
-            const std::byte*                      payload = nullptr;
-            if (inserted)
+
+            uint32_t refOrdinal = 0;
+            if (target.constantRef.isValid())
             {
-                ordinal = numAllocations + 1;
-                segment.copyRelocations(relocations, allocation.offset, allocation.size);
-                payload = segment.ptr<std::byte>(allocation.offset);
-                if (relocations.empty())
-                {
-                    // Keep a view and its hash so table growth never copies or rehashes bytes.
-                    const std::string_view text{reinterpret_cast<const char*>(payload), allocation.size};
-                    const ConstantLeaf     leaf{text, allocation.align, Math::hash(text, allocation.align)};
-                    const auto [leafEntry, added] = leaves.emplace(leaf, numAllocations);
-                    ordinal                       = leafEntry->second + 1;
-                    inserted                      = added;
-                }
+                const auto next = static_cast<uint32_t>(constantRefs.size()) + 1;
+                auto&      ref  = constantRefs.getOrInsert(target.constantRef.get());
+                if (!ref)
+                    ref = next;
+                refOrdinal = ref;
             }
-            const uint32_t index = ordinal - 1;
-            numAllocations += inserted;
-            out.appendLe32(index);
-            out.appendLe32(source.offset - allocation.offset);
+
+            // Emit chooses a relative load only for an explicit segment source.
+            out.appendLe32(target.hasConstantSource());
+            out.appendLe32(refOrdinal);
+
+            const uint64_t key      = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
+            const auto     next     = static_cast<uint32_t>(allocations.size()) + 1;
+            auto&          ordinal  = allocations.getOrInsert(key);
+            const bool     inserted = ordinal == 0;
+            if (inserted)
+                ordinal = next;
+
+            out.appendLe32(ordinal);
+            out.appendLe32(interior);
             out.appendLe32(inserted);
             if (!inserted)
                 return true;
 
-            // copyRelocations merges the segment's indexed prefix and tail in offset order.
-            SWC_ASSERT(std::ranges::is_sorted(relocations, {}, &DataSegmentRelocation::offset));
+            if (out.size() >= K_MAX_IMAGE_SIZE || allocation.size > K_MAX_IMAGE_SIZE - out.size())
+                return false;
+
+            // Constant folding reads only the originating allocation and excludes
+            // pointer slots. Native layout and JIT patching still follow the
+            // current graph when they bind the code's input relocations.
+            SmallVector<DataSegmentRelocation, 4> relocations;
+            segment.copyRelocations(relocations, allocation.offset, allocation.size);
             out.appendLe32(allocation.align);
             out.appendLe32(allocation.size);
             const size_t payloadOffset = out.size();
@@ -351,20 +338,6 @@ namespace
             {
                 out.appendLe32(relocation.offset - allocation.offset);
                 out.appendLe32(static_cast<uint32_t>(relocation.kind));
-                if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
-                {
-                    if (!relocation.targetSymbol)
-                        return false;
-                    if (!appendFunctionTarget(out, *relocation.targetSymbol))
-                        return false;
-                    out.appendLe32(relocation.allowUnresolvedFunction);
-                }
-                else
-                {
-                    const uint32_t shard = relocation.targetShardIndex == INVALID_REF ? source.shardIndex : relocation.targetShardIndex;
-                    if (shard >= ConstantStorageLayout::SHARD_COUNT || !appendConstant(out, {.shardIndex = shard, .offset = relocation.targetOffset}, depth + 1))
-                        return false;
-                }
             }
             return true;
         }
@@ -457,7 +430,7 @@ namespace
             case MicroRelocation::Kind::ConstantAddress:
             {
                 DataSegmentRef source;
-                return constantSource(*constants.ctx, source, target) && constants.appendConstant(out, source);
+                return constantSource(*constants.ctx, source, target) && constants.appendConstant(out, source, target);
             }
             case MicroRelocation::Kind::GlobalZeroAddress:
             case MicroRelocation::Kind::GlobalInitAddress:

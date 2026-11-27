@@ -162,7 +162,13 @@ namespace
 
     using MicroOptimizationLimits::ConstantFolding::K_MAX_ADDRESS_CHAIN_DEPTH;
 
-    bool resolveConstantAddress(uint64_t& outAddress, const ConstantMemoryContext& context, const MicroReg reg, const MicroInstrRef atInstRef, const uint32_t depth)
+    struct ConstantAddress
+    {
+        uint64_t address = 0;
+        uint64_t origin  = 0;
+    };
+
+    bool resolveConstantAddress(ConstantAddress& outAddress, const ConstantMemoryContext& context, const MicroReg reg, const MicroInstrRef atInstRef, const uint32_t depth)
     {
         if (!depth || !reg.isVirtualInt())
             return false;
@@ -185,7 +191,7 @@ namespace
                 const uint64_t* found = context.constantAddressByInstruction.find(def.instRef.get());
                 if (!found)
                     return false;
-                outAddress = *found;
+                outAddress = {*found, *found};
                 return true;
             }
 
@@ -198,10 +204,10 @@ namespace
             {
                 if (ops[2].opBits != MicroOpBits::B64)
                     return false;
-                uint64_t base = 0;
+                ConstantAddress base;
                 if (!resolveConstantAddress(base, context, ops[1].reg, def.instRef, depth - 1))
                     return false;
-                outAddress = base + ops[3].valueU64;
+                outAddress = {base.address + ops[3].valueU64, base.origin};
                 return true;
             }
 
@@ -209,10 +215,11 @@ namespace
             {
                 if (ops[1].opBits != MicroOpBits::B64 || (ops[2].microOp != MicroOp::Add && ops[2].microOp != MicroOp::Subtract))
                     return false;
-                uint64_t base = 0;
+                ConstantAddress base;
                 if (!resolveConstantAddress(base, context, reg, def.instRef, depth - 1))
                     return false;
-                outAddress = ops[2].microOp == MicroOp::Add ? base + ops[3].valueU64 : base - ops[3].valueU64;
+                const uint64_t value = ops[2].microOp == MicroOp::Add ? base.address + ops[3].valueU64 : base.address - ops[3].valueU64;
+                outAddress = {value, base.origin};
                 return true;
             }
 
@@ -221,45 +228,57 @@ namespace
         }
     }
 
-    bool readConstantBytes(uint64_t& outBits, const TaskContext& taskContext, const uint64_t address, const uint32_t byteWidth)
+    bool findConstantAllocation(DataSegmentRef& outSource, DataSegmentAllocation& outAllocation, const TaskContext& ctx, const ConstantAddress& address, uint32_t width)
+    {
+        if (!ctx.cstMgr().resolveDataSegmentRef(outSource, reinterpret_cast<const void*>(address.origin)))
+            return false;
+
+        const DataSegment& segment = ctx.cstMgr().shardDataSegment(outSource.shardIndex);
+        if (!segment.findAllocation(outAllocation, outSource.offset))
+            return false;
+
+        const uint64_t allocationAddress = address.origin - (outSource.offset - outAllocation.offset);
+        if (address.address < allocationAddress)
+            return false;
+        const uint64_t interior = address.address - allocationAddress;
+        if (interior >= outAllocation.size || width > outAllocation.size - interior)
+            return false;
+
+        outSource.offset = outAllocation.offset + static_cast<uint32_t>(interior);
+        return true;
+    }
+
+    bool canReadConstantRange(const TaskContext& ctx, const ConstantAddress& address, uint32_t width)
+    {
+        DataSegmentRef        source;
+        DataSegmentAllocation allocation;
+        if (!findConstantAllocation(source, allocation, ctx, address, width))
+            return false;
+
+        // The index stores slot starts. Reject a read into the tail of a
+        // pointer slot even when its start precedes the requested range.
+        const DataSegment& segment    = ctx.cstMgr().shardDataSegment(source.shardIndex);
+        const uint32_t     lookBehind = std::min<uint32_t>(sizeof(uint64_t) - 1, source.offset - allocation.offset);
+        return !segment.hasRelocations(source.offset - lookBehind, width + lookBehind);
+    }
+
+    bool readConstantBytes(uint64_t& outBits, const TaskContext& taskContext, const ConstantAddress& address, const uint32_t byteWidth)
     {
         SWC_ASSERT(byteWidth >= 1 && byteWidth <= sizeof(uint64_t));
-        const ConstantManager& cstMgr = taskContext.cstMgr();
-        const void*            ptr    = reinterpret_cast<const void*>(address);
-
-        DataSegmentRef segmentRef;
-        if (!cstMgr.resolveDataSegmentRef(segmentRef, ptr))
-            return false;
-
-        const DataSegment&    segment = cstMgr.shardDataSegment(segmentRef.shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, segmentRef.offset))
-            return false;
-        if (segmentRef.offset + byteWidth > allocation.offset + allocation.size)
-            return false;
-        if (segment.hasRelocations(segmentRef.offset, byteWidth))
+        if (!canReadConstantRange(taskContext, address, byteWidth))
             return false;
 
         uint64_t bits = 0;
-        std::memcpy(&bits, ptr, byteWidth);
+        std::memcpy(&bits, reinterpret_cast<const void*>(address.address), byteWidth);
         outBits = bits;
         return true;
     }
 
-    bool isZeroVectorConstant(const TaskContext& taskContext, const uint64_t address)
+    bool isZeroVectorConstant(const TaskContext& taskContext, const ConstantAddress& address)
     {
-        const ConstantManager& cstMgr = taskContext.cstMgr();
-        const void*            ptr    = reinterpret_cast<const void*>(address);
-        DataSegmentRef         segmentRef;
-        if (!cstMgr.resolveDataSegmentRef(segmentRef, ptr))
+        if (!canReadConstantRange(taskContext, address, 16))
             return false;
-
-        const DataSegment&    segment = cstMgr.shardDataSegment(segmentRef.shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset + 16 > allocation.offset + allocation.size ||
-            segment.hasRelocations(segmentRef.offset, 16))
-            return false;
-        const auto bytes = std::span(static_cast<const std::byte*>(ptr), 16);
+        const auto bytes = std::span(reinterpret_cast<const std::byte*>(address.address), 16);
         return std::ranges::all_of(bytes, [](std::byte byte) { return byte == std::byte{0}; });
     }
 
@@ -335,17 +354,15 @@ namespace
         }
         if (memoryContext.constantAddressByInstruction.empty())
             return false;
-        uint64_t address = 0;
+        ConstantAddress address;
         if (!resolveConstantAddress(address, memoryContext, loadOps[1].reg, valueDef.instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
             return false;
-        DataSegmentRef segmentRef;
-        if (!memoryContext.taskContext->cstMgr().resolveDataSegmentRef(segmentRef, reinterpret_cast<const void*>(address)))
-            return false;
-        const DataSegment&    segment = memoryContext.taskContext->cstMgr().shardDataSegment(segmentRef.shardIndex);
+        DataSegmentRef        segmentRef;
         DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset != allocation.offset ||
-            !allocation.size || allocation.size % width)
+        if (!findConstantAllocation(segmentRef, allocation, *memoryContext.taskContext, address, width) ||
+            segmentRef.offset != allocation.offset || allocation.size % width)
             return false;
+        const DataSegment& segment = memoryContext.taskContext->cstMgr().shardDataSegment(segmentRef.shardIndex);
         using MicroOptimizationLimits::ConstantFolding::K_MAX_UNIFORM_TABLE_ENTRIES;
         const uint32_t count = allocation.size / width;
         if (count > K_MAX_UNIFORM_TABLE_ENTRIES)
@@ -356,7 +373,7 @@ namespace
             return false;
 
         const double limit = decodeScalarFloatBits(threshold.value, bits);
-        const auto*  data  = reinterpret_cast<const std::byte*>(address);
+        const auto*  data  = reinterpret_cast<const std::byte*>(address.address);
 
         bool allAbove    = true;
         bool allNotAbove = true;
@@ -839,13 +856,14 @@ namespace
             }
         }
 
-        uint64_t baseAddress = 0;
+        ConstantAddress baseAddress;
         if (!resolveConstantAddress(baseAddress, context, ops[1].reg, instRef, K_MAX_ADDRESS_CHAIN_DEPTH))
             return false;
+        baseAddress.address += offset;
 
         if (loadBits == MicroOpBits::B128)
         {
-            if (!isZeroVectorConstant(*context.taskContext, baseAddress + offset))
+            if (!isZeroVectorConstant(*context.taskContext, baseAddress))
                 return false;
             inst.op          = MicroInstrOpcode::ClearReg;
             ops[1].opBits    = MicroOpBits::B128;
@@ -854,7 +872,7 @@ namespace
         }
 
         uint64_t bits = 0;
-        if (!readConstantBytes(bits, *context.taskContext, baseAddress + offset, getNumBits(loadBits) / 8))
+        if (!readConstantBytes(bits, *context.taskContext, baseAddress, getNumBits(loadBits) / 8))
             return false;
 
         inst.op          = MicroInstrOpcode::LoadRegImm;

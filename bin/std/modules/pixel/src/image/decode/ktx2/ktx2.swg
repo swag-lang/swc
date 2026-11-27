@@ -1,7 +1,7 @@
 //! Format: Khronos Texture 2 decoder.
 //! Supported: All mip levels, array layers, cube faces, and depth slices of Vulkan RGB(A), grayscale, 16-bit and float formats;
-//!            BC1 through BC5 blocks; and optional per-level ZLIB supercompression.
-//! Not supported: BasisLZ, Zstandard, ETC/ASTC, or signed/depth pixel formats.
+//!            BC1 through BC5 blocks; and optional per-level Zstandard or ZLIB supercompression.
+//! Not supported: BasisLZ, ETC/ASTC, or signed/depth pixel formats.
 //! Role: This file validates KTX2 indices and decodes individual texture subresources.
 //
 #global namespace Ktx2
@@ -143,9 +143,9 @@ impl Decoder
             fail InvalidFormatError{"KTX2 data format descriptor is invalid"}
         }
 
-        if compression != 0 and compression != 3
+        if compression != 0 and compression != 2 and compression != 3
         {
-            fail UnsupportedFormatError{"KTX2 supercompression must be absent or ZLIB"}
+            fail UnsupportedFormatError{"unsupported KTX2 supercompression scheme"}
         }
 
         var sourceTopDown = true
@@ -283,13 +283,20 @@ impl Decoder
 
         var inflated: Array!{u8}
         var level = buffer[levelOffset until levelOffset + levelLength]
-        if compression == 3
+        if compression
         {
-            var zlib: Compress.ZLib
-            inflated = #move try zlib.decompress(level, rawLength)
+            if compression == 2
+            {
+                inflated = #move try Compress.Zstd.decompress(level, rawLength)
+            }
+            else
+            {
+                var zlib: Compress.ZLib
+                inflated = #move try zlib.decompress(level, rawLength, rawLength)
+            }
             if inflated.count != rawLength
             {
-                fail InvalidFormatError{"KTX2 ZLIB level has an invalid decoded size"}
+                fail InvalidFormatError{"KTX2 compressed level has an invalid decoded size"}
             }
 
             level = inflated.toSlice()

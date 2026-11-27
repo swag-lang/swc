@@ -12,7 +12,9 @@ impl LzMatchFinder
     mtd init(size: u64)
     {
         let slots = Math.roundUpToPowerOf2(cast(u32, Math.clamp(size, 256_u64, 16384_u64)))
-        .positions.resize(slots)
+        .positions.clear()
+        let table = .positions.emplaceAddress(slots)
+        Memory.clear(table, cast(u64, slots) * #sizeof(u32))
         .shift = Math.leadingZeros(slots) + 1
     }
 
@@ -66,6 +68,7 @@ private func matchLength(current, previous: const [*] u8, limit: u64)->u64
         {
             return length + (Math.trailingZeros(Math.littleEndianToNative(different)) >> 3)
         }
+
         length += 8
     }
 
@@ -73,6 +76,7 @@ private func matchLength(current, previous: const [*] u8, limit: u64)->u64
     {
         length += 1
     }
+
     return length
 }
 
@@ -96,6 +100,7 @@ func copyLzMatch(output: [*] u8, distance, length: u64)
         {
             cast([*] u64, output + length - 8)[0] = cast(const [*] u64, from + length - 8)[0]
         }
+
         return
     }
 

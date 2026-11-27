@@ -24,19 +24,11 @@ private struct X25519Product
 private impl X25519Product
 {
     #[Swag.Inline]
-    mtd add(value: u64)
-    {
-        let low = .low + value
-        .high += cast(u64, low < .low)
-        .low  = low
-    }
-
-    #[Swag.Inline]
     mtd addProduct(left, right: u64)
     {
-        let product = Math.mulU64(left, right)
-        .add(product.lo)
-        .high += product.hi
+        var high: u64
+        .low = Swag.mulWide(left, right, .low, 0, &high)
+        .high += high
     }
 
     // Finish one convolution column and pass its carry as the next low word.

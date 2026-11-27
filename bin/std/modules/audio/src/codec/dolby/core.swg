@@ -99,6 +99,11 @@ private func dolbySourceChannel(destination, acmod, nfchans: u32, lfeon: bool)->
     return destination
 }
 
+// At the start of mantissas, the cursor is still within the packet. A block
+// can read up to 256 16-bit mantissas per channel plus shared coupling.
+// Leave four more bytes for the last unaligned word.
+private const MantissaReadPadding = (MaxChannels + 1) * SamplesPerBlock * 2 + 4
+
 private struct BitReader
 {
     data:    const [*] u8

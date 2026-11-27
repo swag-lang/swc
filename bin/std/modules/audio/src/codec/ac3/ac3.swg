@@ -79,11 +79,6 @@ private const MaxChannelBandwidthCode = 60_u32
 // The lowest sample rate has up to six bytes per kbps in a sync frame.
 private const MaxAc3FrameBytes = 6 * BitRates[BitRates.count - 1]
 
-// At the start of mantissas, the cursor is still within the packet. A block
-// can read up to 256 16-bit mantissas per channel plus shared coupling.
-// Leave four more bytes for the last unaligned word.
-private const MantissaReadPadding = (MaxChannels + 1) * SamplesPerBlock * 2 + 4
-
 private struct Ac3Codec
 {
     using base: Codec

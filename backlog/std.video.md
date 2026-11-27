@@ -66,11 +66,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: Main10 decoding at 3840×2076 takes 1.72× the time of FFmpeg 9.1 with one lane
-  and 3.09× with four. In a separate run, 32-bit CABAC look-ahead lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
-  and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
-  before the CABAC change. The Main and Main10 conformance digests and container reference
-  planes remain the correctness boundary.
+- Evidence: on 3840×2076 Main10, bulk pixel-plane initialization lowers paired serial time
+  by 5.1%. The medians are 52.60 ms per picture at one lane for Swag and 29.06 ms for
+  FFmpeg 9.1. The previous four-lane run puts Swag at 3.09× FFmpeg time. Residual coding
+  still accounts for about 21% of sampled time. The Main and Main10 conformance digests
+  and container reference planes remain the correctness boundary.
 - Next: measure significance context selection on motion, all-intra and WPP streams.
   Waiting for references on first use increased paired time by 6.9% at four lanes on the 3840×2076 fixture.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove

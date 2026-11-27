@@ -855,8 +855,10 @@ impl Reader
 
     private mtd readStoredPayload(info: const *ChunkInfo)->Array!{u8} fail
     {
+        // A successful positioned read fills the whole buffer.
         var result: #returntype
-        result.resize(info.storedSize)
+        result.reserve(info.storedSize)
+        result.count = info.storedSize
         if not (try .stream.readFileRange(info.offset, result.toSlice()))
         {
             fail InvalidFormatError{"SCC chunk payload is truncated"}

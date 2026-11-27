@@ -383,7 +383,7 @@ impl Encoder
         encoder.userOptions = options
         encoder.ihdr = {width: cast(u32, area.width),
                         height: cast(u32, area.height),
-                        bitDepth: 8,
+                        bitDepth: image.pixelFormat.bitDepth(),
                         colorType: .AlphaColor,
                         interlaceMethod: options.interlace ? 1 : 0}
         encoder.swapRB = image.pixelFormat == .BGRA8

@@ -1,5 +1,5 @@
 //! Format: Animated Portable Network Graphics (APNG) encoder component.
-//! Supported: Lossless RGBA8 frames, changed rectangles, rational frame delays, looping, and Adam7 output.
+//! Supported: Lossless RGBA8 and RGBA16 frames, changed rectangles, rational delays, looping, and Adam7 output.
 //! Role: This file owns the public APNG writer and its animation chunks.
 
 #global namespace Png
@@ -26,17 +26,18 @@ public struct AnimationOptions
 {
     public
     {
-        loopCount: u32       // Times the animation plays. Zero repeats indefinitely.
-        png:       EncodeOptions     // Filtering, compression, and interlacing used for every frame.
+        loopCount:   u32               // Times the animation plays. Zero repeats indefinitely.
+        png:         EncodeOptions     // Filtering, compression, and interlacing used for every frame.
+        pixelFormat: PixelFormat = .RGBA8     // Canvas sample format, either RGBA8 or RGBA16.
     }
 }
 
 // Writes an animated PNG frame by frame.
 //
-// The writer stores straight RGBA8 pixels and keeps one previous canvas to
-// encode changed rectangles. The first frame covers the canvas so a static PNG
-// reader can display it. Call [[Pixel.Png.AnimationWriter.end]] to finalize
-// the frame count and close the file.
+// The writer stores straight RGBA pixels at the requested depth and keeps
+// one previous canvas to encode changed rectangles. The first frame covers the
+// canvas so a static PNG reader can display it. Call
+// [[Pixel.Png.AnimationWriter.end]] to finalize the frame count and close the file.
 //
 // ```swag
 // using Pixel
@@ -71,8 +72,9 @@ public impl AnimationWriter
 {
     // Creates or replaces `fileName` with an APNG of the given size in pixels.
     //
-    // Dimensions must be positive and the decoded RGBA8 canvas must fit within
-    // 2 GiB minus one byte. File failures are reported through `fail`.
+    // Dimensions must be positive and the decoded canvas must fit within
+    // 2 GiB minus one byte. The selected pixel format must be RGBA8 or RGBA16.
+    // File failures are reported through `fail`.
     func create(fileName: string, width, height: s32, options: AnimationOptions = {})->AnimationWriter fail
     {
         if width <= 0 or height <= 0
@@ -80,7 +82,13 @@ public impl AnimationWriter
             fail InvalidFormatError{"invalid PNG animation size"}
         }
 
-        if cast(u64, width) * height * 4 > 0x7FFF_FFFF
+        if options.pixelFormat != .RGBA8 and options.pixelFormat != .RGBA16
+        {
+            fail UnsupportedFormatError{"PNG animation output requires RGBA8 or RGBA16"}
+        }
+
+        let pixelBytes = options.pixelFormat.bitsPerPixel() / 8
+        if cast(u64, width) * height > 0x7FFF_FFFF_u64 / pixelBytes
         {
             fail UnsupportedFormatError{"PNG animation canvas needs more than 2 GiB of decoded pixel memory"}
         }
@@ -97,8 +105,10 @@ public impl AnimationWriter
     // Adds a canvas image displayed for `duration / ticksPerSecond` seconds.
     //
     // The denominator must be positive. A zero duration is permitted by APNG.
-    // The image must match the canvas size, with packed RGB8, RGBA8, BGR8, or
-    // BGRA8 storage. Premultiplied alpha is converted to straight alpha.
+    // The image must match the canvas size and its channel depth. RGBA8 output
+    // accepts packed RGB8, RGBA8, BGR8, and BGRA8. RGBA16 output accepts
+    // Gray16, GrayAlpha16, RGB16, and RGBA16. Premultiplied alpha is converted
+    // to straight alpha.
     // Invalid input is rejected before writing a frame. An I/O error can leave
     // a partial file and closes the writer's output.
     mtd addFrame(image: Image, duration: u16, ticksPerSecond = 1000_u16) fail
@@ -124,22 +134,19 @@ public impl AnimationWriter
             fail UnsupportedFormatError{"PNG animation has too many frames"}
         }
 
+        if image.pixelFormat.bitDepth() != .options.pixelFormat.bitDepth()
+        {
+            fail UnsupportedFormatError{"PNG animation frame depth differs from its canvas"}
+        }
+
         switch image.pixelFormat
         {
-        case .RGB8, .BGR8:
-            let rgba   = image.convertedTo(.RGBA8)
-            try .encodeFrame(rgba, duration, ticksPerSecond)
+        case .RGB8, .BGR8, .Gray16, .GrayAlpha16, .RGB16:
+            let rgba = image.convertedTo(.options.pixelFormat)
+            try .encodeStraightFrame(rgba, duration, ticksPerSecond)
 
-        case .RGBA8, .BGRA8:
-            if image.alphaMode == .Premultiplied
-            {
-                let straight = image.convertedAlphaTo(.Straight)
-                try .encodeFrame(straight, duration, ticksPerSecond)
-            }
-            else
-            {
-                try .encodeFrame(image, duration, ticksPerSecond)
-            }
+        case .RGBA8, .BGRA8, .RGBA16:
+            try .encodeStraightFrame(image, duration, ticksPerSecond)
 
         default:
             fail UnsupportedFormatError{"unsupported PNG animation pixel format"}
@@ -203,7 +210,7 @@ private impl AnimationWriter
         var header: [13] u8
         Encoder.writeHeaderPayload(&header[0], {width: cast(u32, .width),
                                                 height: cast(u32, .height),
-                                                bitDepth: 8,
+                                                bitDepth: .options.pixelFormat.bitDepth(),
                                                 colorType: .AlphaColor,
                                                 interlaceMethod: .options.png.interlace ? 1 : 0})
         try .writeChunk(TypeIHdr, header)
@@ -214,10 +221,28 @@ private impl AnimationWriter
         try .writeChunk(TypeAcTl, control)
     }
 
+    mtd encodeStraightFrame(image: Image, duration, ticksPerSecond: u16) fail
+    {
+        if image.alphaMode == .Premultiplied
+        {
+            let straight = image.convertedAlphaTo(.Straight)
+            try .encodeFrame(straight, duration, ticksPerSecond)
+        }
+        else
+        {
+            try .encodeFrame(image, duration, ticksPerSecond)
+        }
+    }
+
     mtd encodeFrame(image: Image, duration, ticksPerSecond: u16) fail
     {
         let sameFormat = .previous.isValid() and .previous.pixelFormat == image.pixelFormat
-        let area = sameFormat ? changedRectangle(.previous, image) : FrameRectangle{width: .width, height: .height}
+        var area = FrameRectangle{width: .width, height: .height}
+        if sameFormat
+        {
+            area = image.bytesPerPixel == 8 ? changedRectangle!{u64}(.previous, image) :
+                                              changedRectangle!{u32}(.previous, image)
+        }
         let compressed = try Encoder.encodeAnimationFrame(image, area, .options.png, &.compressor)
         try .writeFrame(compressed.toSlice(), area, duration, ticksPerSecond)
 
@@ -233,8 +258,9 @@ private impl AnimationWriter
             return
         }
 
-        let start = (cast(u64, .height - area.y - 1) * .previous.rowStride) + cast(u64, area.x) * 4
-        let copyBytes = cast(u64, area.width) * 4
+        let pixelBytes = image.bytesPerPixel
+        let start      = (cast(u64, .height - area.y - 1) * .previous.rowStride) + cast(u64, area.x) * pixelBytes
+        let copyBytes  = cast(u64, area.width) * pixelBytes
         let source = image.pixels.storage() + start
         let destination = .previous.pixels.storage() + start
         for row in area.height
@@ -244,16 +270,17 @@ private impl AnimationWriter
         }
     }
 
-    func changedRectangle(before, after: Image)->FrameRectangle
+    func(PixelWord) changedRectangle(before, after: Image)->FrameRectangle
     {
+        const PixelBytes = cast(s32, #sizeof(PixelWord))
         let width  = after.width
         let height = after.height
         let first  = before.pixels.storage()
         let second = after.pixels.storage()
         let topRow = cast(u64, height - 1) * after.rowStride
-        let rightColumn = cast(u64, width - 1) * 4
-        if cast(const [*] u32, first + topRow)[0] != cast(const [*] u32, second + topRow)[0] and
-           cast(const [*] u32, first + rightColumn)[0] != cast(const [*] u32, second + rightColumn)[0]
+        let rightColumn = cast(u64, width - 1) * PixelBytes
+        if cast(const [*] PixelWord, first + topRow)[0] != cast(const [*] PixelWord, second + topRow)[0] and
+           cast(const [*] PixelWord, first + rightColumn)[0] != cast(const [*] PixelWord, second + rightColumn)[0]
         {
             return {width: width, height: height}
         }
@@ -275,8 +302,8 @@ private impl AnimationWriter
             }
 
             bottom = y
-            left = Math.min(left, changed.left / 4)
-            right = Math.max(right, changed.right / 4)
+            left = Math.min(left, changed.left / PixelBytes)
+            right = Math.max(right, changed.right / PixelBytes)
         }
 
         if top < 0

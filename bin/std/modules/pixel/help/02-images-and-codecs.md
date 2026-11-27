@@ -64,8 +64,8 @@ The loop count means total plays, with zero for unlimited playback. GIF repeat
 counts are converted to this convention. Forward reads reuse the canvas; backward
 seeks replay the necessary frames. Pixels are not cached by the reader.
 
-Use [[Pixel.Png.AnimationWriter]] to stream lossless 8-bit RGBA animation to
-an APNG file. Supply one canvas image and a rational duration per frame. The
+Use [[Pixel.Png.AnimationWriter]] to stream lossless 8- or 16-bit RGBA animation
+to an APNG file. Supply one canvas image and a rational duration per frame. The
 writer encodes the changed rectangle of each subsequent frame and keeps the
 first frame readable by a static PNG decoder.
 

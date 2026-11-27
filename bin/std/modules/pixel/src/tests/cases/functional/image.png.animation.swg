@@ -110,6 +110,69 @@ func pngAnimationPath()->String
     }
 }
 
+// Sixteen-bit animation preserves low sample bits in full and cropped frames.
+#test
+{
+    for interlace in [false, true]
+    {
+        const Width = 35
+        const Height = 12
+        let path = pngAnimationPath()
+        defer discard catch File.delete(path)
+
+        var first = Image.create(Width, Height, .RGBA16)
+        let samples = cast([*] u16, first.pixels.storage())
+        for index in first.pixels.count / 2
+        {
+            samples[index] = cast(u16, ((index * 541 + 0xAA31) & 0xFFFF))
+        }
+
+        var second = first
+        let changed = cast([*] u16, second.pixels.storage())
+        changed[((Height - 1 - 4) * Width + 8) * 4 + 3] ^= 0x5001
+        changed[((Height - 1 - 8) * Width + 20) * 4] ^= 0x00E3
+        let third = first.convertedTo(.RGB16)
+
+        var writer = expect Png.AnimationWriter.create(path, Width, Height, {
+            loopCount: 7, pixelFormat: .RGBA16, png: {interlace: interlace}})
+        var badDepth: Swag.Error
+        discard catch writer.addFrame(Image.create(Width, Height, .RGBA8), 50) as badDepth
+        Swag.require(badDepth.value() is UnsupportedFormatError)
+        expect writer.addFrame(first, 17)
+        expect writer.addFrame(second, 1001, 30000)
+        expect writer.addFrame(third, 21)
+        expect writer.end()
+
+        let poster = expect Image.load(path)
+        Swag.require(poster.pixelFormat == .RGBA16)
+        Swag.require(Slice.equals(poster.pixels.toSlice(), first.pixels.toSlice()))
+
+        var reader = expect ImageReader.load(path)
+        Swag.require(reader.info.loopCount == 7 and reader.info.frames.count == 3)
+        let area = reader.info.frames[1]
+        Swag.require(area.pixelFormat == .RGBA16 and area.x == 8 and area.y == 4)
+        Swag.require(area.width == 13 and area.height == 5)
+        Swag.require(area.durationSeconds == 1001.0 / 30000.0)
+
+        let pixels = expect reader.read(1)
+        Swag.require(Slice.equals(pixels.pixels.toSlice(), second.pixels.toSlice()))
+        let opaque = expect reader.read(2)
+        let rgb = cast(const [*] u16, third.pixels.storage())
+        let rgba = cast(const [*] u16, opaque.pixels.storage())
+        for index in Width * Height
+        {
+            for channel in 3
+            {
+                Swag.require(rgb[index * 3 + channel] == rgba[index * 4 + channel])
+            }
+
+            Swag.require(rgba[index * 4 + 3] == 65535)
+        }
+        let replay = expect reader.read(0)
+        Swag.require(Slice.equals(replay.pixels.toSlice(), first.pixels.toSlice()))
+    }
+}
+
 // A rejected frame or empty finalization leaves the writer open for valid frames.
 #test
 {

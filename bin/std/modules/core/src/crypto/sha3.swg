@@ -28,22 +28,30 @@ private const KeccakRoundConstants: [24] u64 = [
 #[Swag.Inline]
 private func keccakChi(row: [*] u64, a, b, c, d, e: u64, roundConstant = 0_u64)
 {
-    row[0] = a ^ (~b & c) ^ roundConstant
-    row[1] = b ^ (~c & d)
-    row[2] = c ^ (~d & e)
-    row[3] = d ^ (~e & a)
-    row[4] = e ^ (~a & b)
+    // Use each masked lane as the XOR accumulator and keep the input lanes live.
+    row[0] = (~b & c) ^ a ^ roundConstant
+    row[1] = (~c & d) ^ b
+    row[2] = (~d & e) ^ c
+    row[3] = (~e & a) ^ d
+    row[4] = (~a & b) ^ e
 }
 
 #[Swag.Inline]
 private func keccakRound(lanes: const [*] u64, output: [*] u64, roundConstant: u64)
 {
+    // Retain the diagonal that rotates into the first destination row.
+    let a0 = lanes[0]
+    let a1 = lanes[6]
+    let a2 = lanes[12]
+    let a3 = lanes[18]
+    let a4 = lanes[24]
+
     // Theta mixes the parity of each column into the neighboring columns.
-    let c0 = lanes[0] ^ lanes[5] ^ lanes[10] ^ lanes[15] ^ lanes[20]
-    let c1 = lanes[1] ^ lanes[6] ^ lanes[11] ^ lanes[16] ^ lanes[21]
-    let c2 = lanes[2] ^ lanes[7] ^ lanes[12] ^ lanes[17] ^ lanes[22]
-    let c3 = lanes[3] ^ lanes[8] ^ lanes[13] ^ lanes[18] ^ lanes[23]
-    let c4 = lanes[4] ^ lanes[9] ^ lanes[14] ^ lanes[19] ^ lanes[24]
+    let c0 = a0 ^ lanes[5] ^ lanes[10] ^ lanes[15] ^ lanes[20]
+    let c1 = a1 ^ lanes[1] ^ lanes[11] ^ lanes[16] ^ lanes[21]
+    let c2 = a2 ^ lanes[2] ^ lanes[7] ^ lanes[17] ^ lanes[22]
+    let c3 = a3 ^ lanes[3] ^ lanes[8] ^ lanes[13] ^ lanes[23]
+    let c4 = a4 ^ lanes[4] ^ lanes[9] ^ lanes[14] ^ lanes[19]
 
     let d0 = c4 ^ Math.rol(c1, 1)
     let d1 = c0 ^ Math.rol(c2, 1)
@@ -52,11 +60,11 @@ private func keccakRound(lanes: const [*] u64, output: [*] u64, roundConstant: u
     let d4 = c3 ^ Math.rol(c0, 1)
 
     // Rotate each set of theta-adjusted lanes into its destination row, then apply Chi.
-    let b00 = lanes[0] ^ d0
-    let b10 = Math.rol(lanes[6] ^ d1, 44)
-    let b20 = Math.rol(lanes[12] ^ d2, 43)
-    let b30 = Math.rol(lanes[18] ^ d3, 21)
-    let b40 = Math.rol(lanes[24] ^ d4, 14)
+    let b00 = a0 ^ d0
+    let b10 = Math.rol(a1 ^ d1, 44)
+    let b20 = Math.rol(a2 ^ d2, 43)
+    let b30 = Math.rol(a3 ^ d3, 21)
+    let b40 = Math.rol(a4 ^ d4, 14)
     keccakChi(output, b00, b10, b20, b30, b40, roundConstant)
 
     let b01 = Math.rol(lanes[3] ^ d3, 28)

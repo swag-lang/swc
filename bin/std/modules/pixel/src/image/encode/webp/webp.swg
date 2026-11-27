@@ -340,6 +340,8 @@ impl Encoder
 
     func collectChannels(pixels: const [..] u32, hasAlphaChannel: bool, channels: *EncodeChannels)->bool
     {
+        using Math.Simd
+
         if not hasAlphaChannel
         {
             channels.alpha.values[0] = 0xFF
@@ -347,10 +349,12 @@ impl Encoder
         }
 
         var previous: u32
-        for index in pixels.count
+        var index:    u64
+        while index < pixels.count
         {
             let pixel = pixels[index]
-            if index and pixel == previous
+            index += 1
+            if index > 1 and pixel == previous
             {
                 continue
             }
@@ -372,11 +376,27 @@ impl Encoder
                 channels.alpha.add(cast(u8, (pixel >> 24)))
             }
 
-            if channels.red.count == 3 and
-               channels.blue.count == 3 and
-               (not hasAlphaChannel or channels.alpha.count == 3)
+            if channels.red.count == 3 and channels.blue.count == 3
             {
-                break
+                if not hasAlphaChannel or channels.alpha.count == 3
+                {
+                    break
+                }
+
+                // Once RGB use full trees, only new alpha values can change the result.
+                let mask   = splat(0xFF000000_u32)
+                let first  = splat(cast(u32, channels.alpha.values[0]) << 24)
+                let second = channels.alpha.count == 2 ? splat(cast(u32, channels.alpha.values[1]) << 24) : first
+                while pixels.count - index >= 4
+                {
+                    let values = load(pixels.buffer + index) & mask
+                    if not allTrue((values == first) | (values == second))
+                    {
+                        break
+                    }
+
+                    index += 4
+                }
             }
         }
 

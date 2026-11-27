@@ -899,6 +899,69 @@ func buildRgbTransparencyPng(width: u32)->Array!{u8}
     Swag.require(color.r == 17 and color.g == 34 and color.b == 51)
 }
 
+// Indexed reads use validated frame ranges, including split fdAT data and global metadata.
+#test
+{
+    const AnimationControl: [8] u8 = [0, 0, 0, 1, 0, 0, 0, 0]
+    const FrameControl: [26] u8 = [
+        0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 1, 0, 10, 0, 0]
+    const Palette: [6] u8 = [17, 34, 51, 85, 102, 119]
+    const Alpha: [2] u8 = [0, 255]
+    const Poster: [2] u8 = [0, 0x40]
+    const Frame: [2] u8 = [0, 0x80]
+    const Metadata: [9] u8 = ['T', 'i', 't', 'l', 'e', 0, 'P', 'N', 'G']
+
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(Frame)
+    let bytes = nnBytes(compressed.toSlice())
+    let split = bytes.count / 2
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 2, 1, 1, 3)
+    addPngChunk(&encoded, "PLTE", Palette)
+    addPngChunk(&encoded, "tRNS", Alpha)
+    addPngChunk(&encoded, "acTL", AnimationControl)
+    addPngImageData(&encoded, Poster)
+    addPngChunk(&encoded, "fcTL", FrameControl)
+
+    for part in 3
+    {
+        var data: ConcatBuffer
+        addPngU32Be(&data, cast(u32, part + 1))
+        if part == 0
+        {
+            data.addBytes(bytes[until split])
+        }
+        else if part == 2
+        {
+            data.addBytes(bytes[split to])
+        }
+
+        addPngChunk(&encoded, "fdAT", nnBytes(data.toSlice()))
+        if part == 0
+        {
+            addPngChunk(&encoded, "tEXt", Metadata)
+        }
+    }
+
+    addPngChunk(&encoded, "IEND", "")
+    let fileBytes = nnBytes(encoded.toSlice())
+    for enabled in [false, true]
+    {
+        var reader = expect ImageReader.decode("indexed.apng", fileBytes, {decodeMetadata: enabled})
+        let image  = expect reader.read(0)
+        Swag.require(image.pixelColor(0, 0).r == 85 and image.pixelColor(0, 0).a == 255)
+        Swag.require(image.pixelColor(1, 0).a == 0)
+        Swag.require(image.metadata.count == (enabled ? 1 : 0))
+        if enabled
+        {
+            Swag.require(image.metadata[0].isTag("Title") and Slice.equals(image.metadata[0].toSlice(), "PNG"))
+        }
+    }
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = encoded.toArray()

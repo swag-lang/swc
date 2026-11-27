@@ -114,6 +114,53 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(rgba, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
 }
 
+// Random GIF reads reuse only earlier opaque updates whose disposal is independent.
+#test
+{
+    const Colors: [4, 3] u8 = [[0, 0, 0], [40, 70, 130], [180, 35, 65], [111, 189, 55]]
+    const Header: [25] u8   = [
+        'G', 'I', 'F', '8', '9', 'a', 2, 0, 1, 0, 0x81, 0, 0,
+        0, 0, 0, 40, 70, 130, 180, 35, 65, 111, 189, 55]
+    const PaletteIndices: [9] u8 = [1, 2, 3, 1, 0, 0, 1, 2, 3]
+    for anchorDisposal in [1_u8, 2]
+    {
+        let disposals: [9] u8 = [1_u8, anchorDisposal, 3, 1, 3, 1, 2, 1, 1]
+        var bytes:     Array!{u8}
+        bytes.add(Header)
+        for frameIndex in 9
+        {
+            let color = cast(u16, PaletteIndices[frameIndex])
+            let width = frameIndex == 3 or frameIndex == 5 ? 1_u8 : 2_u8
+            let left  = frameIndex == 3 ? 1_u8 : 0_u8
+            let flags = (disposals[frameIndex] << 2) | cast(u8, frameIndex == 5)
+            let codes = frameIndex == 7 ? 5 :
+                        width == 1 ? (4 | color << 3 | 5 << 6) : (4 | color << 3 | color << 6 | 5 << 9)
+            bytes.add([0x21_u8, 0xF9, 4, flags, 3, 0, 0, 0])
+            bytes.add([0x2C_u8, left, 0, 0, 0, width, 0, 1, 0, 0, 2, 2])
+            bytes.add([cast(u8, codes & 255), cast(u8, codes >> 8), 0])
+        }
+
+        bytes.add(0x3B_u8)
+        var reader = expect ImageReader.decode("replayed.gif", nnBytes(bytes.toSlice()))
+        discard expect reader.read(6)
+        for frameIndex in [3_u32, 5, 0, 6, 3, 5]
+        {
+            let image = expect reader.read(frameIndex)
+            let left  = frameIndex == 0 or frameIndex == 6 ? 1 : anchorDisposal == 1 ? 2 : 0
+            assertGifPixelAt(image, 0, 0, Colors[left, 0], Colors[left, 1], Colors[left, 2], 255)
+            assertGifPixelAt(image, 1, 0, Colors[1, 0], Colors[1, 1], Colors[1, 2], 255)
+        }
+
+        // Even when a later unopened frame covers the canvas, the invalid frame must fail the read.
+        var errorOutcome: Swag.Error
+        discard catch reader.read(8) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+        let recovered = expect reader.read(3)
+        let left      = anchorDisposal == 1 ? 2 : 0
+        assertGifPixelAt(recovered, 0, 0, Colors[left, 0], Colors[left, 1], Colors[left, 2], 255)
+    }
+}
+
 // Loading the first GIF image still applies limits and validates the full container.
 #test
 {
@@ -310,6 +357,73 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     var errorOutcome: Swag.Error
     discard catch Image.decode("packed-phrases-overflow.gif", tooShort) as errorOutcome
     Swag.require(errorOutcome.value() != null)
+}
+
+// Dense literals can cross both LZW code widths and GIF sub-block boundaries.
+#test
+{
+    const RunLength       = 530
+    const Width           = 2 * RunLength
+    const WidthLow        = cast(u8, Width & 255)
+    const WidthHigh       = cast(u8, Width >> 8)
+    const Header: [13] u8 = ['G', 'I', 'F', '8', '9', 'a', WidthLow, WidthHigh, 1, 0, 0x87, 0, 0]
+    const Frame:  [11] u8 = [0x2C, 0, 0, 0, 0, WidthLow, WidthHigh, 1, 0, 0, 8]
+    var bytes: Array!{u8}
+    bytes.add(Header)
+    for color in 256
+    {
+        let channel = cast(u8, color)
+        bytes.add([channel, channel, channel])
+    }
+
+    let frameOffset = bytes.count
+    bytes.add(Frame)
+    var payload:   Array!{u8}
+    var bits:      u32
+    var available: u32
+    for i in 2 * (RunLength + 1) + 1
+    {
+        let offset = i % (RunLength + 1)
+        let code   = i == 2 * (RunLength + 1) ? 257 : offset == 0 ? 256 : (offset * 73 + 19) & 255
+        let size   = i == 0 or (offset > 0 and offset <= 255) ? 9 : 10
+        bits      |= cast(u32, code) << available
+        available += size
+        while available >= 8
+        {
+            payload.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    if available
+    {
+        payload.add(cast(u8, bits))
+    }
+
+    var remaining = payload.toSlice()
+    while remaining.count
+    {
+        let length = Math.min(11_u64, remaining.count)
+        bytes.add(cast(u8, length))
+        bytes.add(Swag.makeSlice(remaining.buffer, length))
+        remaining = Swag.makeSlice(remaining.buffer + length, remaining.count - length)
+    }
+
+    bytes.add([0_u8, 0x3B])
+    let image = expect Image.decode("dense-literal-pairs.gif", nnBytes(bytes.toSlice()))
+    Swag.require(image.width == Width and image.height == 1)
+    for pixel in Width
+    {
+        let expected = cast(u8, (((pixel % RunLength + 1) * 73 + 19) & 255))
+        assertGifPixelAt(image, pixel, 0, expected, expected, expected, 255)
+    }
+
+    bytes[6] = WidthLow - 1
+    bytes[frameOffset + 5] = WidthLow - 1
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("dense-literal-overflow.gif", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.

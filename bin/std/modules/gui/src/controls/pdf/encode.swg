@@ -770,6 +770,8 @@ private func sameEncodedImage(first, second: const *EncodedImageStream, image, p
            image.width == prior.width and
            image.height == prior.height and
            (first.filter != .Ccitt or sameFaxParameters(&first.fax, &second.fax)) and
+           first.paletteChannels == second.paletteChannels and
+           Slice.equals(first.palette.toSlice(), second.palette.toSlice()) and
            Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
 }
 
@@ -944,9 +946,26 @@ private impl Writer
             let source = item.image.encoded()
             if source.bytes.count
             {
-                let space      = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
-                let filter     = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
-                var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                let filter = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
+                var dictionary: String
+                if source.paletteChannels
+                {
+                    let base  = source.paletteChannels == 1 ? "Gray" : (source.paletteChannels == 4 ? "CMYK" : "RGB")
+                    let hival = source.palette.count / source.paletteChannels - 1
+                    dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /BitsPerComponent % /Filter /% /ColorSpace [/Indexed /Device% % <", image.width, image.height, source.bits, filter, base, hival)
+                    for byte in source.palette
+                    {
+                        appendHexByte(&dictionary, byte)
+                    }
+
+                    dictionary += ">]"
+                }
+                else
+                {
+                    let space = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
+                    dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                }
+
                 if source.invertedInk
                 {
                     dictionary += " /Decode ["

@@ -23,14 +23,21 @@ struct EncodedFaxParameters
 
 struct EncodedImageStream
 {
-    bytes:       Array!{u8}
-    filter:      EncodedImageFilter
-    channels:    u8
-    bits:        u8 = 8
-    predictor:   u8 = 1
-    invertedInk: u8     // CMYK DCT components whose stored samples use [1 0].
-    interpolate: bool
-    fax:         EncodedFaxParameters
+    bytes:           Array!{u8}
+    palette:         Array!{u8}
+    paletteChannels: u8
+    filter:          EncodedImageFilter
+    channels:        u8
+    bits:            u8 = 8
+    predictor:       u8 = 1
+    invertedInk:     u8     // CMYK DCT components whose stored samples use [1 0].
+    interpolate:     bool
+    fax:             EncodedFaxParameters
+}
+
+impl EncodedImageStream
+{
+    mtd const byteCount()->u64 => .bytes.count + .palette.count
 }
 
 private struct ImageResource

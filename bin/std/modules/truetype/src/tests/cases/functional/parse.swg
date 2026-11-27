@@ -426,14 +426,60 @@ private func lookupCffName(thread: const *Threading.Thread)
 
     // Nonidentity maps keep the final glyph index for a repeated CID.
     bytes[59], bytes[61] = 7
-    let dense = expect parseCffFont(bytes.toSlice())
-    Swag.require(dense.denseCidToGid.count == 8)
+    var dense = expect parseCffFont(bytes.toSlice())
+    Swag.require(dense.denseCidToGid.isEmpty())
     Swag.require(dense.glyphIndexByCid(1) == 0 and dense.glyphIndexByCid(7) == 2)
+    Swag.require(dense.denseCidToGid.count == 8)
+
+    // Separate faces of the same source may request its first CID lookup concurrently.
+    let source = FontSource.copy(bytes.toSlice())
+    let first  = expect source.loadFace()
+    defer first.destroy()
+    let second = expect source.loadFace()
+    defer second.destroy()
+
+    var firstGlyph: u32
+    var group:      Swag.TaskGroup
+    group.spawn(func|first, &firstGlyph|()
+    {
+        firstGlyph = first.glyphIndexByCid(7)
+    })
+    let secondGlyph = second.glyphIndexByCid(7)
+    group.wait()
+    Swag.require(firstGlyph == 2 and secondGlyph == 2)
 
     bytes[58], bytes[60] = 0x7F
     let sparse = expect Face.load(bytes.toSlice())
     defer sparse.destroy()
     Swag.require(sparse.glyphIndexByCid(7) == 0 and sparse.glyphIndexByCid(0x7F07) == 2)
+}
+
+// A ranged charset validates its last records as well as its full vector groups.
+#test
+{
+    const Ranges: [22] u8 = [
+        0, 0, 0, 1,
+        0x02, 0xBC, 0,       // CID 700, one glyph
+        0x00, 0x03, 1,       // CID 3 through 4
+        0x01, 0xF4, 15,      // CID 500 through 515
+        0x01, 0x2C, 199,     // CID 300 through 499
+        0x01, 0xA3, 78,      // CID 419 through 497
+        0x01, 0xF4, 0]       // CID 500 again
+    var font: CffFont
+    font.charStrings.itemCount = 300
+    font.block = Ranges
+    expect readCidCharset(&font, 3, font.charStrings.count())
+    Swag.require(font.denseCidToGid.isEmpty())
+    Swag.require(font.glyphIndexByCid(700) == 1)
+    Swag.require(font.glyphIndexByCid(3) == 2 and font.glyphIndexByCid(4) == 3)
+    Swag.require(font.glyphIndexByCid(419) == 220 and font.glyphIndexByCid(498) == 218)
+    Swag.require(font.glyphIndexByCid(500) == 299 and font.glyphIndexByCid(701) == 0)
+
+    var rejected:  Swag.Error
+    var truncated: CffFont
+    truncated.block = Ranges[0 until Ranges.count - 1]
+    discard catch readCidCharset(&truncated, 3, 300) as rejected
+    Swag.require(not rejected.isEmpty())
 }
 
 #test

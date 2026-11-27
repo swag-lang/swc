@@ -1644,8 +1644,6 @@ private impl RenderCpu
             return Color.fromArgb(Argb.White)
         }
 
-        let stops = unwrap .gradientStops
-
         var t: f32
         switch p.type
         {
@@ -1682,6 +1680,14 @@ private impl RenderCpu
             return Color.fromArgb(Argb.White)
         }
 
+        return .sampleGradientStops(p, t)
+    }
+
+    #[Swag.Inline]
+    mtd sampleGradientStops(p: const *BrushBinding, position: f32)->Color
+    {
+        let stops = unwrap .gradientStops
+        var t     = position
         switch #complete p.gradientSpread
         {
         case .Clamp:
@@ -2873,6 +2879,15 @@ private impl RenderCpu
         let half    = Math.Simd.splat(0.5_f32)
         let bias    = Math.Simd.splat(StrokeCoverageBias)
         let thresh  = bias * 0.5
+        let paint   = &.paint
+        let packed  = paint.gradientStopCount and (paint.type == .LinearGradient or paint.type == .RadialGradient)
+        let linear  = paint.type == .LinearGradient
+        let start   = paint.gradientStart
+        let vecDx   = Math.Simd.splat(paint.gradientEnd.x - start.x)
+        let vecDy   = Math.Simd.splat(paint.gradientEnd.y - start.y)
+        let dx2     = vecDx * vecDx
+        let len2    = (vecDy * vecDy + dx2)[0]
+        let radius  = Math.max(paint.gradientRadius1 - paint.gradientRadius0, 0.000001)
         const ExpandAlpha = cast(Math.Simd.U8x16, [3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15])
         for y in bounds.minY until bounds.maxY + 1
         {
@@ -2904,9 +2919,31 @@ private impl RenderCpu
                 // The scalar evaluation rounds each product before adding the positions.
                 let xs = Math.mulAdd(ws2, Math.Simd.splat(pos[2].x), Math.mulAdd(ws1, Math.Simd.splat(pos[1].x), ws0 * pos[0].x))
                 let ys = Math.mulAdd(ws2, Math.Simd.splat(pos[2].y), Math.mulAdd(ws1, Math.Simd.splat(pos[1].y), ws0 * pos[0].y))
+                var coordinates: Math.Simd.F32x4
+                if packed
+                {
+                    let px = xs - start.x
+                    let py = ys - start.y
+                    if linear
+                    {
+                        if len2 > 0.000001 or Math.isNaN(len2)
+                        {
+                            let yPart   = py * vecDy
+                            coordinates = (px * vecDx + yPart) / len2
+                        }
+                    }
+                    else
+                    {
+                        let yPart   = py * py
+                        coordinates = (Math.sqrt(px * px + yPart) - paint.gradientRadius0) / radius
+                    }
+                }
+
                 for lane in count
                 {
-                    colors[lane] = .sampleGradient(&.paint, {xs[lane], ys[lane]}).argb
+                    let color = packed ? .sampleGradientStops(paint, coordinates[lane]) :
+                                .sampleGradient(paint, {xs[lane], ys[lane]})
+                    colors[lane] = color.argb
                 }
 
                 var pixels = Math.Simd.load(cast(const [*] u8, &colors[0]))

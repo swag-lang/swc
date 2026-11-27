@@ -20,6 +20,7 @@ private
     const LzwPrefixShift      = 8
     const LzwLengthShift      = 20
     const LzwCopyPrefixLength = 8     // Eight bytes amortize the copy over dependent dictionary reads.
+    const LzwNoLiteralPair    = 1_u32 << 16
 }
 
 private struct LzwBits
@@ -68,6 +69,35 @@ impl LzwBits
         .bits      >>= width
         .available -= width
         return key
+    }
+
+    #[Swag.Inline]
+    mtd readLiteralPair(width, clear: s32)->u32
+    {
+        let required = width * 2
+        if .available < required
+        {
+            if .blockEnd - .cursor < 4
+            {
+                return LzwNoLiteralPair
+            }
+
+            .bits      |= cast(u64, cast(const [*] u32, .cursor)[0]) << .available
+            .cursor    += 4
+            .available += 32
+        }
+
+        let mask   = (1_u64 << width) - 1
+        let first  = .bits & mask
+        let second = (.bits >> width) & mask
+        if (first | second) >= clear
+        {
+            return LzwNoLiteralPair
+        }
+
+        .bits      >>= required
+        .available -= required
+        return cast(u32, first | (second << 8))
     }
 }
 
@@ -227,6 +257,29 @@ impl Decoder
                 if key < nextCode - 1
                 {
                     entries[nextCode - 1] = (entries[nextCode - 1] & ~LzwSuffixMask) | first
+                }
+            }
+
+            #static if FAST_LITERAL
+            {
+                // Two more literals have fixed-width codes and append two one-byte prefixes.
+                // Leave width changes and the end of the frame to the ordinary path.
+                if key < clear and frameSize - frameOffset >= 2 and nextCode + 2 < (1 << keySize)
+                {
+                    let pair = bits.readLiteralPair(keySize, clear)
+                    if pair != LzwNoLiteralPair
+                    {
+                        let a = pair & LzwSuffixMask
+                        let b = pair >> 8
+                        let lengthField = 1_u32 << LzwLengthShift
+                        entries[nextCode]     = lengthField | (cast(u32, key) << LzwPrefixShift) | a
+                        entries[nextCode + 1] = lengthField | (a << LzwPrefixShift) | b
+                        cast([*] u16, frame + frameOffset)[0] = cast(u16, pair)
+                        key                   = cast(u16, b)
+                        first                 = b
+                        nextCode              += 2
+                        frameOffset           += 2
+                    }
                 }
             }
         }

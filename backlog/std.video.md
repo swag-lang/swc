@@ -2,8 +2,8 @@
 
 The module reads and writes video as a stream: a codec registered against `Video.IDecoder` and
 `Video.IEncoder`, selected by extension, reading a `Core.ByteSource` and writing a `Core.ByteSink`.
-It reads YUV4MPEG2, Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in ISO-BMFF or Matroska,
-and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed RGB555 16-bit and RGB 24-/32-bit
+It reads YUV4MPEG2, raw Motion JPEG and Motion JPEG in AVI or ISO-BMFF, H.264 and H.265 in
+ISO-BMFF or Matroska, and MPEG-4 Part 2 in AVI or Matroska. AVI also reads uncompressed RGB555 16-bit and RGB 24-/32-bit
 frames and exposes integer PCM tracks; ISO-BMFF
 sample-table tracks expose AAC-LC, AC-3, and Layer III, and Matroska exposes AAC-LC, AC-3, E-AC-3, DTS Core, FLAC,
 Layer III, Vorbis, and Opus. Encoded payloads stay in their source; readers retain container indexes, codec
@@ -66,11 +66,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: Main10 decoding at 3840×2076 takes 1.72× the time of FFmpeg 9.1 with one lane
-  and 3.09× with four. In a separate run, 32-bit CABAC look-ahead lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
-  and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
-  before the CABAC change. The Main and Main10 conformance digests and container reference
-  planes remain the correctness boundary.
+- Evidence: on 3840×2076 Main10, bulk pixel-plane initialization lowers paired serial time
+  by 5.1%. The medians are 52.60 ms per picture at one lane for Swag and 29.06 ms for
+  FFmpeg 9.1. The previous four-lane run puts Swag at 3.09× FFmpeg time. Residual coding
+  still accounts for about 21% of sampled time. The Main and Main10 conformance digests
+  and container reference planes remain the correctness boundary.
 - Next: measure significance context selection on motion, all-intra and WPP streams.
   Waiting for references on first use increased paired time by 6.9% at four lanes on the 3840×2076 fixture.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
@@ -699,18 +699,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the selected VP8 profile decodes and seeks against reference planes, malformed input
   stays bounded, audio timestamps remain aligned, and `.webm` is advertised by the reader.
 - Related: std.video.010, std.video.011
-
-### std.video.037 — Read raw Motion JPEG video streams
-
-- Evidence: FileSamples includes `.mjpeg` streams, and Pixel already decodes JPEG pictures; the
-  video module only reaches Motion JPEG through AVI and ISO-BMFF. A raw stream still needs bounded
-  JPEG frame-boundary scanning, an index for seeking, and a cadence policy because it carries no
-  container timestamps.
-- Next: add a raw MJPEG reader that reuses Pixel's JPEG decoder, indexes concatenated pictures,
-  and defines how callers learn or supply a frame rate when the stream has none. Compare complete
-  frames against FFmpeg and reject malformed or truncated image boundaries safely.
-- Done when: `.mjpeg` and `.mjpg` streams decode sequentially and by frame index against FFmpeg,
-  with an explicit frame-rate contract and bounded malformed-input handling.
 
 ### std.video.038 — Read raw H.264 and HEVC elementary streams
 

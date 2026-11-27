@@ -910,6 +910,28 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     }
 }
 
+// A zero-length linear gradient uses its first stop across packed spans and their tails.
+#test
+{
+    let paint = Brush.createLinearGradient(7, 5, 7, 5, Argb.Red, Argb.Blue, .Mirror)
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.fillRect({1, 2, 23, 9}, paint)
+    painter.end()
+
+    let image = renderCpu(26, 13, &painter)
+    for y in 2 until 11
+    {
+        for x in 1 until 24
+        {
+            assertPixel(image, cast(s32, x), cast(s32, y), Argb.Red)
+        }
+    }
+}
+
 // Parallel color-only gradient spans match scalar blending over an opaque target.
 #[Swag.TestTag("parallel")]
 #test

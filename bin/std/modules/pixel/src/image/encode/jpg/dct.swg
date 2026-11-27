@@ -159,33 +159,83 @@ impl Encoder
         return cast #bit(Math.Simd.F32x4, biased) - 8421376.0_f32
     }
 
-    // Interleave four 16-bit sample rows into columns before widening.
     #[Swag.Inline]
-    func loadTransposedRows(data: const [*] s16, columns: [*] Math.Simd.F32x4)
+    func(High: bool) widenHorizontal(values: Math.Simd.S16x8)->Math.Simd.F32x4
+    {
+        #static if High
+        {
+            return floatSamples(Math.Simd.widenHigh(values))
+        }
+        else
+        {
+            return floatSamples(Math.Simd.widenLow(values))
+        }
+    }
+
+    #[Swag.Inline]
+    func(High: bool) finishHorizontal(dc, even4, evenBase, evenMix, odd10, odd11, odd12, odd7: Math.Simd.S16x8, left, right: [*] Math.Simd.F32x4)
     {
         using Math.Simd
 
-        let rows    = cast(const [*] u16, data)
-        let first   = load(rows)
-        let second  = load(rows + 8)
-        let third   = load(rows + 16)
-        let fourth  = load(rows + 24)
-        let top0    = cast #bit(U32x4, interleaveLow(first, second))
-        let top1    = cast #bit(U32x4, interleaveHigh(first, second))
-        let bottom0 = cast #bit(U32x4, interleaveLow(third, fourth))
-        let bottom1 = cast #bit(U32x4, interleaveHigh(third, fourth))
-        let col01   = cast #bit(S16x8, interleaveLow(top0, bottom0))
-        let col23   = cast #bit(S16x8, interleaveHigh(top0, bottom0))
-        let col45   = cast #bit(S16x8, interleaveLow(top1, bottom1))
-        let col67   = cast #bit(S16x8, interleaveHigh(top1, bottom1))
-        columns[0] = floatSamples(widenLow(col01))
-        columns[1] = floatSamples(widenHigh(col01))
-        columns[2] = floatSamples(widenLow(col23))
-        columns[3] = floatSamples(widenHigh(col23))
-        columns[4] = floatSamples(widenLow(col45))
-        columns[5] = floatSamples(widenHigh(col45))
-        columns[6] = floatSamples(widenLow(col67))
-        columns[7] = floatSamples(widenHigh(col67))
+        let base = widenHorizontal!{High}(evenBase)
+        let z1   = widenHorizontal!{High}(evenMix) * 0.707106781_f32
+        let o10  = widenHorizontal!{High}(odd10)
+        let o11  = widenHorizontal!{High}(odd11)
+        let o12  = widenHorizontal!{High}(odd12)
+        let tmp7 = widenHorizontal!{High}(odd7)
+        let z5   = (o10 - o12) * 0.382683433_f32
+        let z2   = Math.mulAdd(o10, splat(0.541196100_f32), z5)
+        let z4   = o12 * 1.306562965_f32 + z5
+        let z3   = o11 * 0.707106781_f32
+        let z11  = tmp7 + z3
+        let z13  = tmp7 - z3
+
+        var values: [8] F32x4 = [
+            widenHorizontal!{High}(dc), z11 + z4, base + z1, z13 - z2,
+            widenHorizontal!{High}(even4), z13 + z2, base - z1, z11 - z4]
+        transposeFour(values, left)
+        transposeFour(cast([*] F32x4, values) + 4, right)
+    }
+
+    // The integer part of the horizontal pass fits in signed words for centered byte samples.
+    // Only the terms that involve an AAN factor need floating point here.
+    func transformHorizontal(data: const [*] s16, left, right: [*] Math.Simd.F32x4)
+    {
+        using Math.Simd
+
+        let input = cast(const [*] U16x8, data)
+        var columns: [8] U16x8 = [input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7]]
+        transpose8x8(&columns)
+        let x0 = cast #bit(S16x8, columns[0])
+        let x1 = cast #bit(S16x8, columns[1])
+        let x2 = cast #bit(S16x8, columns[2])
+        let x3 = cast #bit(S16x8, columns[3])
+        let x4 = cast #bit(S16x8, columns[4])
+        let x5 = cast #bit(S16x8, columns[5])
+        let x6 = cast #bit(S16x8, columns[6])
+        let x7 = cast #bit(S16x8, columns[7])
+
+        let tmp0  = x0 + x7
+        let tmp7  = x0 - x7
+        let tmp1  = x1 + x6
+        let tmp6  = x1 - x6
+        let tmp2  = x2 + x5
+        let tmp5  = x2 - x5
+        let tmp3  = x3 + x4
+        let tmp4  = x3 - x4
+        let tmp10 = tmp0 + tmp3
+        let tmp13 = tmp0 - tmp3
+        let tmp11 = tmp1 + tmp2
+        let tmp12 = tmp1 - tmp2
+
+        let dc      = tmp10 + tmp11
+        let even4   = tmp10 - tmp11
+        let evenMix = tmp12 + tmp13
+        let odd10   = tmp4 + tmp5
+        let odd11   = tmp5 + tmp6
+        let odd12   = tmp6 + tmp7
+        finishHorizontal!{false}(dc, even4, tmp13, evenMix, odd10, odd11, odd12, tmp7, left, right)
+        finishHorizontal!{true}(dc, even4, tmp13, evenMix, odd10, odd11, odd12, tmp7, left + 4, right + 4)
     }
 
     // Expands a row's eight occupancy bits to the corresponding entropy-order positions.
@@ -227,16 +277,7 @@ impl Encoder
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
         var left, right: [8] Math.Simd.F32x4
-        for group in 2
-        {
-            var lanes: [8] Math.Simd.F32x4
-            let block = cast([*] Math.Simd.F32x4, lanes)
-            loadTransposedRows(data + group * 32, block)
-            transformFourLines(block)
-            transposeFour(block, &left[group * 4])
-            transposeFour(block + 4, &right[group * 4])
-        }
-
+        transformHorizontal(data, left, right)
         transformFourLines(left)
         transformFourLines(right)
 

@@ -197,6 +197,40 @@ impl Sha512Core
         return .state
     }
 
+    // A fresh context leaves its block zero-initialized.
+    #[Swag.Inline]
+    mtd computeFresh(data: const [..] u8)
+    {
+        if data.count < 112
+        {
+            if data.count
+            {
+                Swag.memcpy(.data.buffer, data.buffer, data.count)
+            }
+
+            .data[data.count] = 0x80
+            let lowLength = cast([*] u64, .data.buffer + 120)
+            lowLength[0] = Math.nativeToBigEndian(data.count * 8)
+            .transformBlocks(.data)
+        }
+        else
+        {
+            let blocks = data.count / Sha512BlockSize
+            if blocks
+            {
+                .transformBlocks(data.buffer, blocks)
+            }
+
+            let consumed = blocks * Sha512BlockSize
+            .dataLength = data.count - consumed
+            if .dataLength
+            {
+                Swag.memcpy(.data.buffer, data.buffer + consumed, .dataLength)
+            }
+            .finalizeBlocks()
+        }
+    }
+
     #[Swag.Inline]
     mtd finalizeBlocks()
     {
@@ -337,6 +371,31 @@ impl Sha512Core
     }
 }
 
+#[Swag.Inline]
+private func(Words: u64) truncateSha512Digest(state: const [*] u64)->[Words] u64
+{
+    var digest: #returntype
+    for index in Words
+    {
+        digest[index] = state[index]
+    }
+
+    return digest
+}
+
+#[Swag.Inline]
+private func truncateSha512_224Digest(state: const [*] u64)->[7] u32
+{
+    var digest: #returntype
+    for index in digest.count
+    {
+        let shift = (index & 1) == 0 ? 32 : 0
+        digest[index] = cast(u32, state[index / 2] >> shift)
+    }
+
+    return digest
+}
+
 // Computes a SHA-512 digest incrementally.
 public struct Sha512
 {
@@ -405,8 +464,8 @@ public impl Sha512
     {
         var hash: Sha512
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return hash.core.state
     }
 }
 
@@ -462,14 +521,8 @@ public impl Sha384
             .reset()
         }
 
-        let state = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            result[index] = state[index]
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512Digest!{6}(.core.state.buffer)
     }
 
     // Computes the SHA-384 digest of `data` in one operation.
@@ -477,8 +530,8 @@ public impl Sha384
     {
         var hash: Sha384
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512Digest!{6}(hash.core.state.buffer)
     }
 }
 
@@ -518,15 +571,8 @@ public impl Sha512_224
             .reset()
         }
 
-        let fullDigest = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            let shift = (index & 1) == 0 ? 32 : 0
-            result[index] = cast(u32, fullDigest[index / 2] >> shift)
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512_224Digest(.core.state.buffer)
     }
 
     // Computes the SHA-512/224 digest of `data` in one operation.
@@ -534,8 +580,8 @@ public impl Sha512_224
     {
         var hash: Sha512_224
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512_224Digest(hash.core.state.buffer)
     }
 }
 
@@ -575,14 +621,8 @@ public impl Sha512_256
             .reset()
         }
 
-        let fullDigest = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            result[index] = fullDigest[index]
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512Digest!{4}(.core.state.buffer)
     }
 
     // Computes the SHA-512/256 digest of `data` in one operation.
@@ -590,7 +630,7 @@ public impl Sha512_256
     {
         var hash: Sha512_256
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512Digest!{4}(hash.core.state.buffer)
     }
 }

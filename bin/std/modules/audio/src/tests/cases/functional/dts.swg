@@ -436,6 +436,47 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     Swag.require(err != null)
 }
 
+private func dtsDecodePcm(path: string)->Array!{s16}
+{
+    let sound = expect SoundFile.load(path, preloadData: false)
+    var result: #returntype
+    expect sound.decodePcm16(func|&result|(part)
+    {
+        result.add(part)
+        return true
+    })
+
+    return result
+}
+
+// Word order and transport packing preserve every decoded sample, including across packets.
+#test
+{
+    let reference = dtsDecodePcm(audioGetTestDataPath("dts-5.1-48000.dts").toString())
+    Swag.require(reference.count == 47 * 512 * 6)
+
+    for fileName in ["dts-5.1-48000.dts", "dts-5.1-48000-14be.dts"]
+    {
+        var bytes = expect File.readAllBytes(audioGetTestDataPath(fileName).toString())
+        Swag.require(not (bytes.count & 1))
+        for word in bytes.count / 2
+        {
+            let index = 2 * word
+            let first = bytes[index]
+            bytes[index]     = bytes[index + 1]
+            bytes[index + 1] = first
+        }
+
+        let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                Format.toString("audio-dts-little-endian-%.dts", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, bytes.toSlice())
+
+        let decoded = dtsDecodePcm(path)
+        Swag.require(Slice.equals(decoded.toSlice(), reference.toSlice()))
+    }
+}
+
 // A valid DTS header whose declared frame is one byte longer than the file is rejected on load.
 #test
 {

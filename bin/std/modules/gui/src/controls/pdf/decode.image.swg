@@ -22,13 +22,14 @@ enum ImageSpaceKind
 
 struct ImageSpace
 {
-    kind:           ImageSpaceKind = ImageSpaceKind.Gray
-    components:     u32            = 1
-    baseKind:       ImageSpaceKind = ImageSpaceKind.Rgb
-    baseComponents: u32            = 3
-    palette:        Array!{u8}
-    hival:          u32
-    range:          [4] f32        = [-100, 100, -100, 100]
+    kind:              ImageSpaceKind = ImageSpaceKind.Gray
+    components:        u32            = 1
+    baseKind:          ImageSpaceKind = ImageSpaceKind.Rgb
+    baseComponents:    u32            = 3
+    palette:           Array!{u8}
+    hival:             u32
+    indexedDeviceBase: bool
+    range:             [4] f32        = [-100, 100, -100, 100]
 
     // The space could not be reduced to a color — a pattern, or an unresolvable name. A mark
     // painted with it is dropped rather than painted in a color the stream never asked for:
@@ -538,6 +539,8 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
             fail InvalidFormatError{"PDF indexed color space is incomplete"}
         }
 
+        let baseName = parser.name(values[1])
+        result.indexedDeviceBase = baseName == "DeviceGray" or baseName == "DeviceRGB" or baseName == "DeviceCMYK"
         let base = #move try resolveImageSpace(parser, values[1], resourcesId, depth + 1)
         if base.kind == .Indexed
         {
@@ -803,7 +806,7 @@ private func decodeOpaqueSamples(image: *Image, bytes: const [..] u8, rowBytes: 
     }
 }
 
-private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direct: *Image?)->SamplePlane fail
+private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direct: *Image?, indexedSource: *EncodedImageStream?)->SamplePlane fail
 {
     var result: #returntype
     let width  = parser.integer(parser.dict(nodeId, "Width"))
@@ -886,6 +889,20 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
     {
         expandIndexedPlane(&result, &space, bytes.toSlice(), depth, rowBytes, lowest[0], highest[0], maxValue)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
+        if indexedSource and space.indexedDeviceBase and depth <= 8 and decodeId == InvalidNode
+        {
+            let paletteBytes = cast(u64, space.hival + 1) * space.baseComponents
+            if paletteBytes < result.rgb.count
+            {
+                indexedSource[] = #move retainLosslessImage(parser, nodeId, result.width, result.rgb.count - paletteBytes, 1, indexed: true)
+                if indexedSource.bytes.count
+                {
+                    indexedSource.palette.add(space.palette.toSlice()[0 until paletteBytes])
+                    indexedSource.paletteChannels = cast(u8, space.baseComponents)
+                }
+            }
+        }
+
         return result
     }
 
@@ -1318,7 +1335,7 @@ private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [.
 }
 
 // Keep a single supported lossless filter whose dictionary can be reconstructed.
-private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *Image, colorName: string)->EncodedImageStream
+private func retainLosslessImage(parser: *PdfParser, nodeId: u32, width: s32, colorBytes: u64, channels: u8, indexed = false)->EncodedImageStream
 {
     var result: #returntype
     if not parser.retainImageStreams or
@@ -1336,7 +1353,6 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
         return result
     }
 
-    let channels  = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
     var predictor = 1_s64
     var codec: EncodedImageFilter
     var fax:   EncodedFaxParameters
@@ -1348,7 +1364,7 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
         if predictor != 1
         {
             if (predictor != 2 and (predictor < 10 or predictor > 15)) or
-               parser.integer(parser.dict(parameters, "Columns"), 1) != image.width or
+               parser.integer(parser.dict(parameters, "Columns"), 1) != width or
                parser.integer(parser.dict(parameters, "Colors"), 1) != channels or
                parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits
             {
@@ -1358,9 +1374,10 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
 
     case "CCITTFaxDecode", "CCF":
         codec = .Ccitt
-        if channels != 1 or
+        if indexed or
+           channels != 1 or
            bits != 1 or
-           parser.integer(parser.dict(parameters, "Columns"), 1728) != image.width
+           parser.integer(parser.dict(parameters, "Columns"), 1728) != width
         {
             return result
         }
@@ -1379,14 +1396,14 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
 
     let interpolate = parser.boolean(parser.dict(nodeId, "Interpolate"), false)
     let data        = parser.nodes[nodeId].stream.toSlice()
-    if not data.count or data.count >= image.byteCount
+    if not data.count or data.count >= colorBytes
     {
         return result
     }
 
     result.bytes.add(data)
     result.filter      = codec
-    result.channels    = cast(u8, channels)
+    result.channels    = channels
     result.bits        = cast(u8, bits)
     result.predictor   = cast(u8, predictor)
     result.interpolate = interpolate
@@ -1403,7 +1420,7 @@ private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, dev
 
 private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, encoded: #move EncodedImageStream)->ImageReference
 {
-    let size   = image.byteCount + encoded.bytes.count
+    let size   = image.byteCount + encoded.byteCount()
     var result = #move ImageReference.create(#move image, #move encoded)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
@@ -1465,7 +1482,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                      explicitMask == InvalidNode and
                      (colorName == "DeviceRGB" or colorName == "DeviceGray" or colorName == "DeviceCMYK")
     let codec = #move parser.imageCodec(nodeId)
-    var plane, mask: SamplePlane
+    let deviceChannels = colorName == "DeviceGray" ? 1_u8 : (colorName == "DeviceCMYK" ? 4_u8 : 3_u8)
+    var indexedSource: EncodedImageStream
+    var plane, mask:   SamplePlane
     if not codec.isEmpty()
     {
         if codec != "DCTDecode" and codec != "DCT"
@@ -1593,10 +1612,14 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     else
     {
         var direct: Image
-        plane = #move try readSamplePlane(parser, nodeId, resourcesId, deviceOnly ? &direct : null)
+        let retainIndexed = parser.retainImageStreams and
+                            not deviceOnly and
+                            maskId == InvalidNode and
+                            explicitMask == InvalidNode
+        plane = #move try readSamplePlane(parser, nodeId, resourcesId, deviceOnly ? &direct : null, retainIndexed ? &indexedSource : null)
         if direct.isValid()
         {
-            var encoded = #move retainLosslessImage(parser, nodeId, &direct, colorName)
+            var encoded = #move retainLosslessImage(parser, nodeId, direct.width, direct.byteCount, deviceChannels)
             return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move direct, #move encoded)
         }
 
@@ -1660,9 +1683,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     var result = #move planeToImage(&plane, null)
     if deviceOnly
     {
-        var encoded = #move retainLosslessImage(parser, nodeId, &result, colorName)
+        var encoded = #move retainLosslessImage(parser, nodeId, result.width, result.byteCount, deviceChannels)
         return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
     }
 
-    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
+    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move indexedSource)
 }

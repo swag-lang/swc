@@ -645,6 +645,18 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: picture validation counted decoded macroblocks but did not check their addresses, so duplicate slices could replace already parsed macroblocks while omitting another address.
 - Resolved: each macroblock is checked against the current picture's slice coverage before normal or skipped decode. A second slice restarting at macroblock zero is rejected.
 
+### std.video.043 — Respect HEVC SAO slice and tile boundaries (resolved)
+
+- Evidence: on a five-picture Main sequence with two slices, Swag produced the same
+  Annex B and MP4 planes. FFmpeg 9.1 differed at 533 of 46,080 samples, starting along
+  the slice boundary. The maximum error was 4 levels and PSNR was 61.758 dB.
+- Fixed: SAO edge classification keeps the deblocked sample when its directional
+  neighbour lies in a slice or tile the loop filter cannot cross. Diagonal corners
+  use their diagonal neighbour's permissions.
+- Verification: five-picture Main and Main 10 reference streams match in Annex B
+  and MP4. The native Main 10 samples are exact. Synthetic cases check tile
+  transitions and the two outcomes at diagonal corners.
+
 ### std.video.030 — HEVC crop validation can wrap (resolved)
 
 - Evidence: visible dimensions subtracted conformance-window sums in `u32`; oversized crop values could wrap and leave an invalid picture apparently visible.

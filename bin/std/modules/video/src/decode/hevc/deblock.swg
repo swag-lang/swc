@@ -277,28 +277,24 @@ impl Decoder
 
     // Reports whether the loop filter may cross this edge, clause 8.7.2.
     private mtd const filterAcrossAllowed(x, y, xP, yP: s32)->bool
-    {
-        let pps = unwrap .activePps
+        => .canFilterAcrossBlocks(.ctbAddressRs(x, y), .ctbAddressRs(xP, yP))
 
-        let currentCtb   = .ctbRsToTs[.ctbAddressRs(x, y)]
-        let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xP, yP)]
-        if currentCtb == neighbourCtb
+    // Both in-loop filters use the boundaries of the current CTB, with addresses in raster order.
+    mtd const canFilterAcrossBlocks(current, neighbour: u64)->bool
+    {
+        if current == neighbour
         {
             return true
         }
 
-        if not pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb]
+        let pps = unwrap .activePps
+        if not pps.loopFilterAcrossTiles and .tileId[.ctbRsToTs[current]] != .tileId[.ctbRsToTs[neighbour]]
         {
             return false
         }
 
-        let slice = &.sliceParams[cast(u64, .ctbSliceIndex[.ctbAddressRs(x, y)])]
-        if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)]
-        {
-            return false
-        }
-
-        return true
+        let slice = &.sliceParams[cast(u64, .ctbSliceIndex[current])]
+        return slice.loopFilterAcrossSlices or .ctbSliceAddr[current] == .ctbSliceAddr[neighbour]
     }
 
     // Derives the boundary strength of one edge, clause 8.7.2.4.

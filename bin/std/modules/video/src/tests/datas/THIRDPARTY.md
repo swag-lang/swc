@@ -429,6 +429,41 @@ to the eight bits the planar API returns.
 
 These fixtures use the same license as this repository.
 
+The `ffmpeg-hevc-sao-boundary-*` fixtures have five synthetic 96×64 pictures
+with two independent 32-pixel CTB rows, sample adaptive offset, and a forbidden
+cross-slice filter boundary. FFmpeg 7.1.5 encoded the raw streams with libx265
+and copied their coded data to MP4. FFmpeg 9.1 decoded the elementary streams
+to the displayed YUV planes.
+
+```sh
+params='pools=1:frame-threads=1:log-level=error:ctu=32:wpp=1:slices=2:keyint=6:min-keyint=6:scenecut=0:open-gop=0:bframes=0:repeat-headers=1:aud=1:vui-timing-info=0:info=0'
+ffmpeg -f lavfi -i 'testsrc2=size=96x64:rate=24' -frames:v 5 -an \
+  -c:v libx265 -threads 1 -preset fast -profile:v main -pix_fmt yuv420p \
+  -x265-params "$params" -f hevc ffmpeg-hevc-sao-boundary-main.hevc
+ffmpeg -f lavfi -i 'testsrc2=size=96x64:rate=24,format=yuv420p10le' -frames:v 5 -an \
+  -c:v libx265 -threads 1 -preset fast -profile:v main10 -pix_fmt yuv420p10le \
+  -x265-params "$params" -f hevc ffmpeg-hevc-sao-boundary-main10.hevc
+for case in main main10; do
+  ffmpeg -f hevc -framerate 24 -i "ffmpeg-hevc-sao-boundary-$case.hevc" \
+    -map 0:v -c copy -tag:v hvc1 "ffmpeg-hevc-sao-boundary-$case.mp4"
+done
+```
+
+The eight-bit reference has one byte per sample. The ten-bit reference preserves
+little-endian sixteen-bit words. The reader tests round this reference to its
+eight-bit planar output and the decoder test also compares the native samples.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-hevc-sao-boundary-main.hevc` | 2,029 | `608e75b3cfd7aa87cdb2de7da849d1f5e29ed39996ae846256c4086ff4864c71` |
+| `ffmpeg-hevc-sao-boundary-main.mp4` | 2,997 | `b626df498b5a63e9c12c1bb0bbc7d87c9100f61d53179e4cd4f687054ede5cc4` |
+| `ffmpeg-hevc-sao-boundary-main.yuv` | 46,080 | `bcc1b3d2541ccfa6e4de6c4389fe6814aea8cea251caf9bb56f296ed258e7a6c` |
+| `ffmpeg-hevc-sao-boundary-main10.hevc` | 2,018 | `c83ff32bf46592af34d06d5d7a7a5bf0b4358c3aecdae0e4c5fb00d569ddf7ab` |
+| `ffmpeg-hevc-sao-boundary-main10.mp4` | 2,987 | `20f9e878671389521336121ac69a35d3b55118bbe34844e56bbd28732121a1ee` |
+| `ffmpeg-hevc-sao-boundary-main10.yuv` | 92,160 | `d40cd2dfc9e1f201ebab96c31c100b3f62d4ae163c055ed65be56bc7d759b42b` |
+
+These fixtures use the same license as this repository.
+
 `ffmpeg-hevc-main.mp4`, `ffmpeg-hevc-inband.mp4`, and `ffmpeg-hevc-main.mkv` re-encode the source
 pictures of `ffmpeg-h264-pyramid.yuv` with x265 through PyAV 17.1, so the H.264 and H.265 fixtures
 carry the same 96x64, 60-frame content and a difference between them is the codec alone.

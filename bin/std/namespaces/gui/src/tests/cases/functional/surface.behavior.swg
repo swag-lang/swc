@@ -6,6 +6,25 @@ using Swag, Core
 const GuiHeadlessSmoke_CloseWindow = "GuiHeadlessSmoke.CloseWindow"
 const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
+// A surface larger than its monitor keeps the selected top and left edges reachable.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    let bounds = Env.monitorForPoint({0, 0}).physicalBounds
+    let large  = Math.Rectangle{bounds.x, bounds.y, bounds.width + 100, bounds.height + 100}
+    host.surface.setPosition(large)
+    host.surface.constrainPositionToScreen(margin: 10)
+    Swag.require(host.surface.position == {bounds.x + 10, bounds.y + 10, large.width, large.height})
+
+    host.surface.setPosition(large)
+    host.surface.constrainPositionToScreen(topLeft: false, margin: 10)
+    Swag.require(host.surface.position.right() == bounds.right() - 10)
+    Swag.require(host.surface.position.bottom() == bounds.bottom() - 10)
+}
+
 // A hidden or collapsing control can invalidate an empty extent between two frames. It must
 // neither schedule a negative native scissor nor extend an already pending repaint region.
 #test

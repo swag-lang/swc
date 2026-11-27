@@ -44,7 +44,8 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     let connection = unwrap context.connection
     let width      = surface.rc.width
     let height     = surface.rc.height
-    if not (try nativePresentationSizeMatches(context, drawable.window, width, height))
+    if not LinuxDesktop.isWindowViewable(context, drawable.window) or
+       not (try nativePresentationSizeMatches(context, drawable.window, width, height))
     {
         return false
     }
@@ -53,8 +54,9 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     let reply   = context.xcb_get_image_reply(connection, request, null)
     if not reply
     {
-        // The window manager can resize the drawable between the geometry and image requests.
-        if not (try nativePresentationSizeMatches(context, drawable.window, width, height))
+        // The window manager can hide or resize the drawable between the two requests.
+        if not LinuxDesktop.isWindowViewable(context, drawable.window) or
+           not (try nativePresentationSizeMatches(context, drawable.window, width, height))
         {
             return false
         }

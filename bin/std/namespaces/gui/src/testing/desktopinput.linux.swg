@@ -13,8 +13,6 @@ private alias XTestKey         = func(*void, u32, s32, u64)->s32
 #[Swag.CallingConvention(.C)]
 private alias XKeysymToKeycode = func(*void, u64)->u8
 #[Swag.CallingConvention(.C)]
-private alias XSetInputFocus   = func(*void, u64, s32, u64)->s32
-#[Swag.CallingConvention(.C)]
 private alias XGetInputFocus   = func(*void, *u64, *s32)->s32
 #[Swag.CallingConvention(.C)]
 private alias XSync            = func(*void, s32)->s32
@@ -27,7 +25,6 @@ internal struct NativeDesktopInput
     late button:        XTestButton
     late key:           XTestKey
     late keycode:       XKeysymToKeycode
-    late setFocus:      XSetInputFocus
     late getFocus:      XGetInputFocus
     late sync:          XSync
     mousePressed:       bool
@@ -52,7 +49,6 @@ impl DesktopInput
         .button   = expect LinuxDesktop.symbol!{XTestButton}(xtst, "XTestFakeButtonEvent")
         .key      = expect LinuxDesktop.symbol!{XTestKey}(xtst, "XTestFakeKeyEvent")
         .keycode  = expect LinuxDesktop.symbol!{XKeysymToKeycode}(x11, "XKeysymToKeycode")
-        .setFocus = expect LinuxDesktop.symbol!{XSetInputFocus}(x11, "XSetInputFocus")
         .getFocus = expect LinuxDesktop.symbol!{XGetInputFocus}(x11, "XGetInputFocus")
         .sync     = expect LinuxDesktop.symbol!{XSync}(x11, "XSync")
         var revertTo: s32
@@ -89,8 +85,11 @@ impl DesktopInput
             discard .button(display, 1, 0, 0)
         }
 
-        discard .setFocus(display, .priorFocus, 2, 0)
         discard .sync(display, 0)
+        let context    = expect LinuxDesktop.ensure()
+        let connection = unwrap context.connection
+        // The previous native window can have closed while this driver owned focus.
+        catch LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, cast(u32, .priorFocus), 0))
         let close = expect LinuxDesktop.symbol!{Linux.XCloseDisplay_fn}(x11, "XCloseDisplay")
         discard close(display)
         discard Linux.dlclose(xtst)
@@ -99,9 +98,21 @@ impl DesktopInput
 
     internal mtd focusNative()
     {
-        let display = unwrap .display
-        discard .setFocus(display, .surface.windowId, 2, 0)
-        discard .sync(display, 0)
+        let context    = expect LinuxDesktop.ensure()
+        let connection = unwrap context.connection
+        let window     = .surface.windowId
+        var watch: Time.Stopwatch
+        watch.start()
+
+        // Mapping managed windows is asynchronous. X11 only accepts focus once the window is viewable.
+        while not LinuxDesktop.isWindowViewable(context, window)
+        {
+            Swag.require(watch.elapsedMilliseconds() < 3000, "the X11 test window did not become viewable")
+            .app.runFrame()
+            Threading.Thread.sleep(1_ms)
+        }
+
+        expect LinuxDesktop.check(context, context.xcb_set_input_focus_checked(connection, 2, window, 0))
     }
 
     internal mtd requireNativeFocus()
@@ -114,6 +125,11 @@ impl DesktopInput
 
     internal mtd requireNativePointerAt(screen: Math.Point)
     {
+        let root = (expect LinuxDesktop.ensure()).screen
+        Swag.require(screen.x >= 0 and screen.x < root.width_in_pixels and
+                     screen.y >= 0 and screen.y < root.height_in_pixels,
+                     Format.toString("pointer point (%, %) is outside the % by % X11 desktop",
+                                     screen.x, screen.y, root.width_in_pixels, root.height_in_pixels))
         Swag.require(.app.surfaceAtNative(screen.x, screen.y) == .surface,
                      "another X11 window covers the pointer target")
     }

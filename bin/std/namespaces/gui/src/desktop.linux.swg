@@ -367,6 +367,19 @@ internal func surface(window: u32)->*Surface?
     return null
 }
 
+internal func isWindowViewable(context: *Context, window: u32)->bool
+{
+    let connection = unwrap context.connection
+    let attributes = context.xcb_get_window_attributes_reply(connection, context.xcb_get_window_attributes(connection, window), null)
+    if not attributes
+    {
+        return false
+    }
+
+    defer Linux.free(attributes)
+    return attributes.map_state == Linux.XCB_MAP_STATE_VIEWABLE
+}
+
 // X11 focus notifications are queued. Read the current owner so an old notification cannot
 // publish focus for a window the server has already left.
 internal func syncInputFocus(context: *Context, app: *Application)

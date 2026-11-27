@@ -24,10 +24,14 @@ func assertSceneParity(scene: RenderParityScene, name: string, width, height: s3
     reference.init()
 
     let expected = scene(reference)
-    let actual   = scene(gpu)
+    var actual   = scene(gpu)
     #static if #os == Swag.TargetOs.Windows
     {
-        Swag.require(not expect ogl.recoverLostDevice(), "OpenGL device reset during renderer parity scene")
+        if expect ogl.recoverLostDevice()
+        {
+            actual = scene(gpu)
+            Swag.require(not expect ogl.recoverLostDevice(), "OpenGL device reset again during renderer parity scene")
+        }
     }
 
     Testing.assertRenderersAgree(&expected, &actual, name, options, loc)

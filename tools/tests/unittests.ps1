@@ -79,10 +79,11 @@ public static class CompilerProbe
         Invoke-Suite @('dm', 'workspace', '-bc', $configuration, '--num-cores', '1') 0
         Assert-Call 0 "test`t--workspace"
         Assert-Call 0 "--workspace-module`truntime_context"
-        Assert-Call 0 "--build-cfg`t$configuration"
+        Assert-Call 0 "`t-bc`t$configuration"
         Assert-Call 0 "--num-cores`t1"
         Assert-Call 1 "--workspace-module`tsandbox_consumer"
         Assert-Call 1 "--no-test-native"
+        Assert-Call 2 "--build-cfg`t$configuration"
     }
     Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "test`t--workspace"
     if ($calls.Count -ne 1) { throw 'Workspace tests continued after the first stage failed.' }

@@ -12,6 +12,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 PACKAGER = REPOSITORY / 'tools' / 'package-linux.py'
 
 
+@unittest.skipUnless(sys.platform == 'linux', 'requires Linux executable modes and symlinks')
 class LinuxPackageTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='swag-linux-package ')

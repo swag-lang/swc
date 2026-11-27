@@ -23,6 +23,13 @@ impl ScopeJourney
         .app.setStatePath(Path.combine(.root, "settings.scc"))
         registerAppStrings(&.app.resources)
         .surface = expect .app.createSurface(40, 40, 1100, 790, surfaceId: "scope-test-journey")
+        // Native clicks and full-window pixel readback need the entire surface on the desktop.
+        let work     = Env.monitorForPoint({40, 40}).physicalWorkArea
+        let position = .surface.position
+        .surface.setPosition({work.x + 40,
+                              work.y + 40,
+                              Math.min(position.width, work.width - 80),
+                              Math.min(position.height, work.height - 80)})
         .surface.setTitle(ProductName)
         if withWorkspace
         {
@@ -70,12 +77,15 @@ impl ScopeJourney
         {
             .app.runFrame()
             Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
-            if ready() and expect Testing.verifyNativePresentation(.surface)
+            let stateReady = ready()
+            if stateReady and expect Testing.verifyNativePresentation(.surface)
             {
                 return
             }
 
-            Swag.require(watch.elapsedMilliseconds() < 30_000, Format.toString("Scope journey timed out at %", stage))
+            Swag.require(watch.elapsedMilliseconds() < 30_000,
+                         Format.toString("Scope journey timed out at % while waiting for %", stage,
+                                         stateReady ? "native presentation" : "application state"))
         }
     }
 

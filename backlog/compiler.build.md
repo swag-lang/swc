@@ -514,8 +514,7 @@ before relying on them.
 - Next: profile the remaining compile-time evaluations. A runtime root with calls adds every
   global function-initializer target even when its expression only reads type information.
   Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by
-  1.8% by median across three pairs. Check the cost of preparing unrelated targets. Then
-  retry deferred dependency bodies with the call-site and escape-check changes above.
+  1.8% by median across three pairs. Check the cost of preparing unrelated targets.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about
@@ -576,6 +575,22 @@ before relying on them.
   consumed, including loaded and included inputs. Validate compiler and target identity,
   relevant configuration, and tracked dependencies. Publish complete entries atomically and
   fall back to analysis for invalid entries or effects the cache cannot replay.
+- Validation on Linux x86-64: a warm compile deferred 553 checks on the `gui1` edit and
+  788 on the PNG script. Fresh and warm native smoke runs both completed the GUI startup
+  under X11 and decoded the PNG to the expected RGBA bytes. Demanding a deferred body
+  through direct and indirect calls preserved borrow diagnostics, and compile-time and
+  native calls returned the same value. Release narrowing still yielded 44 after a later
+  application `#run` enabled overflow checks. A same-size private-body edit with restored
+  write time invalidated a transitive consumer and restored its diagnostic. Signature and
+  overload edits invalidated their consumers and left an unrelated group reusable. Four
+  concurrent writers left a reusable archive, and a damaged record fell back to semantic
+  analysis and was republished. A resource read kept its group on the eager path. The C++
+  DevMode, JIT Release, and Release Safe suites passed 1,891, 1,605, and 166 tests.
+- Across six alternating Linux Release pairs with four workers, compared with `6f4c48e925`
+  before body deferral, the `gui1` one-constant edit took a median 6.97 to 7.13 s and peak
+  RSS went from 1,713 to 1,703 MiB. The PNG script took 3.40 to 3.51 s and went from 1,136
+  to 1,137 MiB peak RSS. Median paired elapsed time rose by 0.6% on `gui1` and 2.3% on PNG.
+  An unchanged `gui1` build still reused its native artifact.
 - Done when: a private-body edit reanalyzes the changed file and the affected consumers.
   A signature or overload change invalidates each affected lookup. Fresh and reused builds
   agree on diagnostics, compile-time execution, safety, and native results. Concurrent

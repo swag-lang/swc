@@ -672,6 +672,32 @@ SWC_TEST_BEGIN(ConstantManager_RelocationWalkPreservesOffsetsAndInterleavedOwner
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_RelocationWalkInvalidatesOnlyAffectedRegions)
+{
+    ConstantManager manager;
+    DataSegment&    segment = manager.shardDataSegment(0);
+    const auto      first   = segment.reserveSpan<uint64_t>(1).first;
+    const auto      wide    = segment.reserveSpan<std::byte>(4096).first;
+    const auto      distant = wide + 3072;
+
+    const auto* firstWalk = manager.walkedAllocation(0, first);
+    const auto* wideWalk  = manager.walkedAllocation(0, wide);
+    if (!firstWalk || !firstWalk->relocations.empty() || !wideWalk || !wideWalk->relocations.empty())
+        return Result::Error;
+
+    const uint64_t firstVersion = firstWalk->relocationVersion;
+    segment.addRelocation(distant, first);
+    if (manager.walkedAllocation(0, first) != firstWalk || firstWalk->relocationVersion != firstVersion)
+        return Result::Error;
+    if (manager.walkedAllocation(0, wide) != wideWalk || wideWalk->relocations.size() != 1 || wideWalk->relocations.front().offset != distant)
+        return Result::Error;
+
+    segment.addRelocation(first, wide);
+    if (manager.walkedAllocation(0, first) != firstWalk || firstWalk->relocations.size() != 1 || firstWalk->relocations.front().targetOffset != wide)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_RelocationWalkKeepsThreadsIndependent)
 {
     ConstantManager                                         manager;

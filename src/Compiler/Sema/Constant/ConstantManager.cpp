@@ -1106,23 +1106,21 @@ const ConstantManager::WalkedAllocation* ConstantManager::walkedAllocation(const
         current = {.ownerId = ownerId, .cache = &walkedAllocations()};
 
     const DataSegment& segment = shardDataSegment(shardIndex);
-    // The version is read before the relocations: one added in between is served again by the
-    // next lookup, never missed.
-    const uint64_t version = segment.relocationVersion();
     // Keep every offset bit: neighboring byte offsets must not overwrite each other's
     // entries. The high bit makes the first shard's offset zero a nonempty table key.
     const uint64_t    key    = 1ULL << 63 | static_cast<uint64_t>(shardIndex) << 32 | offset;
     WalkedAllocation& walked = current.cache->slotFor(key);
-    if (walked.relocationVersion == version)
-        return &walked;
-
-    DataSegmentAllocation allocation;
-    if (!segment.findAllocation(allocation, offset))
+    if (!walked.allocation.size && !segment.findAllocation(walked.allocation, offset))
         return nullptr;
 
-    segment.copyRelocations(walked.relocations, allocation.offset, allocation.size);
-    walked.relocationVersion = version;
-    walked.allocation        = allocation;
+    // Capture the version before reading relocations so a concurrent insertion
+    // forces the next lookup to refresh, even if this copy missed it.
+    const uint64_t version = segment.relocationVersion(walked.allocation);
+    if (walked.relocationVersion != version)
+    {
+        segment.copyRelocations(walked.relocations, walked.allocation.offset, walked.allocation.size);
+        walked.relocationVersion = version;
+    }
     return &walked;
 }
 

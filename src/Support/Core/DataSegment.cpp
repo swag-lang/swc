@@ -586,9 +586,12 @@ void DataSegment::rebuildRelocationsByOffsetLocked() const
 void DataSegment::recordRelocationIndexLocked(uint32_t index)
 {
     SWC_ASSERT(index + 1 == relocations_.size());
-    relocationVersion_.fetch_add(1, std::memory_order_release);
-
     const RelocationIndexEntry entry{.offset = relocations_[index].offset, .index = index};
+    const uint32_t             region  = entry.offset / K_RELOCATION_REGION_SIZE;
+    // The relocation lock serializes writers to both counters.
+    const uint64_t version = relocationVersion_.load(std::memory_order_relaxed) + 1;
+    relocationRegionVersions_[region % K_RELOCATION_REGION_COUNT].store(version, std::memory_order_release);
+    relocationVersion_.store(version, std::memory_order_release);
 
     // Common case: relocations arrive in non-decreasing offset order (bump allocation), so the new one
     // simply extends the sorted index in O(1).

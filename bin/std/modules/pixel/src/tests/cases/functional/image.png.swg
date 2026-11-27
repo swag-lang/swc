@@ -962,6 +962,41 @@ func buildRgbTransparencyPng(width: u32)->Array!{u8}
     }
 }
 
+// A successful isolated read cannot hide a corrupt frame in an unvisited prefix.
+#test
+{
+    const Animation: [8] u8 = [0, 0, 0, 2, 0, 0, 0, 0]
+    const First: [26] u8 = [
+        0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 10, 0, 100, 0, 0]
+    const GoodRow: [4] u8 = [0, 47, 68, 109]
+    var second = First
+    second[3] = 1
+
+    var zlib: Compress.ZLib
+    let compressed = expect zlib.compress(GoodRow)
+    var frameData: ConcatBuffer
+    addPngU32Be(&frameData, 2)
+    frameData.addBytes(compressed.toSlice())
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 1, 1, 8, 2)
+    addPngChunk(&encoded, "acTL", Animation)
+    addPngChunk(&encoded, "fcTL", First)
+    addPngChunk(&encoded, "IDAT", "invalid zlib data")
+    addPngChunk(&encoded, "fcTL", second)
+    addPngChunk(&encoded, "fdAT", nnBytes(frameData.toSlice()))
+    addPngChunk(&encoded, "IEND", "")
+
+    var reader = expect ImageReader.decode("corrupt-prefix.apng", nnBytes(encoded.toSlice()))
+    let frame = expect reader.readFrame(1, composeAnimation: false)
+    Swag.require(frame.pixelColor(0, 0).r == 47)
+    var rejected: Swag.Error
+    discard catch reader.read(1) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = encoded.toArray()

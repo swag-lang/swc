@@ -127,6 +127,7 @@ internal struct Decoder
         defaultData:   FramePayload
         frameData:     Array!{FramePayload}
         metadata:      Array!{ImageMetadata}
+        validatedThrough: s32 = -1
     }
 }
 
@@ -958,6 +959,27 @@ impl Decoder
         return result
     }
 
+    // A previously validated replacement for the canvas can begin replay.
+    // Keep the preceding pixels for any frame that needs Previous disposal.
+    mtd replayFrame(target, next: s32)->s32
+    {
+        var index = Math.min(target, .validatedThrough)
+        while index > next
+        {
+            let frame = &.animation.frames[index]
+            if frame.disposal != .Previous and frame.blend == .Replace and
+               frame.x == 0 and frame.y == 0 and
+               frame.width == .animation.canvasWidth and frame.height == .animation.canvasHeight
+            {
+                return index
+            }
+
+            index -= 1
+        }
+
+        return next
+    }
+
     mtd renderPixels(result: *Image, compressed: const [..] u8) fail
     {
         let is16Bit = .header.bitDepth == 16
@@ -1110,6 +1132,10 @@ impl IImageSetDecoder for Decoder
             var joined: Array!{u8}
             let span = frame.kind == .Animation ? &.frameData[index] : &.defaultData
             try decoder.renderPixels(&result, span.assemble(&joined))
+            if frame.kind == .Animation and cast(s32, index) == .validatedThrough + 1
+            {
+                .validatedThrough += 1
+            }
         }
 
         return result

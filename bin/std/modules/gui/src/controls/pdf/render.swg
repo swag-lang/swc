@@ -232,6 +232,69 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
     return true
 }
 
+private const OutlineReferenceSize = 64
+
+private func cacheGlyphOutline(fonts: *RenderFontCache, key: u64, face: *TypeFace, glyph: u32)->bool
+{
+    const MaxOutlines = 4096
+    if fonts.glyphOutlines.tryFind(key)
+    {
+        return true
+    }
+
+    if fonts.glyphOutlines.count >= MaxOutlines
+    {
+        return false
+    }
+
+    var result:  {outline: LinePathList, advance: f32}
+    var outcome: Swag.Error
+    catch { result = try face.buildGlyphOutline(glyph, OutlineReferenceSize) } as outcome
+    if not outcome.isEmpty()
+    {
+        return false
+    }
+
+    discard fonts.glyphOutlines.add(key, #move result.outline)
+    return true
+}
+
+// Keep the substitute's fitted advance and baseline while scan converting its glyphs.
+private func drawSubstituteOutlines(painter: *Painter, fonts: *RenderFontCache, item: const *Item, face: *TypeFace, font: *Font, index: u32, shaped: const *ShapedRun, info: TextDrawInfo, transform: Transform2)->bool
+{
+    let prefix = 0x8000_0000_0000_0000_u64 | (cast(u64, index) << 32)
+    for glyph in shaped.glyphs where glyph.desc.width != 0 and glyph.desc.height != 0
+    {
+        if not cacheGlyphOutline(fonts, prefix | glyph.glyphIndex, face, glyph.glyphIndex)
+        {
+            return false
+        }
+    }
+
+    let scale         = cast(f32, font.size) / OutlineReferenceSize
+    let previousScale = painter.flattenScale()
+    painter.setFlattenScale(Math.max(painter.textTransformScale() * scale, 1.0_f32 / 64))
+    defer painter.setFlattenScale(previousScale)
+    var position: f32
+    for glyph in shaped.glyphs
+    {
+        let step = Painter.advanceTextX(position, glyph.offsetX, glyph.advanceX, info)
+        position = step.rightX
+        if not glyph.desc.width or not glyph.desc.height
+        {
+            continue
+        }
+
+        let outline = &fonts.glyphOutlines.tryFind(prefix | glyph.glyphIndex)!.value
+        var placed  = Transform2{scale, 0, 0, scale, step.glyphX, item.fontSize}
+        placed.multiply(transform)
+        painter.setTransform(placed)
+        painter.fillPath(outline, item.fillColor, .NonZero)
+    }
+
+    return true
+}
+
 // Draws a run with a substitute face, keeping every character on the position the document
 // gave it.
 //
@@ -240,7 +303,7 @@ private func drawEmbeddedRun(painter: *Painter, item: const *Item, resource: con
 // advance the PDF declared for it instead: one character usually, several when the code
 // stands for a ligature the substitute spells out, and their widths are scaled to fill
 // exactly that advance.
-private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Transform2, resource: const *FontResource, font: *Font)
+private func drawSubstitutedRun(painter: *Painter, fonts: *RenderFontCache, item: const *Item, base: Transform2, resource: const *FontResource, face: *TypeFace, font: *Font, fontSlot: u32, preferOutline: bool)
 {
     let info = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
 
@@ -345,6 +408,16 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
     var transform = Transform2.createScale(condense, 1, 0, 0)
     transform.multiply(base)
     painter.setTransform(transform)
+    if preferOutline and not info.snapPixels and not font.forceBold and not font.forceItalic
+    {
+        let fitted = Painter.computeTextDrawInfo(font, 1, painter.textTransformScale())
+        if fitted.drawFont == info.drawFont and drawSubstituteOutlines(painter, fonts, item, face, font, fontSlot, &shaped, fitted, transform)
+        {
+            painter.setTransform(base)
+            return
+        }
+    }
+
     painter.drawShapedRun(0, baselineOffset(item, font), &shaped, font, Brush.createSolid(item.fillColor))
     painter.setTransform(base)
 }
@@ -352,8 +425,6 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
 // Scan converted outlines preserve the PDF baseline, code mapping, and per-glyph advances.
 private func drawEmbeddedOutlines(painter: *Painter, fonts: *RenderFontCache, item: const *Item, resource: const *FontResource, face: *TypeFace, font: *Font, base: Transform2)->bool
 {
-    const ReferenceSize = 64
-    const MaxOutlines   = 4096
     let prefix = cast(u64, item.fontIndex) << 32
     fonts.outlineOrder.clear()
     fonts.outlineOrder.reserve(item.textCodes.count)
@@ -366,31 +437,15 @@ private func drawEmbeddedOutlines(painter: *Painter, fonts: *RenderFontCache, it
         }
 
         let key = prefix | mapped.index
-        if not fonts.glyphOutlines.tryFind(key)
+        if not cacheGlyphOutline(fonts, key, face, mapped.index)
         {
-            if fonts.glyphOutlines.count >= MaxOutlines
-            {
-                return false
-            }
-
-            var result:  {outline: LinePathList, advance: f32}
-            var outcome: Swag.Error
-            catch
-            {
-                result = try face.buildGlyphOutline(mapped.index, ReferenceSize)
-            } as outcome
-            if not outcome.isEmpty()
-            {
-                return false
-            }
-
-            discard fonts.glyphOutlines.add(key, #move result.outline)
+            return false
         }
 
         fonts.outlineOrder.add(key)
     }
 
-    let scale         = cast(f32, font.size) / ReferenceSize
+    let scale         = cast(f32, font.size) / OutlineReferenceSize
     let previousScale = painter.flattenScale()
     painter.setFlattenScale(Math.max(painter.textTransformScale() * scale, 1.0_f32 / 64))
     defer
@@ -444,19 +499,20 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         index               = cast(u32, page.fonts.count) + face
     }
 
+    let preferOutline = fonts.scanText and
+                        item.blend == .Alpha and
+                        not item.hasMask and
+                        (base.m12 or base.m21) and
+                        effectiveSize >= 12 and
+                        effectiveSize <= 128
+
     if not resource.bytes.isEmpty()
     {
         let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded
         {
             let font = cache.createFont(embedded, fontSize, mode)
-            if fonts.scanText and
-               item.blend == .Alpha and
-               not item.hasMask and
-               (base.m12 or base.m21) and
-               effectiveSize >= 12 and
-               effectiveSize <= 128 and
-               drawEmbeddedOutlines(painter, fonts, item, resource, embedded, font, base)
+            if preferOutline and drawEmbeddedOutlines(painter, fonts, item, resource, embedded, font, base)
             {
                 return
             }
@@ -469,7 +525,7 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
     }
 
     let substitute = try fonts.substituteFace(fallbackFontFile, index, resource)
-    drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize, mode))
+    drawSubstitutedRun(painter, fonts, item, base, resource, substitute, cache.createFont(substitute, fontSize, mode), index, preferOutline)
 }
 
 private func pathPen(item: const *Item, scale: f32)->Pen

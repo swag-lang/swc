@@ -605,6 +605,12 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   one-core series PDFium takes 231 and 448 ms. At 1200 px, 60 of 61 supported pages keep
   their previous bitmap checksum. The remaining forms page differs by at most one byte per
   color channel because overlapping spans add their coverage in a different order.
+- Scan conversion of transformed substitute glyphs takes the transformed-text stress page
+  from 296 to 184 ms at 1200 px and from 1168 to 313 ms at 2400 px. PDFium takes 147 and
+  236 ms in the same one-core series. Before the change, the MSDF shader alone takes about
+  0.95 s at 2400 px. In the expanded comparison at 1200 px all other 86 supported pages keep
+  their checksums. The stress page's mean RGB difference from PDFium is 21.61 to 21.56 at
+  1200 px and 17.11 to 17.30 at 2400 px out of 255 levels.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

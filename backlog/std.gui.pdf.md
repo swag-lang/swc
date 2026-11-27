@@ -393,7 +393,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   cut the large public JPEG save from 588 to 0.58 ms and reduce the output from
   11.95 to 1.43 MB. Both public RGB JPEG pages render exactly as the originals
   through PDFium.
-- Next: extend encoded stream retention to other supported JPEG color models and preserve
+- Retaining a CMYK JPEG and its inverted ink ranges brings the public CMYK stress page
+  from 223 to 0.20 ms to save and from 5.47 to 0.83 MB. PDFium renders the saved page
+  byte for byte like the source.
+- Next: extend encoded stream retention to remaining JPEG dictionary forms and preserve
   indexed image representations.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and

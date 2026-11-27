@@ -765,6 +765,7 @@ private func sameEncodedImage(first, second: const *EncodedImageStream, image, p
            first.channels == second.channels and
            first.bits == second.bits and
            first.predictor == second.predictor and
+           first.invertedInk == second.invertedInk and
            first.interpolate == second.interpolate and
            image.width == prior.width and
            image.height == prior.height and
@@ -946,6 +947,17 @@ private impl Writer
                 let space      = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
                 let filter     = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
                 var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                if source.invertedInk
+                {
+                    dictionary += " /Decode ["
+                    for component in 4
+                    {
+                        dictionary += (source.invertedInk & (1_u8 << component)) ? "1 0 " : "0 1 "
+                    }
+
+                    dictionary += ']'
+                }
+
                 if source.filter == .Ccitt
                 {
                     let fax = &source.fax

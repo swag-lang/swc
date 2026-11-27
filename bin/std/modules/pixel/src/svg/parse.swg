@@ -568,6 +568,8 @@ private struct Parser
     lastDashScaling: DashScaling
     lastSolidStroke: u64
     embeddedImages:  HashTable!{string, u64}     // Raster indices plus one, keyed by the authored URI.
+    lastEmbeddedHref:  string = ""
+    lastEmbeddedIndex: u64
     externalImages:  HashTable!{string, CachedExternalRaster}     // Encoded bytes and raster indices for small files.
     options:         ParseOptions
     typeFaces:       [FontFamilyKind.count] (*TypeFace?)
@@ -1243,12 +1245,84 @@ private func spacingLength(value: string, fontSize: f32)->f32
     return amount
 }
 
+// Reads a predefined XML entity or character reference after '&'.
+// Zero leaves the following bytes untouched so malformed references stay literal.
+private func scanTextReference(text: string, pos: *u64)->rune
+{
+    let rest = text[pos[] to]
+    if not rest.count or rest[0] != '#'
+    {
+        const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
+        const Chars = "<>&\"'"
+        for index in Names.count
+        {
+            if Utf8.startsWith(rest, Names[index])
+            {
+                pos[] += Names[index].count
+                return cast(rune, Chars[index])
+            }
+        }
+
+        return 0
+    }
+
+    var offset = 1_u64
+    var radix  = 10_u32
+    if offset < rest.count and rest[offset] == 'x'
+    {
+        offset += 1
+        radix   = 16
+    }
+
+    let first = offset
+    var value = 0_u32
+    while offset < rest.count and rest[offset] != ';'
+    {
+        let c = rest[offset]
+        if not Latin1.isDigit(c) and (radix != 16 or not Latin1.isHexDigit(c))
+        {
+            return 0
+        }
+
+        // At the start of each digit, value is at most the largest Unicode scalar.
+        value = value * radix + cast(u32, hexNibble(c))
+        if value > 0x10FFFF
+        {
+            return 0
+        }
+
+        offset += 1
+    }
+
+    if offset == first or offset == rest.count
+    {
+        return 0
+    }
+
+    // XML 1.0 Char allows only TAB, LF and CR below U+0020 and skips surrogates.
+    if not (value == 0x9 or value == 0xA or value == 0xD or
+            (0x20 <= value and value <= 0xD7FF) or
+            (0xE000 <= value and value <= 0xFFFD) or
+            value >= 0x10000)
+    {
+        return 0
+    }
+
+    pos[] += offset + 1
+    return cast(rune, value)
+}
+
 private func normalizedText(value: string)->String
 {
     var result: #returntype
     var pendingSpace = false
-    for c in value
+    var pos = 0_u64
+    while pos < value.count
     {
+        let byte = value[pos]
+        pos += 1
+        let reference = byte == '&' ? scanTextReference(value, &pos) : cast(rune, 0)
+        let c = reference ? reference : cast(rune, byte)
         if c == ' ' or c == '\t' or c == '\r' or c == '\n'
         {
             pendingSpace = not result.isEmpty()
@@ -1261,7 +1335,14 @@ private func normalizedText(value: string)->String
         }
 
         pendingSpace = false
-        result       += c
+        if reference > 0x7F
+        {
+            result.append(reference)
+        }
+        else
+        {
+            result.append(cast(u8, c))
+        }
     }
 
     return result
@@ -3617,12 +3698,14 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and
-                  .text[.pos] != '=' and
-                  .text[.pos] != ' ' and
-                  .text[.pos] != '>' and
-                  .text[.pos] != '/'
+            while .pos < len
             {
+                let c = .text[.pos]
+                if c == '=' or c == '>' or c == '/' or c == ' ' or c == '\t' or c == '\n' or c == '\r'
+                {
+                    break
+                }
+
                 .pos += 1
             }
 
@@ -4034,16 +4117,30 @@ private impl Parser
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
             }
 
-            let entry = .embeddedImages.findOrAdd(.sourceView(href))
-            if entry.value
+            // Compare from the end so a changed tail does not scan a common bitmap
+            // payload before the hash table would scan it again.
+            let previous = .lastEmbeddedHref
+            if href.count == previous.count
             {
-                return entry.value - 1
+                let tail = href.count - Math.min(href.count, 64_u64)
+                if href[tail to] == previous[tail to] and (not tail or href[until tail] == previous[until tail])
+                {
+                    return .lastEmbeddedIndex
+                }
             }
 
-            var raster = #move try Image.fromDataUri(href)
-            .drawing.rasterImages.add(#move raster)
-            entry.value = index + 1
-            return index
+            let key   = .sourceView(href)
+            let entry = .embeddedImages.findOrAdd(key)
+            if not entry.value
+            {
+                var raster = #move try Image.fromDataUri(href)
+                .drawing.rasterImages.add(#move raster)
+                entry.value = index + 1
+            }
+
+            .lastEmbeddedHref  = key
+            .lastEmbeddedIndex = entry.value - 1
+            return .lastEmbeddedIndex
         }
 
         if (.options.externalResourceRoot).count == 0

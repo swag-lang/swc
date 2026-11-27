@@ -393,13 +393,66 @@ private func(HAS_ALPHA: bool) writeGatheredColors(target: [*] u8, table: const [
 
 impl Decoder
 {
+    #[Swag.NoInline]
+    private mtd(ALLOW_32: bool) compactPaletteSize(indexed: const *IndexedFrame)->s32
+    {
+        let paletteSize = indexed.palette.size
+        let count       = .frame.count
+        if paletteSize <= 16 or indexed.lzwMode != .CopyPrefixes or indexed.width < 64 or count < 8192
+        {
+            return paletteSize
+        }
+
+        // Highly compressed frames can use just the first colors of a larger padded palette.
+        let indices = .frame.storage()
+        let zero    = Math.Simd.splat(0_u8)
+        const Limit = ALLOW_32 ? 32 : 16
+        let high     = Math.Simd.splat(ALLOW_32 ? 0xE0_u8 : 0xF0_u8)
+        var combined = zero
+        var offset: u64
+        while count - offset >= 64
+        {
+            let group = Math.Simd.load(indices + offset) | Math.Simd.load(indices + offset + 16) |
+                        Math.Simd.load(indices + offset + 32) | Math.Simd.load(indices + offset + 48)
+            if Math.Simd.anyTrue((group & high) != zero)
+            {
+                return paletteSize
+            }
+
+            combined |= group
+            offset   += 64
+        }
+
+        var tail: u8
+        for pixel in offset until count
+        {
+            tail |= indices[pixel]
+        }
+
+        if tail >= Limit
+        {
+            return paletteSize
+        }
+
+        #static if ALLOW_32
+        {
+            let needsSecondBank = tail >= 16 or Math.Simd.anyTrue((combined & Math.Simd.splat(16_u8)) != zero)
+            return needsSecondBank ? 32 : 16
+        }
+        else
+        {
+            return 16
+        }
+    }
+
     mtd writePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, hasAlpha, clearTransparent: bool) fail
     {
-        let palette   = &indexed.palette
-        let colors    = cast(const [*] u8, unwrap palette.colors)
-        let alphaMask = hasAlpha ? 0xFF000000_u32 : 0
+        let palette     = &indexed.palette
+        let paletteSize = .compactPaletteSize!{true}(indexed)
+        let colors      = cast(const [*] u8, unwrap palette.colors)
+        let alphaMask   = hasAlpha ? 0xFF000000_u32 : 0
         var packed: [256] u32
-        for paletteIndex in palette.size
+        for paletteIndex in paletteSize
         {
             let color = colors + paletteIndex * 3
             packed[paletteIndex] = cast(u32, color[0]) | (cast(u32, color[1]) << 8) |
@@ -413,14 +466,16 @@ impl Decoder
 
         let width  = cast(s32, indexed.width)
         let height = cast(s32, indexed.height)
-        if palette.size <= 16 and width >= 32 and cast(u64, width) * height >= 256
+        if paletteSize <= 16 and width >= 32 and cast(u64, width) * height >= 256
         {
-            try .writeSmallPalettePixels(indexed, pixels, stride, hasAlpha, cast(const [*] u32, &packed[0]))
+            var reduced = indexed[]
+            reduced.palette.size = paletteSize
+            try .writeSmallPalettePixels(&reduced, pixels, stride, hasAlpha, cast(const [*] u32, &packed[0]))
             return
         }
 
         // A full palette covers every possible index and needs no separate range scan.
-        if palette.size == 256 and width >= 64
+        if paletteSize == 256 and width >= 64
         {
             let table = cast(const [*] u32, &packed[0])
             if hasAlpha
@@ -435,7 +490,7 @@ impl Decoder
             return
         }
 
-        if palette.size == 32 and width >= 64 and cast(u64, width) * height >= 256
+        if paletteSize == 32 and width >= 64 and cast(u64, width) * height >= 256
         {
             let table = cast(const [*] u32, &packed[0])
             if hasAlpha
@@ -593,9 +648,24 @@ impl SetDecoder
         Swag.assert(canvas.pixelFormat == .RGBA8)
         let indexed = &.frames[index]
         try .decoder.decodeIndices(indexed)
-        let bottom = canvas.height - indexed.y - indexed.height
-        let target = canvas.pixels.storage() + cast(u64, bottom) * canvas.rowStride + cast(u64, indexed.x) * 4
-        try .decoder.compositeCanvasPixels(indexed, target, canvas.rowStride)
+        let bottom    = canvas.height - indexed.y - indexed.height
+        let target    = canvas.pixels.storage() + cast(u64, bottom) * canvas.rowStride + cast(u64, indexed.x) * 4
+        var rectangle = indexed
+        var reduced: IndexedFrame
+        if not indexed.control.transparency and
+           indexed.lzwMode == .CopyPrefixes and
+           indexed.palette.size > 16
+        {
+            let paletteSize = .decoder.compactPaletteSize!{false}(indexed)
+            if paletteSize < indexed.palette.size
+            {
+                reduced   = indexed[]
+                reduced.palette.size = paletteSize
+                rectangle = &reduced
+            }
+        }
+
+        try .decoder.compositeCanvasPixels(rectangle, target, canvas.rowStride)
         .validatedThrough = Math.max(.validatedThrough, cast(s32, index))
     }
 
@@ -641,6 +711,27 @@ private func compositeGatheredColors(target: [*] u32, table: const [*] s32, keys
 
 impl Decoder
 {
+    #[Swag.NoInline]
+    private mtd hasMostlyTransparentBlocks(indexed: const *IndexedFrame)->bool
+    {
+        if not indexed.control.transparency or indexed.width < 64 or .frame.count < 8192
+        {
+            return false
+        }
+
+        let indices     = .frame.storage()
+        let transparent = Math.Simd.splat(indexed.control.tindex)
+        let sampleStep  = .frame.count / 8
+        var empty       = 0_u32
+        for probe in 8
+        {
+            let offset = sampleStep * probe + sampleStep / 2
+            empty += cast(u32, Math.Simd.allTrue(Math.Simd.load(indices + offset) == transparent))
+        }
+
+        return empty >= 6
+    }
+
     mtd compositeCanvasPixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32) fail
     {
         let palette = &indexed.palette
@@ -675,23 +766,38 @@ impl Decoder
             }
         }
 
+        if .hasMostlyTransparentBlocks(indexed)
+        {
+            if palette.size == 256
+            {
+                try .compositePalettePixels!{false, true}(indexed, pixels, stride, table)
+            }
+            else
+            {
+                try .compositePalettePixels!{true, true}(indexed, pixels, stride, table)
+            }
+
+            return
+        }
+
         if palette.size == 256
         {
-            try .compositePalettePixels!{false}(indexed, pixels, stride, table)
+            try .compositePalettePixels!{false, false}(indexed, pixels, stride, table)
         }
         else
         {
-            try .compositePalettePixels!{true}(indexed, pixels, stride, table)
+            try .compositePalettePixels!{true, false}(indexed, pixels, stride, table)
         }
     }
 
     #[Swag.NoInline]
-    private mtd(CHECK_BOUNDS: bool) compositePalettePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, packed: const [*] u32) fail
+    private mtd(CHECK_BOUNDS: bool, SKIP_TRANSPARENT: bool) compositePalettePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, packed: const [*] u32) fail
     {
         let width           = cast(s32, indexed.width)
         let height          = cast(s32, indexed.height)
         let indices         = .frame.storage()
         let table           = cast(const [*] s32, packed)
+        let transparent     = Math.Simd.splat(indexed.control.tindex)
         var combinedVectors = Math.Simd.splat(0_u8)
         var combinedTail: u8
         for y in height
@@ -706,6 +812,16 @@ impl Decoder
                 #static if CHECK_BOUNDS
                 {
                     combinedVectors |= keys
+                }
+
+                #static if SKIP_TRANSPARENT
+                {
+                    // GIF starts with canonical transparent black and never writes hidden RGB.
+                    if Math.Simd.allTrue(keys == transparent)
+                    {
+                        x += 16
+                        continue
+                    }
                 }
 
                 let lo = Math.Simd.widenLow(keys)

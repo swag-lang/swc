@@ -772,6 +772,7 @@ private func sameEncodedImage(first, second: const *EncodedImageStream, image, p
            (first.filter != .Ccitt or sameFaxParameters(&first.fax, &second.fax)) and
            first.paletteChannels == second.paletteChannels and
            Slice.equals(first.palette.toSlice(), second.palette.toSlice()) and
+           Slice.equals(first.colorKey.toSlice(), second.colorKey.toSlice()) and
            Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
 }
 
@@ -792,7 +793,17 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
     }
 
     let encoded = item.image.encoded()
-    let key     = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
+    var key     = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
+    if encoded.colorKey.count
+    {
+        // A JPEG can appear with several different masks, each independently reusable.
+        var checksum: Hash.Crc32
+        checksum.reset(key)
+        let bounds = cast(const [*] u8, encoded.colorKey.storage())
+        checksum.update(Swag.makeSlice(bounds, encoded.colorKey.count * #sizeof(s64)))
+        checksum.update([encoded.invertedSamples, encoded.interpolate ? 1_u8 : 0_u8])
+        key = checksum.value()
+    }
 
     // Compare contents and metadata too, since separate image owners may hold the same data.
     if let source = sources.byChecksum.tryFind(key)
@@ -972,6 +983,17 @@ private impl Writer
                     for component in source.channels
                     {
                         dictionary += (source.invertedSamples & (1_u8 << component)) ? "1 0 " : "0 1 "
+                    }
+
+                    dictionary += ']'
+                }
+
+                if source.colorKey.count
+                {
+                    dictionary += " /Mask ["
+                    for bound in source.colorKey
+                    {
+                        dictionary.appendFormat("% ", bound)
                     }
 
                     dictionary += ']'

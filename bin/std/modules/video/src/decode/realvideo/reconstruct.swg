@@ -308,6 +308,43 @@ private func interpolateMotion(into: [*] u8, stride: s32, plane: const *Plane, x
     let d     = chroma ? fx * fy : 1
     let bias  = chroma ? Bias[fy / 2 * 4 + fx / 2] : 2
     let shift = chroma ? 6_u32 : 2_u32
+
+    // Interior columns share one filter across the four chroma or eight luma samples.
+    // The chroma load can reach into the padded row. Only the four visible lanes are stored.
+    if x >= 0 and x + size < plane.width
+    {
+        let weightA  = Simd.splat(cast(s16, a))
+        let weightB  = Simd.splat(cast(s16, b))
+        let weightC  = Simd.splat(cast(s16, c))
+        let weightD  = Simd.splat(cast(s16, d))
+        let rounding = Simd.splat(cast(s16, bias))
+        let first    = plane.referenceRow(y) + x
+        var topLeft  = motionTaps(first)
+        var topRight = motionTaps(first + 1)
+        for row in size
+        {
+            let bottom      = plane.referenceRow(y + row + 1) + x
+            let bottomLeft  = motionTaps(bottom)
+            let bottomRight = motionTaps(bottom + 1)
+            let destination = into + row * stride
+            let value       = (topLeft * weightA + topRight * weightB + bottomLeft * weightC + bottomRight * weightD + rounding) >> shift
+            let output      = Simd.packUnsigned(value, value)
+            if chroma
+            {
+                Simd.storeLow4(destination, output)
+            }
+            else
+            {
+                Simd.storeLow8(destination, output)
+            }
+
+            topLeft  = bottomLeft
+            topRight = bottomRight
+        }
+
+        return
+    }
+
     for row in size
     {
         let top    = plane.referenceRow(y + row)

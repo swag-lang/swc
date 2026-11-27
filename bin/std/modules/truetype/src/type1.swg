@@ -681,6 +681,85 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
     }
 }
 
+private func readType1Bounds(font: *Type1Font, clear: const [..] u8, from: u64)
+{
+    func skipHeaderSpace(data: const [..] u8, start: u64)->u64
+    {
+        var position = skipPostScriptSpaces(data, start)
+        while position < data.count and data[position] == '%'
+        {
+            while position < data.count and data[position] != '\n' and data[position] != '\r'
+            {
+                position += 1
+            }
+
+            position = skipPostScriptSpaces(data, position)
+        }
+
+        return position
+    }
+
+    var position = skipHeaderSpace(clear, from)
+    if position >= clear.count or (clear[position] != '[' and clear[position] != '{')
+    {
+        return
+    }
+
+    let close = clear[position] == '[' ? ']' : '}'
+    position += 1
+    var values: [4] f64
+    for index in values.count
+    {
+        position = skipHeaderSpace(clear, position)
+        let start = position
+        while position < clear.count and
+              not isPostScriptDelimiter(clear[position]) and
+              clear[position] != '%'
+        {
+            position += 1
+        }
+
+        if start == position
+        {
+            return
+        }
+
+        let token  = cast(string, clear[start until position])
+        let number = catch StrConv.parseF64Invariant(token)
+        {
+            return
+        }
+
+        if number.ovf or number.eat != token.count or not Math.isFinite(number.value)
+        {
+            return
+        }
+
+        values[index] = number.value
+    }
+
+    position = skipHeaderSpace(clear, position)
+    if position >= clear.count or
+       clear[position] != close or
+       values[0] > values[2] or
+       values[1] > values[3]
+    {
+        return
+    }
+
+    let yMin = clampToS16(values[1])
+    let yMax = clampToS16(values[3])
+    if cast(s32, yMax) - yMin > Swag.S16.Max
+    {
+        return
+    }
+
+    font.xMin = clampToS16(values[0])
+    font.yMin = yMin
+    font.xMax = clampToS16(values[2])
+    font.yMax = yMax
+}
+
 private func parseType1Header(font: *Type1Font, clear: const [..] u8)
 {
     let matrix = findBytes(clear, 0, "/FontMatrix")
@@ -704,22 +783,11 @@ private func parseType1Header(font: *Type1Font, clear: const [..] u8)
     font.xMax = cast(s16, font.unitsPerEm)
     font.yMax = cast(s16, font.unitsPerEm)
 
-    let bbox = findBytes(clear, 0, "/FontBBox")
-    if bbox < clear.count
+    const BoundsKey = "/FontBBox"
+    let bounds = findBytes(clear, 0, BoundsKey)
+    if bounds < clear.count
     {
-        var pos = findBytes(clear, bbox, "[")
-        if pos < clear.count
-        {
-            pos += 1
-            let xMin = readPostScriptNumber(clear, pos)
-            let yMin = readPostScriptNumber(clear, xMin.next)
-            let xMax = readPostScriptNumber(clear, yMin.next)
-            let yMax = readPostScriptNumber(clear, xMax.next)
-            font.xMin = clampToS16(xMin.value)
-            font.yMin = clampToS16(yMin.value)
-            font.xMax = clampToS16(xMax.value)
-            font.yMax = clampToS16(yMax.value)
-        }
+        readType1Bounds(font, clear, bounds + BoundsKey.count)
     }
 
     let name = findBytes(clear, 0, "/FontName")

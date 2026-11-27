@@ -494,8 +494,9 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
 
 #test
 {
-    // A row of HALF 1.0 has two short literal packets and two repeated plane values.
-    const Encoded: [8] u8 = [0xFF, 0, 126, 128, 0xFF, 188, 126, 128]
+    // The compressed HALF 1.0 row has short packets throughout, including its tail.
+    const Encoded: [24] u8 = [0xFF, 0, 2, 128, 6, 128, 10, 128, 15, 128, 89, 128,
+                              0xFF, 188, 94, 128, 15, 128, 4, 128, 2, 128, 7, 128]
     var stored: [256] u8
     for x in 128
     {
@@ -523,6 +524,34 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
         discard catch Image.decode("invalid-rle.exr", nnBytes(input.toSlice())) as outcome
         Swag.require(outcome.value() is Errors.InvalidFormatError)
     }
+}
+
+#test
+{
+    const First:  [2] u8 = [0, 0x3C]
+    const Second: [2] u8 = [0, 0x40]
+    const Blocks         = 4_u32
+    var input = exrZipFixture(1, First, blocks: Blocks, alternate: Second)
+    var bytes = input.moveToArray()
+
+    // Four eight-byte offsets followed by four ten-byte raw scanline chunks.
+    let offsets = cast([*] u64, bytes.storage() + bytes.count - Blocks * 18)
+    let next    = offsets[2]
+    offsets[2] = offsets[3]
+    offsets[3] = next
+
+    let image = expect Image.decode("reordered-offsets.exr", bytes.toSlice())
+    assertImage(image, 1, cast(s32, Blocks), .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in Blocks
+    {
+        Swag.require(samples[x] == (x & 1 ? 0x3C00 : 0x4000))
+    }
+
+    offsets[3] = offsets[1]
+    var outcome: Swag.Error
+    discard catch Image.decode("duplicate-offset.exr", bytes.toSlice()) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
 }
 
 #test

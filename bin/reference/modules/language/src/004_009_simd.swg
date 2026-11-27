@@ -276,6 +276,33 @@ saving the 512-bit register state.
 }
 
 /**
+'Swag.vecCarrylessProductSum16' multiplies sixteen pairs of 128-bit polynomials
+and XORs their full products into one 256-bit value. For each 16-byte input
+lane, the low four bits of each shuffle byte select an input byte and its high
+bit selects zero. The first shuffled lane is XORed with the low two words of
+the destination before multiplication. Input, factor, and result ranges may
+overlap. Guard it with '.CarrylessMultiply512'.
+*/
+#test
+{
+    if Swag.hasCpuFeature(.CarrylessMultiply512)
+    {
+        var input: [256] u8
+        var factors: [32] u64
+        var result: [4] u64 = [5, 0, 0, 0]
+        let shuffle = cast(#simd [16] u8, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+
+        input[0] = 2
+        input[240] = 8
+        factors[0] = 4
+        factors[30] = 2
+        Swag.vecCarrylessProductSum16(&result, &input, &factors, shuffle)
+        Swag.require(result[0] == (((5 ^ 2) << 2) ^ (8 << 1)))
+        Swag.require(result[1] == 0 and result[2] == 0 and result[3] == 0)
+    }
+}
+
+/**
 # Lane Permutation
 
 'Swag.vecShuffle' rearranges the lanes of a vector: result lane 'i' takes the lane

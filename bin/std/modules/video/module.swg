@@ -49,7 +49,10 @@ The built-in formats cover these streams.
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit
   frames and exposes integer PCM and MPEG Layer III sound tracks. The reader follows OpenDML
-  frame indexes and `RIFF AVIX` continuations. The writer emits Motion JPEG in classic RIFF.
+  frame indexes and `RIFF AVIX` continuations. The writer emits Motion JPEG in classic AVI
+  while its frames and indexes fit in one 1 GiB RIFF, then uses OpenDML continuations. The
+  header reserves 4,396 bytes for the OpenDML header and a superindex that addresses up to
+  256 RIFFs. Each frame must fit within one RIFF, and the total frame count is a 32-bit value.
   A coded stream states its codec through the bitmap header of the container and its setup headers
   inside the stream, and stores a bidirectional plane
   behind the plane it refers forward to, which is what this container's lack of a decoding order

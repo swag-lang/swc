@@ -1114,7 +1114,25 @@ private const PreparedMantissaAddress: [64] u32 = #run
 private func psychoacousticMask(psd, excitation, knee, hearingThreshold: s32)->s32
     => Math.max(excitation + (Math.max(knee - psd, 0) >> 2), hearingThreshold)
 
-private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64) fail
+// Legacy AC-3 bitstream identifiers 9 and 10 divide the sample rate by two and four.
+private const AllocationHearingThresholds: [9, 50] s32 = #run
+{
+    var result: [9, 50] s32
+    for shift in 3
+    {
+        for rate in 3
+        {
+            for band in 50
+            {
+                result[3 * shift + rate, band] = HTH[rate, band >> shift]
+            }
+        }
+    }
+
+    return result
+}
+
+private func bitAllocation(rateIndex: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64) fail
 {
     if start < 0 or end <= start or end > 253
     {
@@ -1153,9 +1171,9 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     if not bandStart
     {
         lowComp = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
-        mask[0] = psychoacousticMask(bandPsd[0], bandPsd[0] - fastGain - lowComp, dbKnee, HTH[fscod, 0])
+        mask[0] = psychoacousticMask(bandPsd[0], bandPsd[0] - fastGain - lowComp, dbKnee, AllocationHearingThresholds[rateIndex, 0])
         lowComp = lowCompensation(lowComp, bandPsd[1], bandPsd[2], 1)
-        mask[1] = psychoacousticMask(bandPsd[1], bandPsd[1] - fastGain - lowComp, dbKnee, HTH[fscod, 1])
+        mask[1] = psychoacousticMask(bandPsd[1], bandPsd[1] - fastGain - lowComp, dbKnee, AllocationHearingThresholds[rateIndex, 1])
         begin   = 7
         var current = 2_s32
         while current < 7
@@ -1167,7 +1185,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
             currentFastLeak = bandPsd[current] - fastGain
             currentSlowLeak = bandPsd[current] - slowGain
-            mask[current]   = psychoacousticMask(bandPsd[current], currentFastLeak - lowComp, dbKnee, HTH[fscod, current])
+            mask[current]   = psychoacousticMask(bandPsd[current], currentFastLeak - lowComp, dbKnee, AllocationHearingThresholds[rateIndex, current])
             if (bandEnd != 7 or current != 6) and bandPsd[current] <= bandPsd[current + 1]
             {
                 begin = current + 1
@@ -1187,7 +1205,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 
             currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
             currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-            mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak - lowComp, currentSlowLeak), dbKnee, HTH[fscod, current])
+            mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak - lowComp, currentSlowLeak), dbKnee, AllocationHearingThresholds[rateIndex, current])
             current         += 1
         }
 
@@ -1199,7 +1217,7 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     {
         currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
         currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-        mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak, currentSlowLeak), dbKnee, HTH[fscod, current])
+        mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak, currentSlowLeak), dbKnee, AllocationHearingThresholds[rateIndex, current])
         current         += 1
     }
 

@@ -48,6 +48,16 @@ struct SaoParameters
     eoClass:      [3] u8
 }
 
+private struct SaoEdgeBlock
+{
+    source:      const [*] u16
+    destination: [*] u16
+    stride:      u64
+    rx, ry:      s32
+    width:       s32
+    height:      s32
+}
+
 impl Decoder
 {
     // Reads the sample adaptive offset parameters of one coding tree block, clause 7.3.8.3.
@@ -441,6 +451,60 @@ impl Decoder
                 let offset = parameters.offsets[component, cast(u32, edge)]
                 destination[centreLine + cast(u64, x)] = cast(u16, Math.clamp(centre + cast(s32, offset), 0, maximum))
                 x += 1
+            }
+        }
+
+        let pps = unwrap .activePps
+        if .sliceParams.count > 1 or not pps.loopFilterAcrossTiles
+        {
+            let offset = origin + cast(u64, y0) * stride + cast(u64, x0)
+            let block  = SaoEdgeBlock{source + offset, destination + offset, stride, rx, ry, width, height}
+            .restoreSaoEdges(&block, eoClass)
+        }
+    }
+
+    // An edge filter may use a sample outside the CTB only when its slice and tile allow it.
+    // Interior samples use the same SIMD pass. A diagonal corner compares with the diagonal
+    // CTB directly, since the two side neighbours can belong to different slices.
+    private mtd const restoreSaoEdges(block: const *SaoEdgeBlock, eoClass: u32)
+    {
+        let sps     = unwrap .activeSps
+        let columns = cast(u64, sps.widthInCtbs)
+        let address = cast(u64, block.ry) * columns + cast(u64, block.rx)
+        for side in 2
+        {
+            let dx = cast(s32, SaoEdgeHPos[eoClass, side])
+            let dy = cast(s32, SaoEdgeVPos[eoClass, side])
+            let nx = block.rx + dx
+            let ny = block.ry + dy
+            let hasColumn = dx and nx >= 0 and nx < cast(s32, sps.widthInCtbs)
+            let hasRow    = dy and ny >= 0 and ny < cast(s32, sps.heightInCtbs)
+            let edgeX     = cast(u64, (dx > 0 ? block.width - 1 : 0))
+            let edgeY     = cast(u64, (dy > 0 ? block.height - 1 : 0))
+
+            if hasColumn and not .canFilterAcrossBlocks(address, cast(u64, block.ry) * columns + cast(u64, nx))
+            {
+                let firstY = dy < 0 ? 1 : 0
+                let endY   = dy > 0 ? block.height - 1 : block.height
+                for y in firstY until endY
+                {
+                    let index = cast(u64, y) * block.stride + edgeX
+                    block.destination[index] = block.source[index]
+                }
+            }
+
+            if hasRow and not .canFilterAcrossBlocks(address, cast(u64, ny) * columns + cast(u64, block.rx))
+            {
+                let firstX = dx < 0 ? 1 : 0
+                let endX   = dx > 0 ? block.width - 1 : block.width
+                let offset = edgeY * block.stride + cast(u64, firstX)
+                Memory.copy(block.destination + offset, block.source + offset, cast(u64, (endX - firstX)) * #sizeof(u16))
+            }
+
+            if hasColumn and hasRow and not .canFilterAcrossBlocks(address, cast(u64, ny) * columns + cast(u64, nx))
+            {
+                let corner = edgeY * block.stride + edgeX
+                block.destination[corner] = block.source[corner]
             }
         }
     }

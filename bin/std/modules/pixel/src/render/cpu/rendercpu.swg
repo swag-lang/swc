@@ -244,7 +244,10 @@ private struct RasterBatch
     late stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
     overlapRows:  [*] OverlapRow?
 
-    solidPaint:  bool     // The paint multiplies by opaque white, which is the identity.
+    solidPaint:         bool     // The paint multiplies by opaque white, which is the identity.
+    paint:              const *BrushBinding?
+    paintStops:         const [..] GradientStop = []
+    orderedPaintStops: bool
     paintImage:  const *Image?          // Storage of a bound texture paint, resolved once.
     paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
     atlas:       const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
@@ -1019,6 +1022,16 @@ private impl RenderCpu
         }
     }
 
+    func blendRgb(src, dst: Math.Vector3, mode: BlendingMode)->Math.Vector3
+    {
+        if mode.isSeparable()
+        {
+            return {blendSeparable(src.x, dst.x, mode), blendSeparable(src.y, dst.y, mode), blendSeparable(src.z, dst.z, mode)}
+        }
+
+        return blendNonSeparable(src, dst, mode)
+    }
+
     func blendAdvanced(src, dst: Math.Vector3, srcAlpha, dstAlpha: f32, mode: BlendingMode)->Math.Vector3
     {
         // Render targets accumulate premultiplied color under source-over blending. Recover the
@@ -1027,14 +1040,7 @@ private impl RenderCpu
         let backdrop = dstAlpha > 0 ? Math.Vector3{Math.clamp(dst.x / dstAlpha, 0.0, 1.0),
                                                    Math.clamp(dst.y / dstAlpha, 0.0, 1.0),
                                                    Math.clamp(dst.z / dstAlpha, 0.0, 1.0)} : Math.Vector3.Zero
-        var blended = blendNonSeparable(src, backdrop, mode)
-        if mode.isSeparable()
-        {
-            blended.x = blendSeparable(src.x, backdrop.x, mode)
-            blended.y = blendSeparable(src.y, backdrop.y, mode)
-            blended.z = blendSeparable(src.z, backdrop.z, mode)
-        }
-
+        let blended = blendRgb(src, backdrop, mode)
         return blended * srcAlpha * dstAlpha + src * srcAlpha * (1.0 - dstAlpha) + dst * (1.0 - srcAlpha)
     }
 
@@ -1637,8 +1643,9 @@ private impl RenderCpu
         return Color.fromArgbF32(alpha, sumR / sumA, sumG / sumA, sumB / sumA)
     }
 
-    mtd sampleGradient(p: const *BrushBinding, paintPos: Vector2)->Color
+    mtd sampleGradient(batch: const *RasterBatch, paintPos: Vector2)->Color
     {
+        let p = unwrap batch.paint
         if p.gradientStopCount == 0
         {
             return Color.fromArgb(Argb.White)
@@ -1680,13 +1687,14 @@ private impl RenderCpu
             return Color.fromArgb(Argb.White)
         }
 
-        return .sampleGradientStops(p, t)
+        return .sampleGradientStops(batch, t)
     }
 
     #[Swag.Inline]
-    mtd sampleGradientStops(p: const *BrushBinding, position: f32)->Color
+    mtd sampleGradientStops(batch: const *RasterBatch, position: f32)->Color
     {
-        let stops = unwrap .gradientStops
+        let p     = unwrap batch.paint
+        let stops = batch.paintStops
         var t     = position
         switch #complete p.gradientSpread
         {
@@ -1718,7 +1726,7 @@ private impl RenderCpu
         var i = 1_u64
 
         // Find the first stop at or above t, including the first of any coincident stops.
-        if .orderedGradientStops
+        if batch.orderedPaintStops
         {
             var end = p.gradientStopCount
             while i < end
@@ -1758,7 +1766,7 @@ private impl RenderCpu
     // them through [[RasterBatch.solidPaint]], because multiplying by opaque white is the identity.
     mtd samplePaintBatch(batch: *RasterBatch, paintPos: Vector2)->Color
     {
-        let p = &.paint
+        let p = unwrap batch.paint
         switch #complete p.type
         {
         case .SolidColor:
@@ -1840,7 +1848,7 @@ private impl RenderCpu
             return hatchPixel(p.hatch, x, y) ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Zero)
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
-            return .sampleGradient(&.paint, paintPos)
+            return .sampleGradient(batch, paintPos)
         }
     }
 
@@ -2540,7 +2548,7 @@ private impl RenderCpu
         // paint kind, a switch on the pixel format, a multiply by opaque white and a Color
         // round trip on every pixel, to move three bytes. The address arithmetic is the same
         // expression the sampler evaluates, so the bytes stored are the same bytes.
-        let paint = &.paint
+        let paint = unwrap batch.paint
         let white = Color.fromArgb(Argb.White).argb
         if fastAlpha and
            whiteMatte == null and
@@ -2880,7 +2888,7 @@ private impl RenderCpu
         let half    = Math.Simd.splat(0.5_f32)
         let bias    = Math.Simd.splat(StrokeCoverageBias)
         let thresh  = bias * 0.5
-        let paint   = &.paint
+        let paint   = unwrap batch.paint
         let packed  = paint.gradientStopCount and (paint.type == .LinearGradient or paint.type == .RadialGradient)
         let linear  = paint.type == .LinearGradient
         let start   = paint.gradientStart
@@ -2942,8 +2950,8 @@ private impl RenderCpu
 
                 for lane in count
                 {
-                    let color = packed ? .sampleGradientStops(paint, coordinates[lane]) :
-                                .sampleGradient(paint, {xs[lane], ys[lane]})
+                    let color = packed ? .sampleGradientStops(batch, coordinates[lane]) :
+                                .sampleGradient(batch, {xs[lane], ys[lane]})
                     colors[lane] = color.argb
                 }
 
@@ -4036,7 +4044,7 @@ private impl RenderCpu
     // Resolves everything a triangle range needs exactly once: transform, clip, target bytes,
     // stencil plane, paint texture, and font atlas. Command state cannot change inside a range,
     // so per-pixel work then reads plain locals.
-    mtd setupBatch(batch: *RasterBatch, image: *Image, painter: *Painter, triangles: const *TriangleBatch, transform: Transform2)
+    mtd setupBatch(batch: *RasterBatch, image: *Image, painter: *Painter, triangles: const *TriangleBatch, transform: Transform2, gradient: const *BrushBinding? = null)
     {
         batch.image     = image
         batch.painter   = painter
@@ -4064,14 +4072,30 @@ private impl RenderCpu
 
         batch.stencil = .currentStencil().pixels.storage()
 
-        batch.solidPaint      = not .paintOn or .paint.type == .SolidColor
+        batch.paint      = gradient ? gradient : &.paint
+        batch.solidPaint = not gradient and (not .paintOn or .paint.type == .SolidColor)
+        if gradient
+        {
+            if gradient.gradientStopCount
+            {
+                batch.paintStops = Swag.makeSlice(painter.gradientStops.buffer + gradient.gradientStopStart, gradient.gradientStopCount)
+            }
+
+            batch.orderedPaintStops = orderedStops(batch.paintStops)
+        }
+        else
+        {
+            batch.paintStops        = .gradientStops ? .gradientStops : []
+            batch.orderedPaintStops = .orderedGradientStops
+        }
+
         batch.paintImage      = null
         batch.paintPlanar     = null
         batch.blurTaps        = null
         batch.blurTapCount    = 0
         batch.blurWeights     = null
         batch.blurWeightCount = 0
-        if .paintOn and .paint.type == .Texture and .paint.texture.isValid()
+        if not gradient and .paintOn and .paint.type == .Texture and .paint.texture.isValid()
         {
             let storage = .findTexture(.paint.texture.handle)
             if storage
@@ -4853,6 +4877,62 @@ private impl RenderCpu
             return
         }
 
+        let mode = .blendingMode
+        if mode.usesAdvancedBlending()
+        {
+            if image.pixelFormat == .BGRA8 and
+               image.alphaMode == .Straight and
+               .colorMask.r and
+               .colorMask.g and
+               .colorMask.b and
+               not .colorMask.a and
+               not .alphaResolve and
+               not .overlapPass
+            {
+                let offset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
+                let pixels = image.pixels.storage() + offset
+                let source = Math.Vector3{cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0}
+                for column in firstX until endX where coverage[column] > 0
+                {
+                    var alpha = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+                    if maskRow
+                    {
+                        alpha = cast(u8, (cast(u32, alpha) * maskRow[column]) / 255)
+                    }
+
+                    if not alpha
+                    {
+                        continue
+                    }
+
+                    let target   = pixels + column * 4
+                    let backdrop = Math.Vector3{cast(f32, target[2]) / 255.0, cast(f32, target[1]) / 255.0, cast(f32, target[0]) / 255.0}
+                    let weight   = cast(f32, alpha) / 255.0
+                    let result   = blendRgb(source, backdrop, mode) * weight + backdrop * (1.0 - weight)
+                    let ink      = Color.fromArgbF32(0, result.x, result.y, result.z)
+                    target[0] = ink.b
+                    target[1] = ink.g
+                    target[2] = ink.r
+                }
+
+                return
+            }
+
+            for column in firstX until endX where coverage[column] > 0
+            {
+                var ink = color
+                ink.a = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+                if maskRow
+                {
+                    ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
+                }
+
+                .blendPixel(image, left + cast(s32, column), deviceY, ink)
+            }
+
+            return
+        }
+
         let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
         let dst       = image.pixels.storage() + dstOffset
         var x         = firstX
@@ -5067,6 +5147,127 @@ private impl RenderCpu
 
             .drawScanFillBand(scratch, crossings, image, fill, left, y, width, height, firstRow)
         }
+    }
+
+    // Short or custom stop lists still use their authored order.
+    func orderedStops(stops: const [..] GradientStop)->bool
+    {
+        if stops.count < 24 or not Math.isFinite(stops[0].offset)
+        {
+            return false
+        }
+
+        for index in 1 until stops.count
+        {
+            let offset = stops[index].offset
+            if not Math.isFinite(offset) or offset < stops[index - 1].offset
+            {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    struct GradientWork
+    {
+        batch:  RasterBatch
+        bounds: PixelBounds
+    }
+
+    // Consecutive gradient bindings and draws share one raster state. Each band
+    // keeps their painter order and owns its target and matte rows.
+    mtd tryDrawGradientGroup(painter: *Painter, commands: const [..] Command, first, available: u64)->u64
+    {
+        if available < 2 or
+           .stencilOn or .stencilWrite or .overlapMode or .overlapPass or .alphaResolve or
+           .program != CpuProgram_Default and .program != CpuProgram_Simple or
+           .blendingMode != .Alpha or
+           not (.colorMask.r and .colorMask.g and .colorMask.b) or .colorMask.a
+        {
+            return 0
+        }
+
+        let image = .currentImage()
+        if not image or image.pixelFormat != .BGRA8
+        {
+            return 0
+        }
+
+        const MinPairs = 32
+        const MaxPairs = 1024
+        let limit = Math.min(commands.count, first + 2 * MaxPairs)
+        var end   = first
+        while end + 1 < limit
+        {
+            let binding = &commands[end]
+            let draw    = &commands[end + 1]
+            if not (binding.op is .BindTexture0) or not (draw.op is .DrawTriangles)
+            {
+                break
+            }
+
+            let type = binding.texture0.type
+            if type != .LinearGradient and type != .RadialGradient and type != .SweepGradient
+            {
+                break
+            }
+
+            end += 2
+        }
+
+        if end - first < 2 * MinPairs
+        {
+            return 0
+        }
+
+        let transform = .deviceTransform()
+        var plans: Array!{GradientWork}
+        plans.reserve((end - first) / 2)
+        var top = image.height
+        var bottom: s32
+        var index = first
+        while index < end
+        {
+            let binding = &commands[index]
+            let draw    = &commands[index + 1]
+            Swag.assert(binding.op is .BindTexture0)
+            Swag.assert(draw.op is .DrawTriangles)
+            let brush     = &binding.texture0
+            let triangles = &draw.drawTriangles
+            let bounds    = .triangleRangeBounds(image, painter, triangles, transform)
+            if triangles.count >= 3 and not bounds.isEmpty()
+            {
+                var batch: RasterBatch
+                .setupBatch(&batch, image, painter, triangles, transform, brush)
+                plans.emplaceAddress()[0] = {batch, bounds}
+                top    = Math.min(top, bounds.minY)
+                bottom = Math.max(bottom, bounds.maxY + 1)
+            }
+
+            index += 2
+        }
+
+        if plans.count
+        {
+            let bandRows = Math.max(16, (bottom - top - 1) / cast(s32, Math.min(available, 8_u64) * 4) + 1)
+            let bandCount = cast(u64, (bottom - top - 1) / bandRows + 1)
+            let work = plans.toSlice()
+            let renderer = me
+            parallel for |renderer, work, top, bottom, bandRows| job in bandCount
+            {
+                let y    = top + cast(s32, job) * bandRows
+                let last = Math.min(y + bandRows, bottom) - 1
+                for &drawing in work where drawing.bounds.maxY >= y and drawing.bounds.minY <= last
+                {
+                    renderer.drawTriangleRange(&drawing.batch, y, last)
+                }
+            }
+        }
+
+        // The next command still sees the last brush bound by the group.
+        .executeCommand(painter, &commands[end - 2], end - 2)
+        return end
     }
 
     struct ScanFillWork
@@ -5926,22 +6127,7 @@ private impl RenderCpu
                 .gradientStops = null
             }
 
-            // A brush can supply stops directly. Keep the ordered search for finite,
-            // nondecreasing offsets, and scan short or custom stop lists in authored order.
-            .orderedGradientStops = false
-            if let stops = .gradientStops where stops.count >= 24 and Math.isFinite(stops[0].offset)
-            {
-                .orderedGradientStops = true
-                for index in 1 until stops.count
-                {
-                    let offset = stops[index].offset
-                    if not Math.isFinite(offset) or offset < stops[index - 1].offset
-                    {
-                        .orderedGradientStops = false
-                        break
-                    }
-                }
-            }
+            .orderedGradientStops = .gradientStops and orderedStops(.gradientStops)
 
             .paintOn = true
 
@@ -6198,6 +6384,16 @@ impl RenderCpu
         while nextCommand < commands.count
         {
             let cmd = &commands[nextCommand]
+            if available > 1 and cmd.op is .BindTexture0
+            {
+                let end = .tryDrawGradientGroup(painter, commands, nextCommand, available)
+                if end
+                {
+                    nextCommand = end
+                    continue
+                }
+            }
+
             if not .stencilOn and not .stencilWrite and cmd.op is .DrawScanFill
             {
                 var end   = nextCommand + 1

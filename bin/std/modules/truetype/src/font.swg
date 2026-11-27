@@ -20,6 +20,7 @@ const TAG_COLR = imageTag('C'_u32, 'O'_u32, 'L'_u32, 'R'_u32)
 const TAG_CPAL = imageTag('C'_u32, 'P'_u32, 'A'_u32, 'L'_u32)
 const TAG_OS2  = imageTag('O'_u32, 'S'_u32, '/'_u32, '2'_u32)
 const TAG_CFF  = imageTag('C'_u32, 'F'_u32, 'F'_u32, ' '_u32)
+const TAG_CFF2 = imageTag('C'_u32, 'F'_u32, 'F'_u32, '2'_u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
 // carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
@@ -363,11 +364,12 @@ impl FaceImpl
         return .fontSource.faceBytes()
     }
 
-    mtd loadCff(bytes: const [..] u8) fail
+    mtd loadCff(bytes: const [..] u8, cff2 = false) fail
     {
-        .sharedCff = try .fontSource.cachedCff(bytes)
-        if not .sharedCff {
-            .cff = try parseCffFont(bytes)
+        .sharedCff = try .fontSource.cachedCff(bytes, cff2)
+        if not .sharedCff
+        {
+            .cff = try parseCffProgram(bytes, cff2)
         }
     }
 
@@ -430,16 +432,22 @@ impl FaceImpl
 
     // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.
     //
-    // CFF and Type 1 names come from their charstring programs. TrueType outlines use the
-    // names in `post` formats 1, 2, or 2.5; format 3 carries no names, so it answers zero.
+    // CFF1 and Type 1 names come from their charstring programs. CFF2 and TrueType use
+    // the names in `post` formats 1, 2, or 2.5.
     // When a name occurs more than once, the lowest glyph index is returned.
     mtd glyphIndexByName(name: string)->u32
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
-        case .Type1: return .type1Font().nameToGid.getOrDefault(name, 0)
-        case .Glyf:  return .postGlyphNames().glyphIndex(name)
+        case .Cff:
+            let font = .cffFont()
+            return font.isCff2 ? .postGlyphNames().glyphIndex(name) : font.glyphNames.glyphIndex(name)
+
+        case .Type1:
+            return .type1Font().nameToGid.getOrDefault(name, 0)
+
+        case .Glyf:
+            return .postGlyphNames().glyphIndex(name)
         }
     }
 
@@ -453,7 +461,8 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:
-            return .cffFont().glyphNames.nameOf(glyphIndex)
+            let font = .cffFont()
+            return font.isCff2 ? .postGlyphNames().nameOf(glyphIndex) : font.glyphNames.nameOf(glyphIndex)
 
         case .Type1:
             let names = &.type1Font().glyphNames

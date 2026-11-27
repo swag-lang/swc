@@ -133,7 +133,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   resources without double-counting shared typefaces, and compare against measured eviction.
 - Done when: decode, first paint, text indexing and zoom update the documented accounting,
   evictions respect that budget, and a measured corpus comparison states the remaining error.
-- Related: std.pixel.027, std.gui.pdf.028, std.gui.pdf.036
+- Related: std.pixel.027, std.gui.pdf.036
 
 ### std.gui.pdf.001 — Encrypted documents are refused, including the empty-password case
 
@@ -411,6 +411,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Gray and RGB JPEG streams with default or inverted component directions also survive saving.
   Three public-derived range variants save in 0.14–0.46 ms, down from 104–557 ms, with
   unchanged raw JPEG bytes and PDFium raster. A fourth case retains explicit interpolation.
+- JPEGs with direct gray or RGB color keys retain their original compressed data and mask
+  bounds. Three derived fixtures save in 0.18–0.46 ms, down from 175–572 ms. PDFium renders
+  the stored JPEGs identically at scales 1 and 0.44, and differing keys remain distinct.
 - Next: retain fractional JPEG decode ranges and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
@@ -449,21 +452,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Evidence: sharing device images across page resources
   reduces four warmed page loads on the public shared-resource document from 49 to 1.8 ms.
   Named spaces keep their resource context and all 52 supported rasters match.
-- Related: std.gui.pdf.028, std.gui.pdf.025.
-
-### std.gui.pdf.028 — An embedded font program is copied once per page that uses it
-
-- Intent: the *work* of decoding a font is now paid once per document, but each page still takes
-  its own copy of the bytes, so a hundred-page thesis with a four-hundred-kilobyte embedded family
-  still carries forty megabytes of duplicated font data. Sharing the bytes instead of copying them
-  runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
-  after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
-  decision to narrow that contract.
-- Next: settle shared-byte-buffer ownership or the page lifetime contract, then share font programs
-  between pages.
-- Done when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
-  a decoded font program is shared between the pages that reference the same font object, and a
-  `Document` load of the corpus costs one copy per distinct program.
+- Related: std.gui.pdf.025.
 
 ### std.gui.pdf.043 — Store a page item's representation in a tagged union
 
@@ -639,6 +628,13 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Borrowing single-Flate inputs and reserving a bounded raster row estimate takes the
   public RGB16 page from 12.44 to 9.51 ms of load and from 21.53 to 19.29 ms total.
   The same runs measure PDFium at 16.69 ms. Seven tested pages keep their bitmap checksums.
+- Scan conversion and an opaque RGB span compositor reduce the advanced blend-mode page
+  from 315 to 248 ms in the first series, then from 195 to 90 ms in the opaque-span series.
+  PDFium takes 81 ms in the latter. Mean RGB difference from PDFium changes from 2.52 to
+  2.44 levels at 1200 px. The group and graphics-state controls retain identical pixels.
+- Packed constant CCITT tables take the six-image CCITT fixture from 0.178 to 0.107 ms
+  of load, and the large fax page from 5.95 to 5.74 ms. The three measured rasters are exact
+  matches for the previous Swag output.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

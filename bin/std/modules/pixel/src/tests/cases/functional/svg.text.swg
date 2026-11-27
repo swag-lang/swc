@@ -191,3 +191,35 @@ private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
     // The frame alone covers well over a hundred samples; an emptied alpha plane covers none.
     Swag.require(opaque > 100)
 }
+
+// Named, decimal and hexadecimal XML references produce the same glyphs as literal UTF-8 and punctuation.
+#test
+{
+    let fontPath = getTestDataPath("segoeui.ttf")
+    let options  = Svg.ParseOptions{fontFileName: fontPath.toString()}
+    let source   = expect File.readAllText(getTestDataPath("svg.text.references.svg"))
+    let plain    = expect File.readAllText(getTestDataPath("svg.text.equivalent.svg"))
+    let drawing  = expect Svg.Drawing.parse(source, options)
+    let expected = expect Svg.Drawing.parse(plain, options)
+    let image    = drawing.rasterize(320, 36, 1)
+    let baseline = expected.rasterize(320, 36, 1)
+    Swag.require(countTextPixels(&image, 0, 155) > 50 and countTextPixels(&image, 160, 320) > 50)
+    Swag.require(Memory.compare(image.pixels.storage(), baseline.pixels.storage(), image.byteCount) == 0)
+}
+
+// Unsupported references keep their text, including where decoding an ampersand would expose one.
+#test
+{
+    let fontPath = getTestDataPath("segoeui.ttf")
+    let options  = Svg.ParseOptions{fontFileName: fontPath.toString()}
+    const Pattern = "<svg width='1280' height='32'><text x='4' y='24' font-size='16' fill='white'>Intro % end</text></svg>"
+    const Malformed = "&#0; &#xD800; &#65534; &#x110000; &#x; &#xQ; &#65 &swag; &#X41; &"
+    const Escaped = "&amp;#0; &amp;#xD800; &amp;#65534; &amp;#x110000; &amp;#x; &amp;#xQ; &amp;#65 &amp;swag; &amp;#X41; &amp;"
+    let source   = Format.toString(Pattern, Malformed)
+    let plain    = Format.toString(Pattern, Escaped)
+    let drawing  = expect Svg.Drawing.parse(source, options)
+    let expected = expect Svg.Drawing.parse(plain, options)
+    let image    = drawing.rasterize(1280, 32, 1)
+    let baseline = expected.rasterize(1280, 32, 1)
+    Swag.require(Memory.compare(image.pixels.storage(), baseline.pixels.storage(), image.byteCount) == 0)
+}

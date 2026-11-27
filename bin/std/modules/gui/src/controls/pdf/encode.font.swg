@@ -75,12 +75,12 @@ private func cidFontSlot(page: const *Page, item: const *Item, fonts: *Array!{Ci
     let font = &page.fonts[item.fontIndex]
     if not font.identityHorizontal or
        not font.hasCidDescriptor or
-       font.bytes.count < 4 or
+       font.programBytes().count < 4 or
        font.baseName.isEmpty() or
        font.cidKeyed or
        font.unicode.isEmpty() or
        (not font.identityGlyphs and font.glyphIndices.isEmpty()) or
-       not isSingleTrueTypeProgram(font.bytes.toSlice()) or
+       not isSingleTrueTypeProgram(font.programBytes()) or
        not needsCompositeEncoding(item.text.toString())
     {
         return InvalidCidFont
@@ -171,7 +171,7 @@ private impl Writer
     {
         if .shareFontPrograms
         {
-            if let known = .fontPrograms.tryFind(font.programKey) where Slice.equals(known.value.resource.bytes.toSlice(), font.bytes.toSlice())
+            if let known = .fontPrograms.tryFind(font.programKey()) where Slice.equals(known.value.resource.programBytes(), font.programBytes())
             {
                 return known.value.object
             }
@@ -179,12 +179,12 @@ private impl Writer
 
         let number = nextObject[]
         nextObject[] += 1
-        let bytes      = #move try .zlib.compress(font.bytes.toSlice())
-        let dictionary = Format.toString("/Length1 % /Filter /FlateDecode", font.bytes.count)
+        let bytes      = #move try .zlib.compress(font.programBytes())
+        let dictionary = Format.toString("/Length1 % /Filter /FlateDecode", font.programBytes().count)
         .streamObject(number, bytes.toSlice(), dictionary.toString())
         if .shareFontPrograms
         {
-            .fontPrograms.add(font.programKey, {number, font})
+            .fontPrograms.add(font.programKey(), {number, font})
         }
 
         return number

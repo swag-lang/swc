@@ -597,6 +597,13 @@ private impl Codebook
     }
 }
 
+// A consecutive run of lines sharing one Floor 0 Bark bin.
+private struct BarkBand
+{
+    end:    u32
+    cosine: f64
+}
+
 // One floor of the setup header, of type 0 or 1.
 private struct Floor
 {
@@ -609,7 +616,8 @@ private struct Floor
     amplitudeBits:   u32
     amplitudeOffset: u32
     books:           Array!{u32}
-    barkMap:         [2] Array!{u32}     // Lazily built map from spectral line to bark bin, per block size.
+    barkBands:       [2] Array!{BarkBand}     // Contiguous Bark bands for each block size.
+    barkHalf:        [2] u32                 // The half-block lengths represented by these bands.
 
     // Type 1: a piecewise linear curve through posts on a fixed grid.
     partitions:      u32
@@ -646,6 +654,7 @@ private impl Floor
 
     mtd parseType0(reader: *BitReader, codebooks: u32) fail
     {
+        .barkHalf = [0_u32, 0_u32]
         .order           = reader.read(8)
         .rate            = reader.read(16)
         .barkMapSize     = reader.read(16)
@@ -776,31 +785,35 @@ private impl Floor
         }
     }
 
-    // Builds the map from spectral line to bark bin for a half block of `half` lines.
-    mtd buildBarkMap(which: u32, half: u32)
+    // Builds the runs of spectral lines sharing a Bark bin, including its cosine.
+    mtd buildBarkBands(which: u32, half: u32)
     {
         func bark(frequency: f64)->f64 => 13.1 * Math.atan(0.00074 * frequency) + 2.24 * Math.atan(1.85e-8 * frequency * frequency) + 1e-4 * frequency
 
-        let map = &.barkMap[which]
-        map.resize(cast(u64, half) + 1)
-        let scale = cast(f64, .barkMapSize) / bark(cast(f64, .rate) / 2.0)
+        let bands = &.barkBands[which]
+        bands.clear()
+        let nyquist = cast(f64, .rate) / 2.0
+        let scale   = cast(f64, .barkMapSize) / bark(nyquist)
+        let step    = nyquist / cast(f64, half)
+        let lastBin = cast(s64, .barkMapSize) - 1
+        var previous = -1_s64
         for line in half
         {
-            var value = cast(s64, Math.floor(bark(cast(f64, .rate) / 2.0 / cast(f64, half) * cast(f64, line)) * scale))
-            if value < 0
+            let raw = cast(s64, Math.floor(bark(step * cast(f64, line)) * scale))
+            let bin = Math.clamp(raw, 0_s64, lastBin)
+            if bin == previous
             {
-                value = 0
+                bands[][bands.count - 1].end = line + 1
             }
-
-            if value >= cast(s64, .barkMapSize)
+            else
             {
-                value = cast(s64, .barkMapSize) - 1
+                let omega = Math.ConstF64.Pi * cast(f64, bin) / cast(f64, .barkMapSize)
+                bands.add(BarkBand{line + 1, Math.cos(omega)})
+                previous = bin
             }
-
-            map[][line] = cast(u32, value)
         }
 
-        map[][half] = Swag.U32.Max
+        .barkHalf[which] = half
     }
 }
 
@@ -1038,6 +1051,7 @@ private struct Codec
     floorPosts:      [MaxChannels] Array!{s32}       // Floor 1 post values of every channel.
     floorUsed:       [MaxChannels] Array!{bool}      // Whether each post takes part in the rendering.
     floorCurve:      [MaxChannels] Array!{f32}       // Floor 0 coefficients, with the amplitude last.
+    floorCosines:    Array!{f64}                     // Scratch space for one Floor 0 channel.
     floorPresent:    [MaxChannels] bool              // The channel's floor was coded in the current block.
     nonzero:         [MaxChannels] bool              // The channel carries residue, coded or through coupling.
     classes:         Array!{u32}                     // Residue partition classes of the current pass.
@@ -1569,33 +1583,31 @@ private impl Codec
     // Multiplies the spectrum of a channel by the curve its floor 0 describes.
     mtd applyFloor0(floor: *Floor, which: u32, channel: u32, half: u32)
     {
-        if floor.barkMap[which].count != cast(u64, half) + 1
+        if floor.barkHalf[which] != half
         {
-            floor.buildBarkMap(which, half)
+            floor.buildBarkBands(which, half)
         }
 
-        let map       = floor.barkMap[which].storage()
+        let bands     = floor.barkBands[which].toSlice()
         let curve     = .floorCurve[channel].storage()
         let spectrum  = .spectrum[channel].storage()
         let order     = floor.order
         let amplitude = cast(f64, curve[order])
         let offset    = cast(f64, floor.amplitudeOffset)
 
-        var cosines: Array!{f64}
-        cosines.resize(order)
+        .floorCosines.resize(order)
+        let cosines = .floorCosines.storage()
         for index in order
         {
             cosines[index] = Math.cos(cast(f64, curve[index]))
         }
 
         var line = 0_u32
-        while line < half
+        for band in bands
         {
-            let bin   = map[line]
-            let omega = Math.ConstF64.Pi * cast(f64, bin) / cast(f64, floor.barkMapSize)
-            let cosw  = Math.cos(omega)
-            var p     = 1.0_f64
-            var q     = 1.0_f64
+            let cosw = band.cosine
+            var p    = 1.0_f64
+            var q    = 1.0_f64
             if order & 1
             {
                 for index in (order - 1) / 2
@@ -1626,11 +1638,12 @@ private impl Codec
             }
 
             let value = cast(f32, Math.exp(0.11512925 * (amplitude / Math.sqrt(p + q) - offset)))
-            while line < half and map[line] == bin
+            for coefficient in line until band.end
             {
-                spectrum[line] *= value
-                line += 1
+                spectrum[coefficient] *= value
             }
+
+            line = band.end
         }
     }
 

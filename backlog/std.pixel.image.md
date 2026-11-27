@@ -53,7 +53,7 @@ ships; history lives in Git, not here.
 
 ### std.pixel.image.042 — GPU-compressed texture data cannot reach the GPU compressed
 
-- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, Zstandard, ETC, ASTC, BC6H, and BC7
+- Evidence: BC1 through BC5 are decoded to RGBA8; KTX2 BasisLZ, ETC, ASTC, BC6H, and BC7
   are unsupported; `IRenderer.addImage` accepts decoded `Image` or a planar `YuvPlanarView` (4:2:0 or 4:4:4). KTX2 is designed for
   per-level streaming and Basis Universal transcoding to a GPU-native block format.
 - Next: add compressed-format capability queries and texture upload from std.pixel.image.041, then
@@ -238,6 +238,25 @@ ships; history lives in Git, not here.
   and their resvg renders match their respective baselines. The flattened
   baseline includes the correction that writes the coordinate after `M` or `L`.
   Regression tests cover locale, large coordinates, and flattened curves.
+- Color tracing gathers opacity during the first image pass and traces each
+  color inside its coverage bounds. The 24-color sparse fixture drops from
+  68.3 to 1.7 ms, the repeated-color fixture from 20.5 to 12.8 ms, and the
+  monochrome fixture from 3.37 to 2.81 ms. All 135 SVG output comparisons
+  and the six resvg render comparisons are byte-identical.
+- Consecutive gradient draws share row jobs and keep painting order within
+  each row. Four-worker medians drop from 60.9 to 35.5 ms for 420 paths,
+  from 71.2 to 42.7 ms for 96 stops, and from 62.0 to 38.3 ms for hard
+  stops. resvg takes 29.7, 56.7, and 44.4 ms on the same affinities. The
+  132 before/after raster comparisons match, including one-worker output.
+- Repeated embedded images bypass the URI hash on an exact consecutive hit.
+  On 16 placements of the same 1.1 MiB PNG data URI, parse time drops from
+  8.28 to 5.00 ms at one worker and from 7.84 to 5.04 ms at four. An alternating
+  long-URI control retains its parse time. Eight raster comparisons match,
+  and a regression distinguishes equal-length URIs with identical tails.
+- The SVG reader accepts XML whitespace before attribute equals signs and
+  resolves named and numeric character references in text and spans. The
+  whitespace fixture agrees with resvg pixel for pixel. Each renderer gives
+  identical output for the two equivalent spellings of the text fixture.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

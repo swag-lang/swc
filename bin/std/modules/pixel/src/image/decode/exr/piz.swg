@@ -21,7 +21,10 @@ private const PizBitmapBytes = 8192_u64
 private const PizWordValues  = 65536_u32
 private const PizSignedRange = 16384_u64
 
-private const PizCodeBits   = 6_u32
+private const PizCodeBits = 6_u32
+
+// Lookup entries put the length in the low six bits and literal words in the upper half.
+private const PizLiteralTag = 64_u32
 private const PizCodeMask   = 63_u32
 private const PizMaxLength  = 58_u32
 private const PizDirectBits = 12_u32
@@ -204,7 +207,7 @@ private impl PizHuffman
                 let extended = width > .rootBits
                 let shift    = (extended ? .extendedBits : .rootBits) - width
                 let begin    = (extended ? rootEntries : 0) + ((.first[width] + ordinal) << shift)
-                let entry    = (symbol << PizCodeBits) | width
+                let entry    = symbol == repeatSymbol ? cast(u32, width) : (symbol << 16) | PizLiteralTag | width
                 for slot in begin until begin + (1_u64 << shift)
                 {
                     scratch.direct[slot] = entry
@@ -259,6 +262,56 @@ private impl PizHuffman
     }
 }
 
+#[Swag.Inline]
+private func decodeDirectPizSamples(bits: *PizBits, direct: const [*] u32, rootBits: u32, output: [..] u16, first: u64)->u64
+{
+    let source     = bits.source.buffer
+    let inputLimit = bits.source.count >= 8 ? bits.source.count - 7 : 0
+    let shift      = 64 - rootBits
+    var window     = bits.window
+    var buffered   = bits.buffered
+    var cursor     = bits.cursor
+    var index      = first
+
+    // Each direct literal consumes at most rootBits bits.
+    let limit = first + Math.min(output.count - first, bits.remaining / rootBits)
+    while index < limit
+    {
+        if buffered < rootBits
+        {
+            if cursor >= inputLimit
+            {
+                break
+            }
+
+            let word  = Math.bigEndianToNative(cast(const [*] u64, source + cursor)[0])
+            let bytes = (64 - buffered) >> 3
+            window   |= word >> buffered
+            cursor   += bytes
+            buffered += bytes * 8
+        }
+
+        let entry = direct[window >> shift]
+        if not (entry & PizLiteralTag)
+        {
+            break
+        }
+
+        let length = entry & PizCodeMask
+        output.buffer[index] = cast(u16, (entry >> 16))
+        index    += 1
+        window   <<= length
+        buffered -= length
+    }
+
+    let consumed = (cursor - bits.cursor) * 8 + bits.buffered - buffered
+    bits.window    = window
+    bits.remaining -= consumed
+    bits.buffered  = buffered
+    bits.cursor    = cursor
+    return index
+}
+
 private func decodePizHuffman(packed: const [..] u8, output: [..] u16, scratch: *PizScratch) fail
 {
     if packed.count < 20
@@ -285,6 +338,12 @@ private func decodePizHuffman(packed: const [..] u8, output: [..] u16, scratch: 
     var index: u64
     while bits.remaining
     {
+        index = decodeDirectPizSamples(&bits, scratch.direct.storage(), table.rootBits, output, index)
+        if not bits.remaining
+        {
+            break
+        }
+
         if bits.buffered < table.rootBits
         {
             bits.refill()
@@ -311,7 +370,7 @@ private func decodePizHuffman(packed: const [..] u8, output: [..] u16, scratch: 
             }
 
             bits.consume(length)
-            symbol = entry >> PizCodeBits
+            symbol = (entry & PizLiteralTag) ? entry >> 16 : repeatSymbol
         }
         else
         {

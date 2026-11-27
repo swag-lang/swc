@@ -16,6 +16,14 @@ private
         bitCount: u32
     }
 
+    enum LzwTableMode
+    {
+        Hash
+        FirstTransition
+        LiteralPairs
+        SmallPalette
+    }
+
     struct LzwEncoder
     {
         bits:        BitWriter
@@ -253,14 +261,25 @@ impl Encoder
     {
         if indexes.count < 4096
         {
-            return lzwCompressStream!{RemapLiterals, false, false}(indexes, minCodeSize, literals)
+            return lzwCompressStream!{RemapLiterals, LzwTableMode.Hash}(indexes, minCodeSize, literals)
         }
 
         if sampleHasConsistentTransitions(indexes.buffer) and
            sampleHasConsistentTransitions(indexes.buffer + indexes.count / 2) and
            sampleHasConsistentTransitions(indexes.buffer + indexes.count * 3 / 4)
         {
-            return lzwCompressStream!{RemapLiterals, true, false}(indexes, minCodeSize, literals)
+            return lzwCompressStream!{RemapLiterals, LzwTableMode.FirstTransition}(indexes, minCodeSize, literals)
+        }
+
+        #static if not RemapLiterals
+        {
+            // Larger tables need more input to recover their initialization cost.
+            if (minCodeSize <= 5 and indexes.count >= 32_768) or
+               (minCodeSize == 6 and indexes.count >= 65_536) or
+               (minCodeSize == 7 and indexes.count >= 262_144)
+            {
+                return lzwCompressStream!{false, LzwTableMode.SmallPalette}(indexes, minCodeSize, null)
+            }
         }
 
         if minCodeSize == 8 and
@@ -269,18 +288,22 @@ impl Encoder
            sampleHasMostlyDistinctPairs(indexes.buffer + indexes.count / 2) and
            sampleHasMostlyDistinctPairs(indexes.buffer + indexes.count * 3 / 4)
         {
-            return lzwCompressStream!{RemapLiterals, false, true}(indexes, minCodeSize, literals)
+            return lzwCompressStream!{RemapLiterals, LzwTableMode.LiteralPairs}(indexes, minCodeSize, literals)
         }
 
-        return lzwCompressStream!{RemapLiterals, false, false}(indexes, minCodeSize, literals)
+        return lzwCompressStream!{RemapLiterals, LzwTableMode.Hash}(indexes, minCodeSize, literals)
     }
 
     // Compresses palette indexes into GIF LZW codes.
     //
     // The dictionary maps a known string, as its code, followed by one more index to the code of
     // the longer string. It is reset with a clear code once every 12-bit code is taken.
-    func(RemapLiterals: bool, FirstTransition: bool, DensePairs: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
+    func(RemapLiterals: bool, Mode: LzwTableMode) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
     {
+        const FirstTransition = Mode == LzwTableMode.FirstTransition
+        const DensePairs      = Mode == LzwTableMode.LiteralPairs
+        const SmallPalette    = Mode == LzwTableMode.SmallPalette
+        const DirectTable     = DensePairs or SmallPalette
         var enc: LzwEncoder
         enc.init(minCodeSize)
         if indexes.count == 0
@@ -296,21 +319,28 @@ impl Encoder
         let capacity = Math.roundUpToPowerOf2(cast(u32, Math.min(indexes.count, 4096_u64)) * 2)
         let shift    = Math.leadingZeros(capacity - 1)
         var table: Array!{u32}
-        table.resize(capacity + (FirstTransition ? MaxLzwCode + 1 : 0))
+        #static if not SmallPalette
+        {
+            table.resize(capacity + (FirstTransition ? MaxLzwCode + 1 : 0))
+        }
+
         let dictionary = table.storage()
 
-        // Most prefixes in a dense stream are literals. The high four bits distinguish dictionary epochs.
-        var literalPairs: Array!{u16}
+        // A small palette permits a direct lookup for every prefix. Dense streams use it only
+        // when the prefix is a literal. The high four bits distinguish dictionary epochs.
+        var directTable: Array!{u16}
         const EpochStep = 0x1000_u16
-        var epoch = EpochStep
-        #static if DensePairs
+        var epoch       = EpochStep
+        let shiftDirect = SmallPalette ? minCodeSize : 8_u8
+        #static if DirectTable
         {
-            literalPairs.resize(256 * 256)
+            let prefixes = SmallPalette ? MaxLzwCode + 1 : 256
+            directTable.resize(prefixes << shiftDirect)
         }
 
         var nextCode = cast(u32, enc.endCode) + 1
 
-        #static if DensePairs
+        #static if DirectTable
         {
             enc.bits.reserveCodes(indexes.count)
         }
@@ -344,11 +374,11 @@ impl Encoder
                 }
             }
 
-            let literalPair = DensePairs and prefix < 256
-            if literalPair
+            let direct = SmallPalette or (DensePairs and prefix < 256)
+            if direct
             {
-                slot = prefix << 8 | index
-                let entry = literalPairs[slot]
+                slot = prefix << shiftDirect | index
+                let entry = directTable[slot]
                 if (entry & 0xF000) == epoch
                 {
                     prefix = entry & MaxLzwCode
@@ -373,12 +403,12 @@ impl Encoder
                 }
             }
 
-            enc.bits.writeStreamCode!{DensePairs}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
+            enc.bits.writeStreamCode!{DirectTable}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
             if nextCode < MaxLzwCode
             {
-                if literalPair
+                if direct
                 {
-                    literalPairs[slot] = epoch | cast(u16, nextCode)
+                    directTable[slot] = epoch | cast(u16, nextCode)
                 }
                 else
                 {
@@ -391,18 +421,22 @@ impl Encoder
             else
             {
                 enc.writeCode(enc.clearCode)
-                #static if DensePairs
+                #static if DirectTable
                 {
                     enc.bits.reserveCodes(indexes.count - i)
                 }
 
-                Memory.clear(dictionary, table.count * #sizeof(u32))
-                #static if DensePairs
+                #static if not SmallPalette
+                {
+                    Memory.clear(dictionary, table.count * #sizeof(u32))
+                }
+
+                #static if DirectTable
                 {
                     epoch = epoch + #wrap EpochStep
                     if not epoch
                     {
-                        Memory.clear(literalPairs.storage(), literalPairs.count * #sizeof(u16))
+                        Memory.clear(directTable.storage(), directTable.count * #sizeof(u16))
                         epoch = EpochStep
                     }
                 }
@@ -413,7 +447,7 @@ impl Encoder
             prefix = index
         }
 
-        enc.bits.writeStreamCode!{DensePairs}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
+        enc.bits.writeStreamCode!{DirectTable}(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
         enc.writeCode(enc.endCode)
         enc.bits.flush()
         return enc.bits.bytes

@@ -1411,12 +1411,12 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngPixelAt(simdImage, 4095, 0, 37_u8, 91_u8, 173_u8, 0_u8)
 }
 
-// Consecutive Paeth rows preserve all RGB8 bytes across the paired path,
+// Consecutive Paeth rows preserve all RGB8 bytes across the four-row and two-row paths,
 // a row copied from above, and the final row that uses the single-row path.
 #test
 {
     const Width    = 9
-    const Height   = 6
+    const Height   = 10
     const RowBytes = Width * 3
     var original: [Height * RowBytes] u8
     for i in original.count

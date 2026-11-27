@@ -966,3 +966,35 @@ func(width: u8) checkPackedOffsetBoundaries()
     catch buildGlyphLocations(&truncated) as rejected
     Swag.require(not rejected.isEmpty())
 }
+
+#test
+{
+    var bytes  = loadFontBytes("arial.ttf")
+    let tables = readBigU16(&bytes, 4)
+    Swag.require(tables == 25)
+
+    // These optional tables exercise both SIMD lanes and the scalar tail.
+    for table in [0_u64, 1, 24]
+    {
+        let record = 12 + table * 16
+        let offset = readBigU32(&bytes, record + 8)
+        let length = readBigU32(&bytes, record + 12)
+        writeBigU32(&bytes, record + 8, 0xFFFF_FFF8)
+        writeBigU32(&bytes, record + 12, 16)
+
+        var overflowed: Swag.Error
+        catch checkFaceLoad(bytes.toSlice()) as overflowed
+        Swag.require(overflowed.value() != null)
+
+        writeBigU32(&bytes, record + 8, cast(u32, bytes.count))
+        writeBigU32(&bytes, record + 12, 1)
+        var truncated: Swag.Error
+        catch checkFaceLoad(bytes.toSlice()) as truncated
+        Swag.require(truncated.value() != null)
+
+        writeBigU32(&bytes, record + 12, 0)
+        expect checkFaceLoad(bytes.toSlice())
+        writeBigU32(&bytes, record + 8, offset)
+        writeBigU32(&bytes, record + 12, length)
+    }
+}

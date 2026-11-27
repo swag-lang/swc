@@ -35,16 +35,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
   across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
 
-### std.video.004 — AVI output is limited to one RIFF
-
-- Evidence: `encode/avi/avi.swg` writes a classic RIFF and a 32-bit `idx1` table. Its
-  size limit prevents longer Motion JPEG recordings from being finalized. `Reader`
-  can follow the 64-bit OpenDML frame index and `RIFF AVIX` continuations.
-- Next: emit OpenDML standard indexes and a continuation before exhausting the RIFF
-  size. Backpatch the superindex and total frame count when finalizing the stream.
-- Done when: the writer can finalize an AVI past the four-gigabyte boundary, and
-  both `Reader` and FFmpeg seek and decode pictures beyond it.
-
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
 - Evidence: one-slice 1080p Baseline takes 2.50× the time of native single-threaded FFmpeg
@@ -93,6 +83,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.040 — Reduce the remaining RealVideo filter cost
 
+- Evidence: packed bilinear motion interpolation lowers paired time by 8.6–9.4% on
+  2,880 pictures, without changing the decoded planes. The confirmation medians are
+  0.104 ms per picture for Swag and 0.0365 ms for FFmpeg 9.1. Before the change,
+  deblocking accounted for 30% of sampled time and bilinear interpolation for 10%.
 - Evidence: the packed-filter comparison
   measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
   post-change profile assigns 23% of samples to deblocking and 9% to bilinear
@@ -654,6 +648,18 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: picture validation counted decoded macroblocks but did not check their addresses, so duplicate slices could replace already parsed macroblocks while omitting another address.
 - Resolved: each macroblock is checked against the current picture's slice coverage before normal or skipped decode. A second slice restarting at macroblock zero is rejected.
+
+### std.video.043 — Respect HEVC SAO slice and tile boundaries (resolved)
+
+- Evidence: on a five-picture Main sequence with two slices, Swag produced the same
+  Annex B and MP4 planes. FFmpeg 9.1 differed at 533 of 46,080 samples, starting along
+  the slice boundary. The maximum error was 4 levels and PSNR was 61.758 dB.
+- Fixed: SAO edge classification keeps the deblocked sample when its directional
+  neighbour lies in a slice or tile the loop filter cannot cross. Diagonal corners
+  use their diagonal neighbour's permissions.
+- Verification: five-picture Main and Main 10 reference streams match in Annex B
+  and MP4. The native Main 10 samples are exact. Synthetic cases check tile
+  transitions and the two outcomes at diagonal corners.
 
 ### std.video.030 — HEVC crop validation can wrap (resolved)
 

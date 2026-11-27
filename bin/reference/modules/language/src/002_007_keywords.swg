@@ -137,7 +137,8 @@ Packed vector intrinsics:
 Swag.vecAesDecryptLastRound  Swag.vecAesDecryptRound  Swag.vecAesEncryptLastRound
 Swag.vecAesEncryptRound  Swag.vecAesInverseMixColumns
 Swag.vecAlign  Swag.vecAll  Swag.vecAny  Swag.vecAvgRound  Swag.vecCarrylessMul
-Swag.vecCarrylessMul2XorPair  Swag.vecCarrylessMul2XorQuad  Swag.vecGather
+Swag.vecCarrylessMul2XorPair  Swag.vecCarrylessMul2XorQuad  Swag.vecCarrylessProductSum16
+Swag.vecGather
 Swag.vecMultiplyAdd52High  Swag.vecMultiplyAdd52Low
 Swag.vecInterleaveHi  Swag.vecInterleaveLo  Swag.vecMask  Swag.vecMulAddPairs
 Swag.vecMulAddPairsSat  Swag.vecMulHigh  Swag.vecNarrowSatS  Swag.vecNarrowSatU  Swag.vecPermute

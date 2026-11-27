@@ -184,13 +184,18 @@ impl Writer
         }
 
         try .validateAdditionalFrames(count)
-        var zeros: [32 * 1024] u8
         let bytesPerFrame = cast(u64, .channels) * #sizeof(s16)
-        var remaining     = count
+        let windowFrames  = Math.min(count, ByteSink.WindowSize / bytesPerFrame)
+        let windowBytes   = windowFrames * bytesPerFrame
+        var zeros: Array!{u8}
+        zeros.reserve(windowBytes)
+        Memory.clear(zeros.storage(), windowBytes)
+
+        var remaining = count
         while remaining
         {
-            let frames = Math.min(remaining, zeros.count / bytesPerFrame)
-            try .sink.write(Swag.makeSlice(&zeros[0], frames * bytesPerFrame))
+            let frames = Math.min(remaining, windowFrames)
+            try .sink.write(Swag.makeSlice(zeros.storage(), frames * bytesPerFrame))
             .frameCount += frames
             remaining   -= frames
         }

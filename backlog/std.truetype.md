@@ -118,11 +118,13 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 
 ### std.truetype.015 — Variable fonts load only at their default instance
 
-- Evidence: no `fvar`, `gvar`, `avar` or `HVAR` is read, so a single file that should provide a
-  whole weight and width range provides one static face. CFF2 variation data is part of this
-  entry; the CFF1 charstring support already in the module is only its static foundation.
-- Next: read `fvar` axes and apply `gvar` deltas to TrueType outlines for a named instance,
-  then add `avar` normalization and `HVAR` metrics.
+- Evidence: TrueType opens the default outlines. The CFF2 decoder uses the default normalized
+  coordinates and SFNT advances. The Source Sans 3 and Source Serif 4 fixtures cover local
+  subroutines, multiple variation data records, and font dictionary selection. Axis selection
+  and metric variation remain unavailable.
+- Next: read `fvar` axes and apply `gvar` deltas to TrueType outlines for a named instance.
+  Extend CFF2 blending to use the selected coordinates, including `avar` normalization and
+  `HVAR` metrics.
 - Done when: default and non-default instances of representative TrueType and CFF2 variable
   fonts produce expected outlines and metrics across supported axes, with invalid variation
   tables rejected.

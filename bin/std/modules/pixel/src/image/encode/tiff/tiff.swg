@@ -242,9 +242,16 @@ internal impl IImageEncoder for Encoder
         let numEntries = (hasAlpha ? 10_u32 : 9_u32) + cast(u32, hasPredictor)
         let ifdLen     = 2_u64 + cast(u64, numEntries) * 12 + 4
         let bpsOffset  = ifdOffset + ifdLen
-        if bpsOffset + cast(u64, samples) * 2 > Swag.U32.Max
+        let fileSize   = bpsOffset + cast(u64, samples) * 2
+        if fileSize > Swag.U32.Max
         {
             fail UnsupportedFormatError{"image is too big"}
+        }
+
+        // A single output bucket can be moved to the byte-array API without a copy.
+        if compressionTag == COMPRESSION_NONE and fileSize > result.granularity and not result.count()
+        {
+            result.grow(fileSize)
         }
 
         // Header

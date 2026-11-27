@@ -685,6 +685,98 @@ func gifPalette32Fixture(withAlpha: bool, invalidOffset: s32 = -1)->Array!{u8}
     }
 }
 
+func paddedGifPaletteFixture(paletteSize: u32, lastIndex: u16, withTransparency: bool, firstIndex: u8 = 5)->Array!{u8}
+{
+    const Header:  [13] u8 = ['G', 'I', 'F', '8', '9', 'a', 129, 0, 64, 0, 0x87, 0, 0]
+    const Control: [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 5, 0]
+    const Frame:   [11] u8 = [0x2C, 0, 0, 0, 0, 129, 0, 64, 0, 0, 8]
+    var header = Header
+    header[10] = paletteSize == 256 ? 0x87_u8 : 0x84_u8
+    var bytes: #returntype
+    bytes.add(header)
+    for index in paletteSize
+    {
+        bytes.add([cast(u8, index), cast(u8, 255 - index), cast(u8, index ^ 131)])
+    }
+
+    if withTransparency
+    {
+        var control = Control
+        control[6] = firstIndex
+        bytes.add(control)
+    }
+
+    bytes.add(Frame)
+    bytes.add(149_u8)
+    var bits:      u32
+    var available: u32
+    for i in 132
+    {
+        // A run of 8,255 indices followed by a clear and the last literal.
+        let key = i == 0 or i == 129 ? 256_u32 : i == 1 ? cast(u32, firstIndex) :
+                  i < 128 ? cast(u32, 256 + i) : i == 128 ? 383 : i == 130 ? cast(u32, lastIndex) : 257
+        bits      |= key << available
+        available += 9
+        while available >= 8
+        {
+            bytes.add(cast(u8, bits & 255))
+            bits      >>= 8
+            available -= 8
+        }
+    }
+
+    bytes.add(cast(u8, bits))
+    bytes.add([0_u8, 0x3B])
+    return bytes
+}
+
+// Padded palettes may still need a late high index, even after an LZW clear.
+#test
+{
+    for key in [13_u16, 25, 129]
+    {
+        for transparent in [false, true]
+        {
+            let bytes = paddedGifPaletteFixture(256, key, transparent)
+            let image = expect Image.decode("padded-palette.gif", nnBytes(bytes.toSlice()))
+            Swag.require(image.width == 129 and image.height == 64)
+            assertGifPixelAt(image, 128, 0, cast(u8, key), cast(u8, 255 - key), cast(u8, key ^ 131), 255)
+            if transparent
+            {
+                assertGifPixelAt(image, 127, 0, 0, 0, 0, 0)
+            }
+            else
+            {
+                assertGifPixelAt(image, 127, 0, 5, 250, 134, 255)
+            }
+
+            var reader = expect ImageReader.decode("padded-palette.gif", nnBytes(bytes.toSlice()))
+            let frame  = expect reader.read(0)
+            if transparent
+            {
+                assertGifPixelAt(frame, 127, 0, 0, 0, 0, 0)
+            }
+
+            assertGifPixelAt(frame, 128, 0, cast(u8, key), cast(u8, 255 - key), cast(u8, key ^ 131), 255)
+        }
+    }
+
+    let invalid = paddedGifPaletteFixture(32, 129, false)
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("padded-palette-invalid.gif", nnBytes(invalid.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
+// Skipping a transparent SIMD block still rejects indices outside its palette.
+#test
+{
+    let bytes  = paddedGifPaletteFixture(32, 13, true, firstIndex: 129)
+    var reader = expect ImageReader.decode("invalid-transparent-palette.gif", nnBytes(bytes.toSlice()))
+    var errorOutcome: Swag.Error
+    discard catch reader.read(0) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
 // A literal allowed by LZW is still invalid when it has no palette entry.
 #test
 {
@@ -996,6 +1088,35 @@ func gifPalette32Fixture(withAlpha: bool, invalidOffset: s32 = -1)->Array!{u8}
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     assertGifPixelAt(img, 0, 0, 12_u8, 34_u8, 56_u8, 255_u8)
+}
+
+// Direct palette lookups stay valid across repeated dictionary epochs at both table sizes.
+#test
+{
+    for colorCount in [32_u8, 128]
+    {
+        let source = Image.create(colorCount == 32 ? 641 : 769, colorCount == 32 ? 321 : 349, .RGB8)
+        var pixels = source.pixels.storage()
+        var state  = 0x8F01943C_u32
+        for cast(u64, source.width) * source.height
+        {
+            state ^= state << 13
+            state ^= state >> 17
+            state ^= state << 5
+            let index = cast #wrap(u8, state) & (colorCount - 1)
+            pixels[0] = index * #wrap 23_u8
+            pixels[1] = index * #wrap 39_u8
+            pixels[2] = index * #wrap 97_u8
+            pixels    += 3
+        }
+
+        let encoded = expect source.encodeToBytes("direct-palette-epochs.gif")
+        let crc     = colorCount == 32 ? 1974264148_u32 : 839454945_u32
+        Swag.require(Hash.Crc32.compute(encoded.toSlice()) == crc)
+        let decoded = expect Image.decode("direct-palette-epochs.gif", encoded.toSlice())
+        Swag.require(decoded.pixelFormat == .RGB8 and decoded.pixels.count == source.pixels.count)
+        Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.pixels.count) == 0)
+    }
 }
 
 // A dense palette crosses enough dictionary clears to reuse its literal-pair epochs.

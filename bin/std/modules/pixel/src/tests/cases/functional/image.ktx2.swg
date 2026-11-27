@@ -28,7 +28,7 @@ func ktx2Roundtrip(source: Image)->Image
     }
 }
 
-// KTX2's standardized ZLIB supercompression is inflated before row reconstruction.
+// KTX2 decompresses a level under its validated decoded byte count before copying pixels.
 #test
 {
     var source = Image.create(32, 32, .RGBA8)
@@ -38,18 +38,39 @@ func ktx2Roundtrip(source: Image)->Image
     var plain      = unwrap encoded.toSlice()
     let dataOffset = cast(const *u64, (plain.buffer + 80))[]
     let rawLength  = cast(const *u64, (plain.buffer + 96))[]
-    var zlib: Compress.ZLib
-    let compressed = expect zlib.compress(plain[dataOffset until dataOffset + rawLength])
+    let level = plain[dataOffset until dataOffset + rawLength]
+    var oversized: Array!{u8}
+    oversized.add(level)
+    oversized.add(0)
 
-    plain[44] = 3
-    cast(*u64, (plain.buffer + 88))[] = compressed.count
-    var rebuilt: ConcatBuffer
-    rebuilt.addBytes(plain[until dataOffset])
-    rebuilt.addBytes(compressed.toSlice())
+    for scheme in [2_u8, 3]
+    {
+        var zlib: Compress.ZLib
+        for invalid in [false, true]
+        {
+            let input = invalid ? oversized.toSlice() : level
+            let compressed = scheme == 2 ? Compress.Zstd.compress(input) : expect zlib.compress(input)
 
-    let decoded = expect Image.decode("zlib.ktx2", nnBytes(rebuilt.toSlice()))
-    assertImage(decoded, 32, 32, .RGBA8)
-    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+            plain[44] = scheme
+            cast(*u64, (plain.buffer + 88))[] = compressed.count
+            var rebuilt: ConcatBuffer
+            rebuilt.addBytes(plain[until dataOffset])
+            rebuilt.addBytes(compressed.toSlice())
+
+            if invalid
+            {
+                var failure: Swag.Error
+                discard catch Image.decode("compressed.ktx2", nnBytes(rebuilt.toSlice())) as failure
+                Swag.require(failure.value() != null)
+            }
+            else
+            {
+                let decoded = expect Image.decode("compressed.ktx2", nnBytes(rebuilt.toSlice()))
+                assertImage(decoded, 32, 32, .RGBA8)
+                Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+            }
+        }
+    }
 }
 
 #test

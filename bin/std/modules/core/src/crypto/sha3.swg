@@ -292,33 +292,21 @@ private func computeKeccak(data: const [..] u8, rate: u64, suffix: u8, destinati
     Crypto.secureClear(state)
 }
 
-internal const HmacSha3InnerPad = 0x3636363636363636_u64
-internal const HmacSha3OuterPad = 0x5C5C5C5C5C5C5C5C_u64
+private const HmacSha3InnerPad = 0x3636363636363636_u64
+private const HmacSha3OuterPad = 0x5C5C5C5C5C5C5C5C_u64
 
 #[Swag.Inline]
-internal func normalizeHmacSha3Key(key: const [..] u8, digestSize: u64, block: [..] u8)
+private func seedHmacSha3Sponges(inner, outer: *[25] u64, key: const [..] u8, rate, digestSize: u64)
 {
-    if key.count > block.count
+    let bytes = cast([*] u8, inner[].buffer)
+    if key.count > rate
     {
-        computeKeccak(key, block.count, 0x06, block[until digestSize])
+        computeKeccak(key, rate, 0x06, Swag.makeSlice(bytes, digestSize))
     }
     else if key.count
     {
-        Swag.memcpy(block.buffer, key.buffer, key.count)
+        Swag.memcpy(bytes, key.buffer, key.count)
     }
-}
-
-internal func computeHmacSha3(key, data: const [..] u8, destination: [..] u8)
-{
-    let digestSize = destination.count
-    let rate       = 200 - 2 * digestSize
-    var state: [2] [25] u64
-    defer Crypto.secureClear(state)
-
-    let inner = &state[0]
-    let outer = &state[1]
-    let bytes = cast([*] u8, inner[].buffer)
-    normalizeHmacSha3Key(key, digestSize, Swag.makeSlice(bytes, rate))
 
     // Seed both sponges with the normalized key and their respective pad bytes.
     for lane in rate / 8
@@ -330,9 +318,23 @@ internal func computeHmacSha3(key, data: const [..] u8, destination: [..] u8)
 
     permuteKeccak!{true}(inner)
     permuteKeccak!{true}(outer)
+}
 
-    let tail = absorbFullKeccakBlocks(inner, rate, data)
-    finalizeKeccak(inner, tail, rate, 0x06)
+internal func resetHmacSha3Sponges(inner, outer: *Sha3, key: const [..] u8, rate, digestSize: u64)
+{
+    inner[].clear()
+    outer[].clear()
+    inner.rate       = rate
+    outer.rate       = rate
+    inner.digestSize = digestSize
+    outer.digestSize = digestSize
+    seedHmacSha3Sponges(&inner.state, &outer.state, key, rate, digestSize)
+}
+
+#[Swag.Inline]
+private func finalizeHmacSha3Outer(inner: const *[25] u64, outer: *[25] u64, rate: u64, destination: [..] u8)
+{
+    let digestSize = destination.count
 
     // Both states use numeric little-endian lanes, so the outer digest needs no byte buffer.
     let complete = digestSize / 8
@@ -346,6 +348,32 @@ internal func computeHmacSha3(key, data: const [..] u8, destination: [..] u8)
     let last     = (inner[][complete] & tailMask) | (0x06_u64 << tailBits)
     finishKeccak(outer, rate, complete, last)
     squeezeKeccak(outer, rate, destination)
+}
+
+internal func computeHmacSha3(key, data: const [..] u8, destination: [..] u8)
+{
+    let digestSize = destination.count
+    let rate       = 200 - 2 * digestSize
+    var state: [2] [25] u64
+    defer Crypto.secureClear(state)
+
+    let inner = &state[0]
+    let outer = &state[1]
+    seedHmacSha3Sponges(inner, outer, key, rate, digestSize)
+
+    let tail = absorbFullKeccakBlocks(inner, rate, data)
+    finalizeKeccak(inner, tail, rate, 0x06)
+
+    finalizeHmacSha3Outer(inner, outer, rate, destination)
+}
+
+internal func finalizeHmacSha3Sponges(inner, outer: *Sha3, destination: [..] u8)
+{
+    let rate = inner.rate
+    finalizeKeccak(&inner.state, inner.buffer[until inner.bufferSize], rate, 0x06)
+    finalizeHmacSha3Outer(&inner.state, &outer.state, rate, destination)
+    inner[].clear()
+    outer[].clear()
 }
 
 #[Swag.Inline]
@@ -481,7 +509,11 @@ public impl Sha3
     // Clears state when this value leaves scope.
     mtd opDrop()
     {
-        .clear()
+        // clear() wipes the sponge and buffer before resetting the rate.
+        if .rate
+        {
+            .clear()
+        }
     }
 }
 

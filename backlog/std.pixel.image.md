@@ -218,6 +218,10 @@ ships; history lives in Git, not here.
   108.3 ms on two, and 103.0 to 96.2 ms on four. resvg 0.50.0 takes 54.5,
   56.2 and 57.6 ms on the same CPU budgets. The hard-stop fixture drops
   from 94.4 to 84.6 ms on four. The compared Swag raster checksums match.
+- Evidence: packed gradient tint and coverage reduce the 420-path fixture from
+  121.0 to 110.7 ms on one logical CPU, 101.9 to 92.1 ms on two, and 78.0 to
+  73.2 ms on four, with identical pixels. The 96-stop fixture drops from
+  96.8 to 84.0 ms at four, against 53.7 ms for resvg 0.50.0.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

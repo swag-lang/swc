@@ -2862,6 +2862,17 @@ private impl RenderCpu
         let cov     = .program == CpuProgram_Default
         let tinted  = (ink.argb & 0x00FF_FFFF) != 0x00FF_FFFF
         let matte   = .whiteMatte
+        let opacity = not tinted and ink.a != 255
+        let bgra    = cast #bit(Math.Simd.U8x16, Math.Simd.splat(ink.argb))
+        let tint    = Math.Simd.widenLow(bgra)
+        let base0   = Math.Simd.splat(coverage[0])
+        let base1   = Math.Simd.splat(coverage[1])
+        let base2   = Math.Simd.splat(coverage[2])
+        let zero    = Math.Simd.splat(0_f32)
+        let one     = Math.Simd.splat(1_f32)
+        let half    = Math.Simd.splat(0.5_f32)
+        let bias    = Math.Simd.splat(StrokeCoverageBias)
+        let thresh  = bias * 0.5
         const ExpandAlpha = cast(Math.Simd.U8x16, [3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15])
         for y in bounds.minY until bounds.maxY + 1
         {
@@ -2895,33 +2906,49 @@ private impl RenderCpu
                 let ys = Math.mulAdd(ws2, Math.Simd.splat(pos[2].y), Math.mulAdd(ws1, Math.Simd.splat(pos[1].y), ws0 * pos[0].y))
                 for lane in count
                 {
-                    let w0       = ws0[lane]
-                    let w1       = ws1[lane]
-                    let w2       = ws2[lane]
-                    let paintPos = Vector2{xs[lane], ys[lane]}
-                    var color    = .sampleGradient(&.paint, paintPos)
-                    if tinted
+                    colors[lane] = .sampleGradient(&.paint, {xs[lane], ys[lane]}).argb
+                }
+
+                var pixels = Math.Simd.load(cast(const [*] u8, &colors[0]))
+                if tinted
+                {
+                    // Apply the same byte-truncating tint to both halves.
+                    let lo = Math.Simd.widenLow(pixels) * tint + 1_u16
+                    let hi = Math.Simd.widenHigh(pixels) * tint + 1_u16
+                    pixels = Math.Simd.packUnsigned(
+                        cast #bit(Math.Simd.S16x8, (lo + (lo >> 8)) >> 8),
+                        cast #bit(Math.Simd.S16x8, (hi + (hi >> 8)) >> 8))
+                }
+
+                if cov or opacity
+                {
+                    let packed = cast #bit(Math.Simd.U32x4, pixels)
+                    var alpha  = packed >> 24
+                    if opacity
                     {
-                        color = Color.multiply(ink, color)
-                    }
-                    else if ink.a != 255
-                    {
-                        color.a = cast(u8, cast(u16, ink.a) * color.a / 255)
+                        let scaled = alpha * cast(u32, ink.a) + 1_u32
+                        alpha = (scaled + (scaled >> 8)) >> 8
                     }
 
                     if cov
                     {
-                        let firstTwo = coverage[0] * w0 + coverage[1] * w1
-                        let sum      = Math.mulAdd(coverage[2], w2, firstTwo)
-                        color.a = coverageAlpha(color.a, Math.saturate(signedCoverage(sum) / covWidth + 0.5))
+                        let first    = base0 * ws0
+                        let firstTwo = base1 * ws1 + first
+                        let sum      = Math.mulAdd(base2, ws2, firstTwo)
+                        let distance = Math.Simd.select(sum > thresh, half - Math.abs(sum - bias), sum - half)
+                        let amount   = Math.max(Math.min(distance / covWidth + half, one), zero)
+
+                        // Each alpha fits exactly into the f32 mantissa at 2^23.
+                        let alphaF = cast #bit(Math.Simd.F32x4, alpha + 0x4B00_0000_u32) - 8_388_608.0_f32
+                        alpha = roundScanAlpha4(alphaF * amount)
                     }
 
-                    colors[lane] = color.argb
+                    pixels = cast #bit(Math.Simd.U8x16, (packed & 0x00FF_FFFF_u32) | (alpha << 24))
                 }
 
                 if count == 4
                 {
-                    let src   = Math.Simd.load(cast(const [*] u8, &colors[0]))
+                    let src   = pixels
                     let alpha = Math.Simd.shuffle(src, ExpandAlpha)
                     let dest  = row + x * 4
                     Math.Simd.store(dest, blendAlphaBgra8x4(src, Math.Simd.load(dest), alpha))
@@ -2933,10 +2960,11 @@ private impl RenderCpu
                 }
                 else
                 {
+                    let shaded = cast #bit(Math.Simd.U32x4, pixels)
                     for lane in count
                     {
                         let pixel = (x + cast(s32, lane)) * 4
-                        let color = Color.fromArgb(colors[lane])
+                        let color = Color.fromArgb(shaded[lane])
                         blendAlphaBgra8(row + pixel, color)
                         if matte
                         {

@@ -928,6 +928,11 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     {
         paint.setOpacity(173)
         paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884_u32))
+
+        if paint.type == .RadialGradient
+        {
+            paint.multiplyTint(Color.fromArgb(0xE8B2_D584_u32))
+        }
     }
 
     var images: [2] Image

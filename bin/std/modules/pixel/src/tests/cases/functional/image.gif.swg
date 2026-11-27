@@ -281,6 +281,37 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 }
 
+// GIF LZW can refer to a phrase being added and finish with fewer than four pixels.
+#test
+{
+    const Bytes: [45] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        21, 0, 1, 0, 0x81, 0, 0,
+        13, 17, 25, 49, 61, 79, 83, 103, 127, 149, 179, 197,
+        0x2C, 0, 0, 0, 0, 21, 0, 1, 0, 0,
+        2, 1, 0x8C, 4, 0x8F, 0x69, 0xB2, 5, 0, 0x3B]
+    let image = expect Image.decode("packed-phrases.gif", Bytes)
+    Swag.require(image.width == 21 and image.height == 1)
+    for x in 21
+    {
+        if x == 17 or x == 20
+        {
+            assertGifPixelAt(image, x, 0, 83, 103, 127, 255)
+        }
+        else
+        {
+            assertGifPixelAt(image, x, 0, 49, 61, 79, 255)
+        }
+    }
+
+    var tooShort = Bytes
+    tooShort[6]  = 20
+    tooShort[30] = 20
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("packed-phrases-overflow.gif", tooShort) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
 #test
 {

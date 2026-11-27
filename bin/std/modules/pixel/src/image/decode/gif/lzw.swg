@@ -242,11 +242,155 @@ impl Decoder
         }
     }
 
+    #[Swag.Inline]
+    func packPhrase(data, length, suffix: u32)->u64
+    {
+        let payload = length < 4 ? data | (suffix << (length * 8)) : data
+        return (cast(u64, payload) << 32) | (cast(u64, length) << 8) | suffix
+    }
+
+    mtd readPackedImageData(indexed: const *IndexedFrame) fail
+    {
+        let minKeySize = cast(s32, indexed.minKeySize)
+        let start      = cast(const [*] u8, unwrap indexed.data)
+        var bits       = LzwBits{cursor: start, blockEnd: start}
+
+        let frameSize = cast(u32, indexed.width) * indexed.height
+
+        // A packed word may extend past the end of the final one- to three-byte phrase.
+        .frame.grow(cast(u64, frameSize) + 3)
+        .frame.count = frameSize
+        let frame = .frame.storage()
+
+        let clear       = 1 << minKeySize
+        let stop        = clear + 1
+        let initKeySize = minKeySize + 1
+        var keySize     = initKeySize
+        var key         = bits.readKey(keySize)
+        if key != clear
+        {
+            fail InvalidFormatError{"GIF LZW stream does not start with a clear code"}
+        }
+
+        // The low word stores the prefix length and suffix index. The high word stores
+        // whole phrases up to four bytes and the output offset of longer prefixes.
+        var entries: [LzwDictionaryLimit] u64
+        var frameOffset    = 0_u32
+        var nextCode       = stop + 1
+        var widthLimit     = 1 << keySize
+        var previousLength = 0_u32
+        var previousData   = 0_u32
+        var previousFirst  = 0_u32
+        for
+        {
+            key = bits.readKey(keySize)
+            if key == clear
+            {
+                keySize        = initKeySize
+                nextCode       = stop + 1
+                widthLimit     = 1 << keySize
+                previousLength = 0
+                continue
+            }
+
+            if key == stop or key == LzwDictionaryLimit
+            {
+                break
+            }
+
+            let canAdd  = previousLength != 0 and nextCode < LzwDictionaryLimit and frameOffset < frameSize
+            var length  = 1_u32
+            var first   = cast(u32, key)
+            var payload = first
+            if key < clear
+            {
+                if frameOffset >= frameSize
+                {
+                    fail InvalidFormatError{"GIF LZW data exceeds its frame"}
+                }
+
+                frame[frameOffset] = cast(u8, first)
+            }
+            else
+            {
+                var entry: u64
+                if key < nextCode
+                {
+                    entry = entries[key]
+                }
+                else if key == nextCode and canAdd
+                {
+                    entry = packPhrase(previousData, previousLength, previousFirst)
+                }
+                else
+                {
+                    fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
+                }
+
+                if frameOffset >= frameSize
+                {
+                    fail InvalidFormatError{"GIF LZW data exceeds its frame"}
+                }
+
+                let prefixLength = cast(u32, (entry >> 8) & LzwPrefixMask)
+                length = prefixLength + 1
+                if length > frameSize - frameOffset
+                {
+                    fail InvalidFormatError{"GIF LZW string exceeds its frame"}
+                }
+
+                payload = cast(u32, entry >> 32)
+                let target = frame + frameOffset
+                if length <= 4
+                {
+                    cast([*] u32, target)[0] = payload
+                    first = payload & 0xFF
+                }
+                else
+                {
+                    // A long prefix already exists in the output before this phrase.
+                    let prefix = frame + payload
+                    Memory.copy(target, prefix, prefixLength)
+                    first = prefix[0]
+                    target[prefixLength] = cast #wrap(u8, entry)
+                }
+            }
+
+            if canAdd
+            {
+                entries[nextCode] = packPhrase(previousData, previousLength, first)
+                nextCode += 1
+                if nextCode == widthLimit and
+                   nextCode < LzwDictionaryLimit and
+                   length < frameSize - frameOffset
+                {
+                    keySize    += 1
+                    widthLimit <<= 1
+                }
+            }
+
+            previousData   = length < 4 ? payload : frameOffset
+            previousFirst  = first
+            previousLength = length
+            frameOffset    += length
+        }
+
+        if frameOffset != frameSize
+        {
+            fail InvalidFormatError{"GIF LZW frame has too few pixels"}
+        }
+
+        if key != stop
+        {
+            fail InvalidFormatError{"GIF LZW stream needs an end code"}
+        }
+    }
+
     mtd decodeIndices(indexed: const *IndexedFrame) fail
     {
         switch indexed.lzwMode
         {
-        case .Chained:       try .readImageData!{false, false}(indexed)
+        case .PackedPhrases: try .readPackedImageData(indexed)
         case .CopyPrefixes:  try .readImageData!{true, false}(indexed)
         case .DenseLiterals: try .readImageData!{false, true}(indexed)
         }

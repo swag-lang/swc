@@ -183,7 +183,7 @@ public impl IImageDecoder for Decoder
 
 enum LzwMode
 {
-    Chained
+    PackedPhrases
     CopyPrefixes
     DenseLiterals
 }

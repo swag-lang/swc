@@ -341,9 +341,8 @@ private struct Layout
 
 // Walks the RIFF chunks and validates the complete container.
 //
-// The stream is left positioned on the first payload byte, so a caller that keeps the audio in
-// memory reads it from there. Multiple `data` chunks are rejected instead of silently truncating
-// the sound at the first segment.
+// Multiple `data` chunks are rejected instead of silently truncating the sound at the first
+// segment. The caller owns a newly opened stream positioned at the start of the file.
 private func readLayout(stream: *File.FileStream)->Layout fail
 {
     enum Stage
@@ -355,104 +354,73 @@ private func readLayout(stream: *File.FileStream)->Layout fail
 
     var result: #returntype
     var stage:  Stage = FindRiff
-    var header: ChunkHeader
-    let fileBytes     = try stream.size()
-    var riffEnd       = fileBytes
+    let fileBytes = try stream.size()
+    var riffEnd   = fileBytes
+    var nextOffset = 0_u64
+    var streamOffset = 0_u64
 
     for
     {
-        let chunkOffset = try stream.position()
-        if chunkOffset > riffEnd
+        // Offset arithmetic handles padding and skipped payloads without querying the file cursor.
+        if nextOffset == riffEnd and result.hasData
+        {
+            return result
+        }
+
+        if nextOffset > riffEnd or riffEnd - nextOffset < #sizeof(ChunkHeader)
         {
             fail InvalidFormatError{"invalid wav"}
         }
 
-        if chunkOffset < riffEnd and (chunkOffset & 1)
+        if nextOffset != streamOffset
         {
-            try stream.skip(1)
-        }
-
-        let headerOffset = try stream.position()
-        if headerOffset >= riffEnd
-        {
-            if headerOffset == riffEnd and result.hasData
-            {
-                try stream.seek(.Begin, result.dataOffset)
-                return result
-            }
-
-            fail InvalidFormatError{"invalid wav"}
-        }
-
-        if riffEnd - headerOffset < #sizeof(ChunkHeader)
-        {
-            fail InvalidFormatError{"invalid wav"}
+            try stream.seek(.Begin, nextOffset)
         }
 
         var rawHeader: [8] u8
-        if try stream.read(Swag.makeSlice(&rawHeader[0], rawHeader.count)) != rawHeader.count
+        if not (try stream.readExact(rawHeader))
         {
             fail InvalidFormatError{"invalid wav"}
         }
 
-        header = try decodeChunkHeader(Swag.makeSlice(&rawHeader[0], rawHeader.count))
-        let payloadOffset = try stream.position()
-
-        // Each chunk's odd-sized payload has one padding byte inside the RIFF boundary.
-        // Before the RIFF header is found, the file itself is the only available boundary.
-        if stage != .FindRiff or header.chunkID != .SND_WAV_FOURCC_RIFF
+        let header = try decodeChunkHeader(rawHeader)
+        let payloadOffset = nextOffset + rawHeader.count
+        streamOffset = payloadOffset
+        if stage == .FindRiff and header.chunkID == .SND_WAV_FOURCC_RIFF
         {
-            let chunkEnd   = stage == .FindRiff ? fileBytes : riffEnd
-            let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
-            if payloadOffset > chunkEnd
+            if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset
             {
-                fail InvalidFormatError{"invalid wav"}
+                fail InvalidFormatError{"invalid riff chunk"}
             }
 
-            if paddedSize > chunkEnd - payloadOffset
+            var fileType: ChunkID
+            if not (try stream.readValue(&fileType))
             {
-                fail InvalidFormatError{"invalid wav"}
+                fail InvalidFormatError{"invalid riff chunk"}
             }
+
+            if fileType != .SND_WAV_FOURCC_WAVE
+            {
+                fail InvalidFormatError{"not a wav"}
+            }
+
+            riffEnd = payloadOffset + cast(u64, header.chunkSize)
+            streamOffset += #sizeof(fileType)
+            nextOffset = streamOffset
+            stage = .FindFmt
+            continue
         }
 
+        // An odd-sized chunk has one padding byte within the RIFF boundary.
+        let paddedSize = cast(u64, header.chunkSize) + (header.chunkSize & 1)
+        if paddedSize > riffEnd - payloadOffset
+        {
+            fail InvalidFormatError{"invalid wav"}
+        }
+
+        nextOffset = payloadOffset + paddedSize
         switch header.chunkID
         {
-        case .SND_WAV_FOURCC_RIFF:
-            if stage == .FindRiff
-            {
-                if payloadOffset > fileBytes
-                {
-                    fail InvalidFormatError{"invalid riff chunk"}
-                }
-
-                if header.chunkSize < 4 or cast(u64, header.chunkSize) > fileBytes - payloadOffset
-                {
-                    fail InvalidFormatError{"invalid riff chunk"}
-                }
-
-                riffEnd = payloadOffset + cast(u64, header.chunkSize)
-                if not (try stream.readValue(&header.chunkID))
-                {
-                    fail InvalidFormatError{"invalid riff chunk"}
-                }
-
-                if header.chunkID != SND_WAV_FOURCC_WAVE
-                {
-                    fail InvalidFormatError{"not a wav"}
-                }
-
-                if (try stream.position()) > riffEnd
-                {
-                    fail InvalidFormatError{"invalid riff chunk"}
-                }
-
-                stage = .FindFmt
-            }
-            else
-            {
-                try stream.skip(header.chunkSize)
-            }
-
         case .SND_WAV_FOURCC_fmt:
             if stage == .FindFmt
             {
@@ -463,34 +431,27 @@ private func readLayout(stream: *File.FileStream)->Layout fail
 
                 var bytes: Array!{u8}
                 bytes.resize(header.chunkSize)
-                if try stream.read(bytes.toSlice()) != header.chunkSize
+                if not (try stream.readExact(bytes.toSlice()))
                 {
                     fail InvalidFormatError{"invalid wav"}
                 }
 
                 result.format = try parseFormat(bytes.toSlice())
-                stage         = .FindData
-            }
-            else
-            {
-                try stream.skip(header.chunkSize)
+                streamOffset += header.chunkSize
+                stage = .FindData
             }
 
         case .SND_WAV_FOURCC_fact:
             if header.chunkSize >= 4
             {
                 var rawFrameCount: [4] u8
-                if try stream.read(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count)) != rawFrameCount.count
+                if not (try stream.readExact(rawFrameCount))
                 {
                     fail InvalidFormatError{"invalid wav"}
                 }
 
-                result.factFrames = try decodeFactFrameCount(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count))
-                try stream.skip(header.chunkSize - 4)
-            }
-            else
-            {
-                try stream.skip(header.chunkSize)
+                result.factFrames = try decodeFactFrameCount(rawFrameCount)
+                streamOffset += rawFrameCount.count
             }
 
         case .SND_WAV_FOURCC_data:
@@ -502,34 +463,12 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                 }
 
                 result.hasData    = true
-                result.dataOffset = try stream.position()
-                if result.dataOffset > fileBytes
-                {
-                    fail InvalidFormatError{"WAV audio data is truncated"}
-                }
-
-                if cast(u64, header.chunkSize) > fileBytes - result.dataOffset
-                {
-                    fail InvalidFormatError{"WAV audio data is truncated"}
-                }
-
-                result.dataSize = header.chunkSize
-                try stream.skip(header.chunkSize)
+                result.dataOffset = payloadOffset
+                result.dataSize   = header.chunkSize
             }
-            else
-            {
-                try stream.skip(header.chunkSize)
-            }
-
-        case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl,
-             .SND_WAV_FOURCC_note, .SND_WAV_FOURCC_ltxt, .SND_WAV_FOURCC_bext:
-            try stream.skip(header.chunkSize)
 
         default:
-
-            // A zero-byte unknown chunk is valid RIFF too; reading its header already
-            // advanced the cursor, so skipping zero cannot stall traversal.
-            try stream.skip(header.chunkSize)
+            break
         }
     }
 }
@@ -647,7 +586,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if preloadData
     {
         result.data.resize(layout.dataSize)
-        if try stream.read(result.data.toSlice()) != layout.dataSize
+        if not (try stream.readExactAt(layout.dataOffset, result.data.toSlice()))
         {
             fail InvalidFormatError{"WAV audio data is truncated"}
         }

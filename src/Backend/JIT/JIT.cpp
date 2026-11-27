@@ -563,6 +563,11 @@ namespace
             return false;
         }
 
+        // Loading an explicit library may execute its initializer during relocation,
+        // before any source-level foreign call executes.
+        if (fs::path(Utf8(moduleName).c_str()).has_parent_path())
+            ctx.compiler().recordUntrackedJitEffect();
+
         outFunctionAddress = guardedForeignFunctionAddress(moduleName, functionName, functionAddress);
         if (!outFunctionAddress)
             return false;

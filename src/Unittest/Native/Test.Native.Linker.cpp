@@ -2422,6 +2422,61 @@ const Observed = #run {}
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_JitLibraryInitializersPreventStaleArtifacts)
+{
+    const LinkerTestDirectory directory("jit_library_initializer");
+    SWC_RESULT(directory.write("library.cpp", R"(
+#include <cstdio>
+
+__attribute__((constructor)) static void reportLoad()
+{
+    std::fputs("compile-time library loaded\n", stdout);
+    std::fflush(stdout);
+}
+
+extern "C" int probe() { return 42; }
+)"));
+    uint32_t                    exitCode = 0;
+    std::string                 output;
+    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+    const std::vector<Utf8>     compile = {"-shared", "-fPIC", "library.cpp", "-o", "probe.so"};
+    if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+        return Result::Error;
+
+    SWC_RESULT(directory.write("modules/app/module.swg", ""));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#[Swag.Foreign("./probe.so", callconv: .C)]
+func probe()->s32
+
+#[Swag.NoInline, Swag.Optimize(false)]
+func evaluate(enabled: bool)->s32
+{
+    if enabled
+    {
+        return probe()
+    }
+    return 17
+}
+const Observed = #run evaluate(false)
+#main { Swag.print("library-result=", Observed, "\n") }
+)"));
+    for (const bool rebuild : {true, false, false})
+    {
+        std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (rebuild)
+            arguments.push_back("--rebuild");
+        output.clear();
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains("compile-time library loaded") || !output.contains("library-result=17") || output.contains("module up-to-date"))
+        {
+            std::println(stderr, "[compile-time library initializer] {}", output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

@@ -129,9 +129,14 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
         }
     }
 
-    scalarChaCha20Xor(key, nonce, source[until 256], expected[until 256], Swag.U32.Max - 3)
-    expect Crypto.chacha20Xor(key, nonce, source[until 256], actual[until 256], Swag.U32.Max - 3)
-    Swag.require(Slice.equals(actual[until 256], expected[until 256]))
+    const LastCounterLengths = [65_u64, 128, 129, 193, 255, 256]
+    for length in LastCounterLengths
+    {
+        let counter = Swag.U32.Max - cast(u32, (length - 1) / Crypto.ChaCha20BlockSize)
+        scalarChaCha20Xor(key, nonce, source[until length], expected[until length], counter)
+        expect Crypto.chacha20Xor(key, nonce, source[until length], actual[until length], counter)
+        Swag.require(Slice.equals(actual[until length], expected[until length]))
+    }
 }
 
 #test

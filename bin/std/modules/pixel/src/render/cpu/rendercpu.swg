@@ -1019,6 +1019,16 @@ private impl RenderCpu
         }
     }
 
+    func blendRgb(src, dst: Math.Vector3, mode: BlendingMode)->Math.Vector3
+    {
+        if mode.isSeparable()
+        {
+            return {blendSeparable(src.x, dst.x, mode), blendSeparable(src.y, dst.y, mode), blendSeparable(src.z, dst.z, mode)}
+        }
+
+        return blendNonSeparable(src, dst, mode)
+    }
+
     func blendAdvanced(src, dst: Math.Vector3, srcAlpha, dstAlpha: f32, mode: BlendingMode)->Math.Vector3
     {
         // Render targets accumulate premultiplied color under source-over blending. Recover the
@@ -1027,14 +1037,7 @@ private impl RenderCpu
         let backdrop = dstAlpha > 0 ? Math.Vector3{Math.clamp(dst.x / dstAlpha, 0.0, 1.0),
                                                    Math.clamp(dst.y / dstAlpha, 0.0, 1.0),
                                                    Math.clamp(dst.z / dstAlpha, 0.0, 1.0)} : Math.Vector3.Zero
-        var blended = blendNonSeparable(src, backdrop, mode)
-        if mode.isSeparable()
-        {
-            blended.x = blendSeparable(src.x, backdrop.x, mode)
-            blended.y = blendSeparable(src.y, backdrop.y, mode)
-            blended.z = blendSeparable(src.z, backdrop.z, mode)
-        }
-
+        let blended = blendRgb(src, backdrop, mode)
         return blended * srcAlpha * dstAlpha + src * srcAlpha * (1.0 - dstAlpha) + dst * (1.0 - srcAlpha)
     }
 
@@ -4848,6 +4851,62 @@ private impl RenderCpu
                 {
                     stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
                 }
+            }
+
+            return
+        }
+
+        let mode = .blendingMode
+        if mode.usesAdvancedBlending()
+        {
+            if image.pixelFormat == .BGRA8 and
+               image.alphaMode == .Straight and
+               .colorMask.r and
+               .colorMask.g and
+               .colorMask.b and
+               not .colorMask.a and
+               not .alphaResolve and
+               not .overlapPass
+            {
+                let offset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
+                let pixels = image.pixels.storage() + offset
+                let source = Math.Vector3{cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0}
+                for column in firstX until endX where coverage[column] > 0
+                {
+                    var alpha = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+                    if maskRow
+                    {
+                        alpha = cast(u8, (cast(u32, alpha) * maskRow[column]) / 255)
+                    }
+
+                    if not alpha
+                    {
+                        continue
+                    }
+
+                    let target   = pixels + column * 4
+                    let backdrop = Math.Vector3{cast(f32, target[2]) / 255.0, cast(f32, target[1]) / 255.0, cast(f32, target[0]) / 255.0}
+                    let weight   = cast(f32, alpha) / 255.0
+                    let result   = blendRgb(source, backdrop, mode) * weight + backdrop * (1.0 - weight)
+                    let ink      = Color.fromArgbF32(0, result.x, result.y, result.z)
+                    target[0] = ink.b
+                    target[1] = ink.g
+                    target[2] = ink.r
+                }
+
+                return
+            }
+
+            for column in firstX until endX where coverage[column] > 0
+            {
+                var ink = color
+                ink.a = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+                if maskRow
+                {
+                    ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
+                }
+
+                .blendPixel(image, left + cast(s32, column), deviceY, ink)
             }
 
             return

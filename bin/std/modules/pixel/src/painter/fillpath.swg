@@ -617,7 +617,7 @@ public impl Painter
         .fillPath(pathList, Brush.createSolid(color), rule)
     }
 
-    private mtd const canRecordScanPath()->bool
+    private mtd const canRecordScanPath(allowAdvanced = false)->bool
     {
         let mask = .curState.colorMask
         return .useScanlineFills and
@@ -626,7 +626,7 @@ public impl Painter
                .usesDefaultShader and
                .canSetTexture0 and
                (.curState.paintParams & .Antialiased) and
-               .curState.blendingMode == .Alpha and
+               (.curState.blendingMode == .Alpha or (allowAdvanced and .curState.blendingMode.usesAdvancedBlending())) and
                mask.r and
                mask.g and
                mask.b and
@@ -697,7 +697,7 @@ public impl Painter
 
     internal mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
     {
-        if not .canRecordScanPath()
+        if not .canRecordScanPath(allowAdvanced: true)
         {
             return false
         }

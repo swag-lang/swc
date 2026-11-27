@@ -1352,3 +1352,36 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
     let image = renderCpu(160, 320, &painter)
     Swag.require(image.pixelColor(96, 271).a == 111)
 }
+
+// A scanline fill blends covered pixels against the RGB backdrop and leaves alpha intact.
+#test
+{
+    let background = Color.fromRgb(192, 128, 64)
+    var path: LinePathList
+    let shape      = path.newPath()
+    shape.start(2.25, 2)
+    shape.lineTo(12, 2)
+    shape.lineTo(12, 8)
+    shape.lineTo(2.25, 8)
+    shape.close()
+
+    var renderer: RenderCpu
+    renderer.begin(16, 10)
+    let backend: IRenderer = &renderer
+    var painter = Painter.createScanline(&renderer)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(background)
+    painter.setColorMaskColor()
+    painter.setBlendingMode(.Multiply)
+    painter.fillPath(&path, Color.fromArgb(128_u8, 128_u8, 255_u8, 0_u8), .NonZero)
+    painter.end()
+
+    discard expect backend.draw(&painter)
+    backend.end()
+    let image = renderer.surfaceImage()
+    assertPixel(image, 1, 3, background)
+    assertPixel(image, 6, 3, Color.fromRgb(144, 128, 31))
+    assertPixel(image, 2, 3, Color.fromRgb(156, 128, 39))
+    assertPixel(image, 12, 3, background)
+}

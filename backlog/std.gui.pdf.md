@@ -639,6 +639,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Borrowing single-Flate inputs and reserving a bounded raster row estimate takes the
   public RGB16 page from 12.44 to 9.51 ms of load and from 21.53 to 19.29 ms total.
   The same runs measure PDFium at 16.69 ms. Seven tested pages keep their bitmap checksums.
+- Scan conversion and an opaque RGB span compositor reduce the advanced blend-mode page
+  from 315 to 248 ms in the first series, then from 195 to 90 ms in the opaque-span series.
+  PDFium takes 81 ms in the latter. Mean RGB difference from PDFium changes from 2.52 to
+  2.44 levels at 1200 px. The group and graphics-state controls retain identical pixels.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

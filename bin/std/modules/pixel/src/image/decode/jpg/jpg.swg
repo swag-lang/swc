@@ -7,7 +7,7 @@
 
 using Swag, Core, Core.Errors
 
-private const DecoderFormat: ImageFormat = {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif;.jif;.jfi;.jps"}
+private const DecoderFormat: ImageFormat = {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg;.jpe;.jfif;.jif;.jfi;.jps;.pjp;.pjpeg"}
 
 // Reports whether the filename extension selects the built-in JPEG decoder.
 public func matchesFileName(fileName: string)->bool => DecoderFormat.matches(fileName)

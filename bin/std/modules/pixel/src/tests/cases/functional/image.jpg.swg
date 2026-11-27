@@ -176,7 +176,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 {
     let bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     let reference = expect Image.decode("photo.jpg", bytes.toSlice())
-    for name in ["photo.jpeg", "photo.JPE", "photo.jfif", "photo.jif", "photo.jfi", "photo.JPS"]
+    for name in ["photo.jpeg", "photo.JPE", "photo.jfif", "photo.jif", "photo.jfi", "photo.JPS", "photo.PJP", "photo.pjpeg"]
     {
         Swag.require(Jpg.matchesFileName(name) and Image.canLoad(name))
         var reader = expect ImageReader.decode(name, bytes.toSlice())
@@ -190,6 +190,8 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(not Jpg.matchesFileName("photo.jxl"))
     Swag.require(not Image.canLoad("photo.jxl"))
     Swag.require(not Image.canSave("photo.jps"))
+    Swag.require(not Image.canSave("photo.pjp"))
+    Swag.require(not Image.canSave("photo.pjpeg"))
     Swag.require(Image.canSave("photo.jpg"))
     Swag.require(Image.canSave("photo.jpeg"))
 }

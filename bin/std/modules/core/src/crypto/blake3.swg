@@ -264,6 +264,18 @@ private func(Round: u64) blake3MixChunkRound(a0, a1, a2, a3, b0, b1, b2, b3,
     }
 }
 
+#[Swag.Mixin]
+private func blake3MixChunkRounds(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3: *Blake3Vector, message: const *[16] Blake3Vector)
+{
+    blake3MixChunkRound!{0}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{1}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{2}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{3}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{4}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{5}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+    blake3MixChunkRound!{6}(a0, a1, a2, a3, b0, b1, b2, b3, c0, c1, c2, c3, d0, d1, d2, d3, message)
+}
+
 // When the final block stays buffered, return the last lane's chaining value before it.
 private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Chunks][8] u32
 {
@@ -344,20 +356,7 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
         var d2 = blockSize
         var d3 = Math.Simd.splat(blockFlags)
 
-        blake3MixChunkRound!{0}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{1}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{2}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{3}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{4}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{5}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound!{6}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRounds(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3, &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
 
         var next: [8] Blake3Vector = [a0 ^ c0, a1 ^ c1, a2 ^ c2, a3 ^ c3,
                                        b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3]
@@ -387,6 +386,72 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
     }
 
     return result
+}
+
+#[Swag.Mixin]
+private func blake3StoreRootRows(destination: [*] u8, first, second, third, fourth: Blake3Vector)
+{
+    scope
+    {
+        var rows = [first, second, third, fourth]
+        Math.Simd.transpose4x4(&rows)
+        Math.Simd.store(cast([*] u32, destination), Math.nativeToLittleEndian(rows[0]))
+        Math.Simd.store(cast([*] u32, destination + Blake3BlockSize), Math.nativeToLittleEndian(rows[1]))
+        Math.Simd.store(cast([*] u32, destination + 2 * Blake3BlockSize), Math.nativeToLittleEndian(rows[2]))
+        Math.Simd.store(cast([*] u32, destination + 3 * Blake3BlockSize), Math.nativeToLittleEndian(rows[3]))
+    }
+}
+
+#[Swag.NoInline]
+private func blake3WriteRootBatches(output: const *Blake3Output, destination: [*] u8, batches: u64)
+{
+    const Offsets = cast(Blake3Vector, [0_u32, 1, 2, 3])
+    var message: [16] Blake3Vector
+    for index in 16
+    {
+        message[index] = Math.Simd.splat(output.block[index])
+    }
+
+    let cv0       = Math.Simd.splat(output.inputCv[0])
+    let cv1       = Math.Simd.splat(output.inputCv[1])
+    let cv2       = Math.Simd.splat(output.inputCv[2])
+    let cv3       = Math.Simd.splat(output.inputCv[3])
+    let cv4       = Math.Simd.splat(output.inputCv[4])
+    let cv5       = Math.Simd.splat(output.inputCv[5])
+    let cv6       = Math.Simd.splat(output.inputCv[6])
+    let cv7       = Math.Simd.splat(output.inputCv[7])
+    let blockSize = Math.Simd.splat(output.blockSize)
+    let flags     = Math.Simd.splat(output.flags | Blake3Root)
+    for batch in batches
+    {
+        let counter = 4 * batch
+        var a0      = cv0
+        var a1      = cv1
+        var a2      = cv2
+        var a3      = cv3
+        var b0      = cv4
+        var b1      = cv5
+        var b2      = cv6
+        var b3      = cv7
+        var c0      = Math.Simd.splat(Blake3Iv[0])
+        var c1      = Math.Simd.splat(Blake3Iv[1])
+        var c2      = Math.Simd.splat(Blake3Iv[2])
+        var c3      = Math.Simd.splat(Blake3Iv[3])
+
+        // Each batch starts at a multiple of four, so the high word is common to all lanes.
+        var d0 = Math.Simd.splat(cast(u32, counter)) + Offsets
+        var d1 = Math.Simd.splat(cast(u32, counter >> 32))
+        var d2 = blockSize
+        var d3 = flags
+
+        blake3MixChunkRounds(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3, &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+
+        let bytes = destination + counter * Blake3BlockSize
+        blake3StoreRootRows(bytes, a0 ^ c0, a1 ^ c1, a2 ^ c2, a3 ^ c3)
+        blake3StoreRootRows(bytes + 16, b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3)
+        blake3StoreRootRows(bytes + 32, c0 ^ cv0, c1 ^ cv1, c2 ^ cv2, c3 ^ cv3)
+        blake3StoreRootRows(bytes + 48, d0 ^ cv4, d1 ^ cv5, d2 ^ cv6, d3 ^ cv7)
+    }
 }
 
 private const Blake3SubtreeChunks = 2 * Blake3ChunksPerBatch
@@ -818,8 +883,23 @@ public impl Blake3
             return
         }
 
+        writeExtendedRootOutput(output, destination, flags)
+    }
+
+    #[Swag.NoInline]
+    private func writeExtendedRootOutput(output: const *Blake3Output, destination: [..] u8, flags: u32)
+    {
         var written       = 0_u64
         var outputCounter = 0_u64
+        const BatchBytes = 4 * Blake3BlockSize
+        if destination.count >= BatchBytes
+        {
+            let batches = destination.count / BatchBytes
+            blake3WriteRootBatches(output, destination.buffer, batches)
+            written       = batches * BatchBytes
+            outputCounter = 4 * batches
+        }
+
         while destination.count - written >= Blake3BlockSize
         {
             let words = cast([*] u32, destination.buffer + written)

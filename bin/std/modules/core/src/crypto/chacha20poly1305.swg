@@ -109,7 +109,7 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     }
 
     var computed: Poly1305Tag
-    if plaintext.count and plaintext.count <= ChaCha20BlockSize
+    if plaintext.count and plaintext.count <= 3 * ChaCha20BlockSize
     {
         var authKey: [Poly1305KeySize] u8
         defer secureClear(authKey)

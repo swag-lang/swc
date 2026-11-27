@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaJIT.ScalarCache.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
@@ -19,7 +20,9 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/PointerSet.h"
@@ -91,6 +94,8 @@ namespace
         JITCallResultMeta resultMeta;
 
         bool setFoldedTypedConst = false;
+        Utf8   scalarRunKey;
+        size_t scalarRunWarningsBefore = 0;
     };
 
     struct ConstCallCacheStorage
@@ -343,6 +348,9 @@ namespace
 
         if (pendingEntry.payload.constCallCacheKey)
             cacheConstCallResult(sema, std::move(*pendingEntry.payload.constCallCacheKey), cstRef);
+        if (!pendingEntry.scalarRunKey.empty() && !sema.ctx().hasWarning() && !sema.compiler().jitWroteOutput() &&
+            Stats::get().numWarnings.load(std::memory_order_relaxed) == pendingEntry.scalarRunWarningsBefore)
+            SemaJIT::ScalarCache::write(pendingEntry.scalarRunKey, pendingEntry.payload.resultStorage.span());
     }
 
     // A root's order includes everything it reaches. Skip roots already encountered
@@ -1377,7 +1385,22 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const TypeRef           exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
 
+    std::array<std::byte, sizeof(uint64_t)> scalarResult{};
+    const bool                             scalarResultFits = resultMeta.resultSize <= scalarResult.size();
+    Utf8                                   scalarKey;
+    const size_t warningsBefore = Stats::get().numWarnings.load(std::memory_order_relaxed);
+    if (scalarResultFits)
+        scalarKey = ScalarCache::buildKey(sema, symFn, nodeExprRef, exprTypeRef);
+    if (!scalarKey.empty() && !sema.ctx().cmdLine().rebuild &&
+        ScalarCache::read(std::span{scalarResult}.first(resultMeta.resultSize), scalarKey))
+    {
+        sema.setConstant(nodeExprRef, makeJitCallResultConstantRef(sema, resultMeta, scalarResult.data(), true));
+        return Result::Continue;
+    }
+
     SWC_RESULT(prepareJitFunction(sema, symFn));
+    if (scalarResultFits && scalarKey.empty())
+        scalarKey = ScalarCache::buildKey(sema, symFn, nodeExprRef, exprTypeRef);
 
     // Build payload and submit with shared node lifecycle.
     const auto      pendingEntry = std::make_shared<JITPendingNodeData>();
@@ -1389,6 +1412,8 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     request.arg0    = reinterpret_cast<uint64_t>(payload.resultStorage.data());
     request.hasArg0 = true;
 
+    pendingEntry->scalarRunKey            = std::move(scalarKey);
+    pendingEntry->scalarRunWarningsBefore = warningsBefore;
     return submitJitNode(sema, nodeExprRef, request, pendingEntry, resultMeta, false);
 }
 

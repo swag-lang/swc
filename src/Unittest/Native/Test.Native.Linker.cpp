@@ -2178,6 +2178,61 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_RepeatsCompileTimeWrites)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ScalarRunsRespectDependencyChanges)
+{
+    const LinkerTestDirectory directory("scalar_run_dependency");
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"provider\")\n"));
+    const auto writeProvider = [&](const int increment, const std::string_view effect = {}) {
+        return directory.write("modules/provider/src/main.swg", std::format(R"(
+private func accumulate(value: s64)->s64
+{{
+    {}var result = value
+    for 8 {{ result = result + {} }}
+    return result
+}}
+public func observed(value: s64)->s64 => accumulate(value)
+)", effect, increment));
+    };
+    const auto run = [&](const std::string_view label, const int expected, const bool rebuild, const bool hasEffect = false) -> Result {
+        SWC_RESULT(directory.write("modules/app/src/main.swg", std::format(R"(
+const Computed = #run Provider.observed(7_s64)
+#main {{ Swag.print("{}=", Computed, "/", Provider.observed(7_s64), "\n") }}
+)", label)));
+        std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (rebuild)
+            arguments.push_back("--rebuild");
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
+        const auto processResult = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+        constexpr std::string_view effect = "calculation effect";
+        const size_t firstEffect = output.find(effect);
+        const size_t repeatedEffect = firstEffect == std::string::npos ? firstEffect : output.find(effect, firstEffect + effect.size());
+        if (processResult != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains(std::format("{}={}/{}", label, expected, expected)) ||
+            (hasEffect ? repeatedEffect == std::string::npos : firstEffect != std::string::npos) ||
+            output.contains("module up-to-date"))
+        {
+            std::println(stderr, "[scalar compile-time evaluation] {}", output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+
+    SWC_RESULT(writeProvider(752379));
+    SWC_RESULT(run("fresh", 6019039, true));
+    SWC_RESULT(run("consumer-edit", 6019039, false));
+    SWC_RESULT(writeProvider(752380));
+    SWC_RESULT(run("body-edit", 6019047, false));
+    SWC_RESULT(run("rebuild", 6019047, true));
+    SWC_RESULT(writeProvider(752380, "Swag.print(\"calculation effect\\n\")\n    "));
+    SWC_RESULT(run("effect-fresh", 6019047, false, true));
+    SWC_RESULT(run("effect-edit", 6019047, false, true));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 {
     const LinkerTestDirectory directory("shared_source_load");

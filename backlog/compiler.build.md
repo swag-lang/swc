@@ -487,16 +487,26 @@ before relying on them.
   12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
   paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
   of 16. The prototype is not merged.
+- A trace counted 463 queued `#run` expressions for `gui1` and 452 for the PNG script.
+  CRC32 and CRC64 power and reciprocal calculations led both counts. Warm Linux Release
+  builds reused 408 results in each workload before JIT preparation. The key covers current
+  scalar arguments, local bindings, inlined operations, selected transitive bodies, source
+  bytes, runtime inputs, and safety and warning settings. Other operations continue through
+  the regular JIT path. A private callee edit and a competing overload produced distinct
+  keys, a signature edit preserved the fresh build's diagnostic, and a corrupted entry was
+  recalculated. Four concurrent writers left a reusable entry. A signed overflow wrapped
+  in fresh and warm Release builds and reported the same diagnostic location in fresh and
+  warm Release Safe builds. Across six alternating pairs on Linux Release with four
+  workers, compared with e001896f14, the median `gui1` edit took 7.46 s before and
+  7.34 s with the cache (1,714 to 1,717 MiB peak RSS). The PNG script took 3.55 s
+  before and 3.38 s with the cache (1,139 to 1,130 MiB peak RSS). The median paired
+  elapsed-time change was -1.0% on `gui1`, with mixed results, and -4.8% on PNG,
+  which improved in every pair.
 - Next: profile the remaining compile-time evaluations. A runtime root with calls adds every
   global function-initializer target even when its expression only reads type information.
-  Reuse eligible conditions and `#ast` results across generic bindings and check the cost of
-  preparing unrelated targets. Then retry deferred dependency bodies with the call-site and
-  escape-check changes above, and measure CPU time as well as elapsed time.
   Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by
-  1.8% by median across three pairs. A trace counted 463 queued `#run` expressions for `gui1`
-  and 452 for the PNG script. CRC32 and CRC64 power and reciprocal calculations led both counts.
-  Start result reuse with checked scalar calculations, including loops and direct calls, and
-  fingerprint their arguments, constants, and selected transitive bodies before JIT preparation.
+  1.8% by median across three pairs. Check the cost of preparing unrelated targets. Then
+  retry deferred dependency bodies with the call-site and escape-check changes above.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about

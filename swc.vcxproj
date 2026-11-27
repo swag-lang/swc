@@ -588,6 +588,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Symbol.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Type.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.ScalarCache.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Resolve.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
@@ -978,6 +979,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaVarDeclHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.ScalarCache.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOpKind.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>

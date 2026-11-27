@@ -181,6 +181,16 @@ the same six pictures.
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
 
+`synthetic-opendml.avi` remuxes the six synthetic `ffmpeg-rawvideo-bgr24.avi` pictures
+with their original payloads and timeline. The first `RIFF AVI ` holds three pictures
+and an `idx1` for those pictures. A `RIFF AVIX` continuation holds the last three in a
+`rec ` list. The video `indx` refers to one `ix00` standard index in each RIFF and
+`dmlh` declares the complete picture count. A separately generated mono 8,000 Hz
+signed 16-bit PCM track holds samples −1,000 through −985 in the first RIFF and
+1,000 through 1,015 in the continuation. The fixture is distributed under the
+repository's licence. Its 14,812 bytes have SHA-256
+`9a993c84e1f8cd0dbd96340993ae139d6186c3ac9ba2e1400c2ce4b2df4566f9`.
+
 `edited-truncated-tail.mkv` is `ffmpeg-h264-two-aac.mkv` with everything from its second cluster
 onward replaced by zeros, which is what a write that stopped part way leaves behind, and what two
 files of a real library turned out to hold. The first cluster and every element before it are

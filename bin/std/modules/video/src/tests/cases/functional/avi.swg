@@ -263,6 +263,92 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
+// CRC-32 of the FFmpeg RGB24 output, with each frame's rows in Image storage order.
+const OpenDmlPictureCrcs = [0x33269741_u32, 0x84AAC5C6, 0xE9D10BBB, 0x30C36689, 0xBFD4183C, 0xEA34FA73]
+
+// The AVI header and `idx1` describe only the first RIFF. The OpenDML index reaches
+// the second `movi` list and its record group, and audio follows the same continuation.
+#test
+{
+    let path   = videoFixturePath("synthetic-opendml.avi")
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 6 and reader.width() == 32 and reader.height() == 24)
+    Swag.require(reader.frameRate() == expect FrameRate.create(25, 1))
+    for index in [5_u64, 0, 3, 2, 4, 1]
+    {
+        let picture = expect reader.decodeFrame(index)
+        Swag.require(Hash.Crc32.compute(picture.pixels.toSlice()) == OpenDmlPictureCrcs[index])
+        Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(index), cast(f64, index) / 25, 0.000001))
+    }
+
+    Swag.require(reader.audioTrackCount() == 1)
+    let audio = unwrap reader.audioTrack(0)
+    Swag.require(audio.sampleFrameCount() == 32 and audio.sampleRateHz() == 8_000)
+    let pcm = expect audio.readPayload(0, audio.payloadSize())
+    Swag.require(Hash.Crc32.compute(pcm.toSlice()) == 0x3DE0907C)
+
+    let bytes  = expect File.readAllBytes(path)
+    var source = ByteSource.openMemory(bytes.toSlice())
+    var avi:     Avi.Decoder
+    let decoder: IDecoder = &avi
+    let info   = expect decoder.open(&source)
+    Swag.require(info.frameCount == 6)
+
+    // The standard indexes mark every raw frame as a keyframe. A frame-list walk marks
+    // only the first one, so these flags also distinguish index use from the fallback.
+    Swag.require(avi.frames[2].isSync and avi.frames[5].isSync)
+}
+
+// Missing or malformed OpenDML indexes fall back to both movie lists. The usable legacy
+// `idx1` still only covers the first RIFF and must not hide the continuation.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("synthetic-opendml.avi"))
+    let index = Slice.findSubslice(bytes.toSlice(), "indx")
+    Swag.require(index < bytes.count and index + 40 <= bytes.count)
+    let tag = aviReadU32(bytes.toSlice(), index)
+    aviWriteU32(bytes.toSlice(), index, Avi.fourCc('J'_u32, 'U'_u32, 'N'_u32, 'K'_u32))
+    var noIndex = expect Reader.openMemory("no-opendml-index.avi", bytes.toSlice())
+    Swag.require(noIndex.frameCount() == 6)
+    let last = expect noIndex.decodeFrame(5)
+    Swag.require(Hash.Crc32.compute(last.pixels.toSlice()) == OpenDmlPictureCrcs[5])
+    noIndex.close()
+
+    aviWriteU32(bytes.toSlice(), index, tag)
+    let firstReference = index + 8 + 24
+    let firstTable     = cast(u64, aviReadU32(bytes.toSlice(), firstReference))
+    Swag.require(firstTable + 28 <= bytes.count and aviHasId(bytes.toSlice(), firstTable, "ix00"))
+
+    // Exercise an incomplete superindex, a wide child offset, and a wide standard base.
+    for field in [index + 8 + 4, firstReference + 4, firstTable + 8 + 16]
+    {
+        let original = aviReadU32(bytes.toSlice(), field)
+        aviWriteU32(bytes.toSlice(), field, 1)
+        var reader = expect Reader.openMemory("bad-opendml-index.avi", bytes.toSlice())
+        Swag.require(reader.frameCount() == 6)
+        for rank in [3_u64, 5, 2]
+        {
+            let picture = expect reader.decodeFrame(rank)
+            Swag.require(Hash.Crc32.compute(picture.pixels.toSlice()) == OpenDmlPictureCrcs[rank])
+        }
+
+        reader.close()
+        aviWriteU32(bytes.toSlice(), field, original)
+    }
+}
+
+// A malformed continuation cannot claim bytes beyond the source.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("synthetic-opendml.avi"))
+    let form  = Slice.findSubslice(bytes.toSlice(), "AVIX")
+    Swag.require(form >= 8 and form < bytes.count and aviHasId(bytes.toSlice(), form - 8, "RIFF"))
+    aviWriteU32(bytes.toSlice(), form - 4, Swag.U32.Max)
+    var invalid: Swag.Error
+    discard catch Reader.openMemory("truncated-avix.avi", bytes.toSlice()) as invalid
+    Swag.require(invalid.value() is InvalidFormatError)
+}
+
 // A child chunk must stay inside its `rec ` list even when later records remain inside `movi`.
 #test
 {

@@ -35,16 +35,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
   across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
 
-### std.video.004 — An AVI larger than four gigabytes is refused
+### std.video.004 — AVI output is limited to one RIFF
 
-- Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four
-  gigabytes, and the decoder reads `idx1` or walks the first RIFF's `movi` list
-  (`walkFrames`), ignoring OpenDML's 64-bit `indx` chunks and `RIFF AVIX` continuations, which
-  any capture longer than a few minutes at a usable bitrate produces.
-- Next: read the OpenDML `indx` hierarchy and follow `AVIX` continuations in the decoder,
-  then emit them from the encoder.
-- Done when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
-  encoder emits them instead of failing once the stream approaches the limit.
+- Evidence: `encode/avi/avi.swg` writes a classic RIFF and a 32-bit `idx1` table. Its
+  size limit prevents longer Motion JPEG recordings from being finalized. `Reader`
+  can follow the 64-bit OpenDML frame index and `RIFF AVIX` continuations.
+- Next: emit OpenDML standard indexes and a continuation before exhausting the RIFF
+  size. Backpatch the superindex and total frame count when finalizing the stream.
+- Done when: the writer can finalize an AVI past the four-gigabyte boundary, and
+  both `Reader` and FFmpeg seek and decode pictures beyond it.
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 

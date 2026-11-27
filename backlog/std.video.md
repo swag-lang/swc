@@ -83,6 +83,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.040 — Reduce the remaining RealVideo filter cost
 
+- Evidence: packed bilinear motion interpolation lowers paired time by 8.6–9.4% on
+  2,880 pictures, without changing the decoded planes. The confirmation medians are
+  0.104 ms per picture for Swag and 0.0365 ms for FFmpeg 9.1. Before the change,
+  deblocking accounted for 30% of sampled time and bilinear interpolation for 10%.
 - Evidence: the packed-filter comparison
   measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
   post-change profile assigns 23% of samples to deblocking and 9% to bilinear

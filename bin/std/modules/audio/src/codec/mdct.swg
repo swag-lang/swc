@@ -276,44 +276,33 @@ impl Mdct
         let re      = .real.storage()
         let im      = .imaginary.storage()
 
-        // Each complex point receives exactly one sample from two quarters.
+        let cosine = .twiddleCos.storage()
+        let sine   = .twiddleSin.storage()
+        // Fold and rotate each complex point directly into its bit-reversed FFT position.
         for point in quarter
         {
             let mirror = m - 1 - 2 * point
             let first  = 2 * point
-            re[point]           = -input[2 * m + mirror] - input[3 * m + first]
-            im[point]           = input[m + first] - input[mirror]
-            re[quarter + point] = input[first] - input[m + mirror]
-            im[quarter + point] = input[2 * m + first] + input[3 * m + mirror]
-        }
 
-        for k in m
-        {
-            let c = .twiddleCos[k]
-            let s = .twiddleSin[k]
-            let r = re[k] * c - im[k] * s
-            let i = im[k] * c + re[k] * s
-            re[k] = r
-            im[k] = i
-        }
+            let low    = .reverse[point]
+            let lowR   = -input[2 * m + mirror] - input[3 * m + first]
+            let lowI   = input[m + first] - input[mirror]
+            let lowCos = cosine[point]
+            let lowSin = sine[point]
+            re[low] = lowR * lowCos - lowI * lowSin
+            im[low] = lowI * lowCos + lowR * lowSin
 
-        for k in m
-        {
-            let other = .reverse[k]
-            if other > k
-            {
-                let r = re[k]
-                let i = im[k]
-                re[k]     = re[other]
-                im[k]     = im[other]
-                re[other] = r
-                im[other] = i
-            }
+            let next    = quarter + point
+            let high    = .reverse[next]
+            let highR   = input[first] - input[m + mirror]
+            let highI   = input[2 * m + first] + input[3 * m + mirror]
+            let highCos = cosine[next]
+            let highSin = sine[next]
+            re[high] = highR * highCos - highI * highSin
+            im[high] = highI * highCos + highR * highSin
         }
 
         .fft(1)
-        let cosine = .twiddleCos.storage()
-        let sine   = .twiddleSin.storage()
 
         if m >= 8
         {

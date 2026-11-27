@@ -30,6 +30,12 @@ private func dctDecodeDocument(width, height: s32, space, decode: string, jpeg: 
     let identityPixels = unwrap onlyItem(identity.pages[0], .Image).imageValue()
     Swag.require(inversePixels.pixelFormat == .Gray8 and rangePixels.pixelFormat == .Gray8)
     Swag.require(Slice.equals(source.pixels.toSlice(), identityPixels.pixels.toSlice()))
+    let stored   = expect inverted.encode()
+    let reopened = expect Document.decode(stored.toSlice())
+    let stream   = reopened.pages[0].items[0].image.encoded()
+    Swag.require(stream.channels == 1 and stream.invertedSamples == 1)
+    Swag.require(Slice.equals(stream.bytes.toSlice(), bytes.toSlice()))
+    Swag.require(Slice.equals(reopened.pages[0].items[0].imageValue()!.pixels.toSlice(), inversePixels.pixels.toSlice()))
     for sample, i in source.pixels
     {
         Swag.require(inversePixels.pixels[i] == 255 - sample)

@@ -30,7 +30,7 @@ struct EncodedImageStream
     channels:        u8
     bits:            u8 = 8
     predictor:       u8 = 1
-    invertedInk:     u8     // CMYK DCT components whose stored samples use [1 0].
+    invertedSamples: u8     // JPEG components whose stored samples use [1 0].
     interpolate:     bool
     fax:             EncodedFaxParameters
 }

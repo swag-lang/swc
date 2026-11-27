@@ -403,7 +403,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   from 65.56 to 0.15 ms to save and from 355 to 275 kB. PDFium renders the saved page
   pixel for pixel like the source. Different palettes for equal packed samples keep distinct
   image objects.
-- Next: retain remaining JPEG dictionary forms and encode newly authored palette images.
+- Gray and RGB JPEG streams with default or inverted component directions also survive saving.
+  Three public-derived range variants save in 0.14–0.46 ms, down from 104–557 ms, with
+  unchanged raw JPEG bytes and PDFium raster. A fourth case retains explicit interpolation.
+- Next: retain fractional JPEG decode ranges and encode newly authored palette images.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.

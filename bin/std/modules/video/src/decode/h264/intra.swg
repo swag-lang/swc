@@ -212,13 +212,18 @@ func readIntra4Edges(dst: const [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft
 // last available top sample.
 func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft, hasTopRight: bool)
 {
+    if mode > IntraHorizontalUp
+    {
+        return
+    }
+
     let edges = readIntra4Edges(dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
-    intraPredict4x4WithEdges(mode, dst, stride, hasLeft, hasTop, edges)
+    storeIntra4x4(dst, stride, intra4Samples(mode, hasLeft, hasTop, edges))
 }
 
-func intraPredict4x4WithEdges(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop: bool, edges: Simd.U8x16)
+// Builds the sixteen prediction samples in raster order.
+func intra4Samples(mode: u32, hasLeft, hasTop: bool, edges: Simd.U8x16)->Simd.U8x16
 {
-    var pixels: Simd.U8x16
     if mode == IntraDc
     {
         const TopMask  = cast(Simd.U8x16, [0_u8, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -233,20 +238,18 @@ func intraPredict4x4WithEdges(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasT
             dc = (Simd.sumWide(edges & (hasLeft ? LeftMask : TopMask)) + 2) >> 2
         }
 
-        pixels = Simd.splat(cast(u8, dc))
-    }
-    else if mode <= IntraHorizontalUp
-    {
-        let left   = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 0, 0]))
-        let centre = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 1, 0]))
-        let right  = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 2, 0]))
-        pixels = lowpassBytes(left, centre, right)
-    }
-    else
-    {
-        return
+        return Simd.splat(cast(u8, dc))
     }
 
+    let left   = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 0, 0]))
+    let centre = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 1, 0]))
+    let right  = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 2, 0]))
+    return lowpassBytes(left, centre, right)
+}
+
+#[Swag.Inline]
+func storeIntra4x4(dst: [*] u8, stride: u64, pixels: Simd.U8x16)
+{
     let rows = cast #bit(Simd.U32x4, pixels)
     cast([*] u32, dst)[0] = rows[0]
     cast([*] u32, dst + stride)[0]     = rows[1]

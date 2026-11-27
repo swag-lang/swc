@@ -20,7 +20,7 @@ struct ByteSink
         buffer:       *ConcatBuffer?           // Borrowed destination, when the sink writes to memory.
         origin:       ConcatBufferPosition     // Cursor the borrowed buffer held when the sink took it.
         fileName:     String                   // File the sink writes, empty for a memory sink.
-        pending:      Array!{u8}               // Write window holding bytes not yet handed to the file.
+        pending:      Array!{u8}               // Storage for bytes not yet handed to the file. `pendingCount` tracks the bytes written here.
         pendingCount: u64                      // Number of valid bytes in the write window.
         written:      u64                      // Total number of bytes accepted by this sink.
         isFile:       bool                     // Whether the sink writes to `stream`.
@@ -138,12 +138,8 @@ impl ByteSink
             try .flush()
         }
 
-        if .pending.count != WindowSize
-        {
-            .pending.resize(WindowSize)
-        }
-
-        Memory.copy(unwrap .pending.buffer + .pendingCount, bytes.buffer, count)
+        .pending.reserve(WindowSize)
+        Memory.copy(.pending.storage() + .pendingCount, bytes.buffer, count)
         .pendingCount += count
         .written      += count
     }
@@ -257,7 +253,7 @@ impl ByteSink
             return
         }
 
-        try .writeFileAll(.pending.toSlice()[until .pendingCount])
+        try .writeFileAll(Swag.makeSlice(.pending.storage(), .pendingCount))
         .pendingCount = 0
     }
 

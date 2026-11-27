@@ -44,6 +44,12 @@ namespace Scc
             return ChunkInfo{id: id, typeId: kind, storedSize: size, decodedSize: size,
                              storedChecksum: checksum, decodedChecksum: checksum ^ 1}
         }
+
+        func withDeflatePayload(id, kind: Guid128, stored: const [..] u8, decodedSize: u64)->ChunkInfo
+        {
+            return ChunkInfo{id: id, typeId: kind, codecId: deflateCodecId(), storedSize: stored.count,
+                             decodedSize: decodedSize, storedChecksum: Hash.Crc32.compute(stored)}
+        }
     }
 }
 
@@ -164,6 +170,31 @@ namespace Scc
     let deflateBytes = expect reader.readChunk(deflateId)
     Swag.require(Slice.equals(customBytes.toSlice(), "custom codec"))
     Swag.require(Slice.equals(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
+}
+
+// The built-in decoder enforces the declared size as it produces output.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_scc_deflate_output_limit.tmp")
+    defer discard catch File.delete(path)
+
+    const DeclaredSize = 16_u64
+    let kind   = sccTestId("c80a0567-314c-44dd-9370-20047131490e")
+    let id     = sccTestId("022eaea7-dbac-40c8-8100-399dd41bb0a2")
+    var codec: Compress.ZLib
+    let packed = expect codec.compress("this payload needs more than sixteen decoded bytes")
+    let info   = Scc.ChunkInfo.withDeflatePayload(id, kind, packed.toSlice(), DeclaredSize)
+
+    var writer: Scc.Writer
+    writer.initialize(kind)
+    expect writer.addStoredChunk(packed.toSlice(), &info)
+    expect writer.saveAtomic(path)
+
+    var reader: Scc.Reader
+    expect reader.initialize(path, {maxDecodedChunk: DeclaredSize})
+    var outcome: Swag.Error
+    discard catch reader.readChunk(id) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
 }
 
 // Stored chunks can be copied without knowing their codec; corruption is rejected before the

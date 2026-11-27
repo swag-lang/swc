@@ -878,7 +878,7 @@ impl Reader
             if info.codecId == deflateCodecId()
             {
                 var codec: Core.Compress.ZLib
-                return try codec.decompress(source, info.decodedSize)
+                return try codec.decompress(source, hintSize: info.decodedSize, maxOutputSize: info.decodedSize)
             }
 
             let codec = findCodec(codecs, info.codecId)

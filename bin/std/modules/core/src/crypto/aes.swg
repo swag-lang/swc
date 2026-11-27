@@ -120,13 +120,10 @@ private func aesTowerInverseSubstitute(value: U8x16)->U8x16
 }
 
 #[Swag.Inline]
-private func aesSubWord(value: u32, useHardware: bool)->u32
+private func aesSubWord(value: u32)->u32
 {
-    // With four identical columns, ShiftRows leaves every row unchanged.
-    const Zero = Swag.vecSplat(0_u8)
-    let columns     = cast #bit (U8x16, splat(value))
-    let substituted = useHardware ? Swag.vecAesEncryptLastRound(columns, Zero) : aesSubstitute(columns)
-    return cast #bit (U32x4, substituted)[0]
+    let columns = cast #bit (U8x16, splat(value))
+    return cast #bit (U32x4, aesSubstitute(columns))[0]
 }
 
 public impl Aes
@@ -152,7 +149,7 @@ public impl Aes
         let keyWords    = key.count / 4
         let rounds      = cast(u32, keyWords + 6)
         let useHardware = Swag.hasCpuFeature(.Aes)
-        if useHardware and keyWords != 6
+        if useHardware
         {
             .expandHardwareKey(key)
             .rounds      = rounds
@@ -180,12 +177,12 @@ public impl Aes
             var temp = previousWord
             if column == 0
             {
-                temp = aesSubWord(Swag.ror(temp, 8_u8), useHardware) ^ roundConstant
+                temp = aesSubWord(Swag.ror(temp, 8_u8)) ^ roundConstant
                 roundConstant = aesDouble(roundConstant)
             }
             else if keyWords > 6 and column == 4
             {
-                temp = aesSubWord(temp, useHardware)
+                temp = aesSubWord(temp)
             }
 
             previousWord    = expanded[index - keyWords] ^ temp
@@ -206,25 +203,17 @@ public impl Aes
             }
         }
 
-        if useHardware
+        // Software rounds stay in the tower basis, including AddRoundKey and MixColumns.
+        let source = cast(const [*] u8, &expanded[0])
+        let output = cast([*] u8, &.roundKeys[0])
+        for round in rounds + 1
         {
-            Swag.memcpy(&.roundKeys[0], &expanded[0], wordCount * #sizeof(u32))
-        }
-        else
-        {
-            // Software rounds stay in the tower basis, including AddRoundKey and MixColumns.
-            let source = cast(const [*] u8, &expanded[0])
-            let output = cast([*] u8, &.roundKeys[0])
-            for round in rounds + 1
-            {
-                let offset = round * AesBlockSize
-                store(output + offset, aesTowerEncode(load(source + offset)))
-            }
+            let offset = round * AesBlockSize
+            store(output + offset, aesTowerEncode(load(source + offset)))
         }
 
-        .rounds      = rounds
-        .ready       = true
-        .useHardware = useHardware
+        .rounds = rounds
+        .ready  = true
         Crypto.secureClear(expanded)
     }
 
@@ -324,6 +313,35 @@ public impl Aes
                 let substituted   = Swag.vecAesEncryptLastRound(shuffle(left, RotatedWord), roundConstant)
                 left = nextKey(left, substituted)
                 store(output + round * AesBlockSize, left)
+            }
+
+            return
+        }
+
+        if key.count == 24
+        {
+            const RotateLast192Word = cast(U8x16, [5_u8, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4])
+            let tail = cast(const [*] u64, key.buffer + AesBlockSize)[0]
+            var right = cast #bit (U8x16, cast(U64x2, [tail, 0_u64]))
+            .clear()
+            store(output, left)
+            cast([*] u64, output + AesBlockSize)[0] = tail
+
+            // An AES-192 step emits six words. The last step needs only the first four.
+            for group in 1 until 9
+            {
+                let roundConstant = cast #bit (U8x16, splat(RoundConstants[group - 1]))
+                let substituted = Swag.vecAesEncryptLastRound(shuffle(right, RotateLast192Word), roundConstant)
+                left = nextKey(left, substituted)
+                let block = output + group * 24
+                store(block, left)
+                if group == 8
+                {
+                    break
+                }
+
+                right ^= align(Zero, right, 12) ^ shuffle(left, LastWord)
+                cast([*] u64, block + AesBlockSize)[0] = cast #bit (U64x2, right)[0]
             }
 
             return

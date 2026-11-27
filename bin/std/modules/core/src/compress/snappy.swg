@@ -103,6 +103,7 @@ private func readHeader(buffer: const [..] u8, maxOutputSize: u64)->{ size: u64,
             {
                 fail InvalidFormatError{"Snappy decoded size overflows 32 bits"}
             }
+
             if size > maxOutputSize
             {
                 fail UnsupportedFormatError{"Snappy decoded size exceeds the output limit"}
@@ -113,6 +114,7 @@ private func readHeader(buffer: const [..] u8, maxOutputSize: u64)->{ size: u64,
             {
                 fail InvalidFormatError{"Snappy block cannot produce its declared output size"}
             }
+
             return {size: size, end: offset + 1}
         }
     }
@@ -139,11 +141,13 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
                 {
                     fail InvalidFormatError{"Snappy block ends inside a literal length"}
                 }
+
                 length = 1
                 for index in width
                 {
                     length += cast(u64, buffer[offset + index]) << (index * 8)
                 }
+
                 offset += width
             }
 
@@ -151,6 +155,7 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             {
                 fail InvalidFormatError{"Snappy literals exceed the input or output size"}
             }
+
             Memory.copy(output.buffer + written, buffer.buffer + offset, length)
             offset  += length
             written += length
@@ -164,6 +169,7 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             {
                 fail InvalidFormatError{"Snappy block ends inside a copy offset"}
             }
+
             length   = cast(u64, (tag >> 2) & 7) + 4
             distance = (cast(u64, tag & 0xE0) << 3) | cast(u64, buffer[offset])
             offset   += 1
@@ -175,6 +181,7 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             {
                 fail InvalidFormatError{"Snappy block ends inside a copy offset"}
             }
+
             length = cast(u64, tag >> 2) + 1
             let encoded = buffer.buffer + offset
             distance = kind == 2 ? cast(u64, Math.littleEndianToNative(cast(const [*] u16, encoded)[0])) :
@@ -182,11 +189,23 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             offset += width
         }
 
-        if not distance or distance > written or length > output.count - written
+        let remaining = output.count - written
+        if not distance or distance > written or length > remaining
         {
             fail InvalidFormatError{"Snappy copy exceeds the available history or output size, or has a zero offset"}
         }
-        copyLzMatch(output.buffer + written, distance, length)
+
+        let destination = output.buffer + written
+        if length <= 16 and distance >= 16 and remaining >= 16
+        {
+            // The source is already decoded. Later tags overwrite any bytes past this match.
+            Math.Simd.store(destination, Math.Simd.load(destination - distance))
+        }
+        else
+        {
+            copyLzMatch(destination, distance, length)
+        }
+
         written += length
     }
 

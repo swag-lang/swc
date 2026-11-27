@@ -69,6 +69,7 @@ const SnappyBlock: [?] u8 = [50, 8, 'a', 'b', 'c', 166, 3, 0, 16, '1', '2', '3',
         {
             data[index] = cast(u8, index % distance)
         }
+
         checkRoundTrip(data.toSlice())
     }
 }
@@ -82,6 +83,36 @@ func checkRoundTrip(input: const [..] u8)
     let snappyPacked  = expect Snappy.compress(input)
     let snappyDecoded = expect Snappy.decompress(snappyPacked.toSlice(), input.count)
     Swag.require(Slice.equals(snappyDecoded.toSlice(), input))
+}
+
+#test
+{
+    // The vector copy can write ahead only within the size declared by the block.
+    const Expected = "abcdefghijklmnopqrstabcdefgh0123456789"
+    var packed: Array!{u8}
+    packed.add(38)
+    packed.add(76)
+    packed.add("abcdefghijklmnopqrst")
+    packed.add(30)
+    packed.add(20)
+    packed.add(0)
+    packed.add(36)
+    packed.add("0123456789")
+
+    var output: [Expected.count + 2] u8
+    output[0] = 0xA5
+    output[Expected.count + 1] = 0xA5
+    let written = expect Snappy.decompressInto(output[1 to], packed.toSlice())
+    Swag.require(written == Expected.count)
+    Swag.require(Slice.equals(output[1 until written + 1], cast(const [..] u8, Expected)))
+    Swag.require(output[0] == 0xA5 and output[Expected.count + 1] == 0xA5)
+
+    packed.resize(25)
+    packed[0]  = 28
+    output[29] = 0xA5
+    let tailWritten = expect Snappy.decompressInto(output[1 until 29], packed.toSlice())
+    Swag.require(tailWritten == 28 and output[29] == 0xA5)
+    Swag.require(Slice.equals(output[1 until 29], cast(const [..] u8, "abcdefghijklmnopqrstabcdefgh")))
 }
 
 #test
@@ -135,6 +166,7 @@ func checkRoundTrip(input: const [..] u8)
     {
         Swag.require(error.value() is Errors.InvalidFormatError)
     }
+
     Swag.require(limit.value() is Errors.UnsupportedFormatError)
 }
 

@@ -47,7 +47,7 @@ impl Encoder
         .outCount = 0
     }
 
-    // Entropy bits are accumulated until a complete word can be written.
+    // Split a code at the word boundary and carry its unwritten suffix into the next word.
     #[Swag.Inline]
     mtd writePackedCode(code: u32)
     {
@@ -65,11 +65,19 @@ impl Encoder
     #[Swag.Inline]
     mtd appendEntropyBits(length: u32, bits: u32)
     {
-        .bitBuffer = (.bitBuffer << length) | bits
-        .bitCount  += length
-        if .bitCount >= 32
+        let total = .bitCount + length
+        if total < 64
         {
-            .writeEntropyWord()
+            .bitBuffer = (.bitBuffer << length) | bits
+            .bitCount  = total
+        }
+        else
+        {
+            let remaining = total - 64
+            let word      = (.bitBuffer << (64 - .bitCount)) | (cast(u64, bits) >> remaining)
+            .bitBuffer = bits
+            .bitCount  = remaining
+            .writeEntropyWord(word)
         }
     }
 
@@ -84,17 +92,14 @@ impl Encoder
     }
 
     #[Swag.NoInline]
-    private mtd writeEntropyWord()
+    private mtd writeEntropyWord(word: u64)
     {
-        .bitCount -= 32
-        let word        = cast(u32, ((.bitBuffer >> .bitCount) & 0xFFFFFFFF))
-        let low         = word & 0x7F7F7F7F_u32
-        let hasStuffing = ((low + 0x01010101_u32) & word & 0x80808080_u32) != 0
-
-        if not hasStuffing and .outCount <= OutBufSize - 4
+        let low         = word & 0x7F7F_7F7F_7F7F_7F7F_u64
+        let hasStuffing = ((low + 0x0101_0101_0101_0101_u64) & word & 0x8080_8080_8080_8080_u64) != 0
+        if not hasStuffing and .outCount <= OutBufSize - 8
         {
-            cast([*] u32, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
-            .outCount += 4
+            cast([*] u64, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
+            .outCount += 8
             if .outCount == OutBufSize
             {
                 .flushStaged()
@@ -102,10 +107,10 @@ impl Encoder
         }
         else
         {
-            .writeEntropyByte(cast(u8, word >> 24))
-            .writeEntropyByte(cast(u8, ((word >> 16) & 0xFF)))
-            .writeEntropyByte(cast(u8, ((word >> 8) & 0xFF)))
-            .writeEntropyByte(cast(u8, (word & 0xFF)))
+            for byteIndex in 8
+            {
+                .writeEntropyByte(cast(u8, (word >> (56 - byteIndex * 8)) & 0xFF))
+            }
         }
     }
 

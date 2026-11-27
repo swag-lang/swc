@@ -1088,10 +1088,24 @@ impl Encoder
         var indices: [256] u8
         let channel = bits == 3 ? -1 : paletteIndexChannel(palette, &indices)
 
+        let reuseRows = bits != 3 and width >= 32
+        let rowBytes  = cast(u64, width) * 4
         for y in height
         {
             let inputRow  = pixels.buffer + cast(u64, y) * width
             let outputRow = output + cast(u64, y) * packedWidth
+            if reuseRows and y
+            {
+                let above = inputRow - width
+                if inputRow[0] == above[0] and
+                   inputRow[width - 1] == above[width - 1] and
+                   Memory.compare(inputRow, above, rowBytes) == 0
+                {
+                    Memory.copy(outputRow, outputRow - packedWidth, packedWidth)
+                    continue
+                }
+            }
+
             if bits == 3
             {
                 var x:     s32

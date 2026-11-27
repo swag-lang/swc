@@ -9,7 +9,8 @@ using Core, Core.Errors, Pixel
 
 // FFmpeg uses the same automatic ceiling for frame-threaded video decoders.
 private const AvcMaxFrameThreads = 16_u32
-private const AvcNoLane = Swag.U32.Max
+private const AvcNoLane          = Swag.U32.Max
+private const AvcMaxReorder      = 34_u64
 
 // What one picture in flight costs, and how much the stream may spend on them together.
 //
@@ -99,6 +100,8 @@ struct AvcStream
     threadsStarted:     bool
     reachedEnd:         bool
     skipBefore:         u64
+    readsAnnexB:        bool
+    annexPacket:        Array!{u8}             // Conversion scratch shared by the frame submitter.
     prefix:             Array!{u8}             // Bytes the container took off the front of every stored frame.
     decodeLimit:        u64 = Swag.U64.Max     // Exclusive decode-order ceiling during seek preroll.
     nextDecode:         u64                    // Next sample to hand a frame context.
@@ -189,6 +192,10 @@ impl AvcStream
             while position > 0 and .frames[cast(u64, order[position - 1])].presentationTime > .frames[index].presentationTime
             {
                 position -= 1
+                if .readsAnnexB and index - position > AvcMaxReorder
+                {
+                    fail InvalidFormatError{"H.264 Annex B stream exceeds the picture reorder limit"}
+                }
             }
 
             order.insertAt(position, cast(u32, index))
@@ -593,6 +600,11 @@ impl AvcStream
         {
             let entry = .frames[.nextDecode]
             try readStoredFrame(source, entry, .prefix.toSlice(), payload)
+            if .readsAnnexB
+            {
+                try packAnnexAccessUnit(payload.toSlice(), &.annexPacket)
+                Core.swap(payload, &.annexPacket)
+            }
 
             let rank = cast(u64, .rankOfSample[.nextDecode])
             .nextDecode += 1
@@ -708,7 +720,7 @@ impl AvcStream
             }
 
             .pending.add(PendingFrame{decoded.frame, decoded.rank})
-            if .pending.count > 34
+            if .pending.count > AvcMaxReorder
             {
                 fail InvalidFormatError{"H.264 stream reorders more than 34 frames"}
             }

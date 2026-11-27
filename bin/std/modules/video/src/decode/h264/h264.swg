@@ -735,13 +735,8 @@ impl Decoder
             unescapeRbsp(&.rbsp, nal[1 until nal.count])
             try .decodeSliceNal(refIdc, nalType == 5, not prepareOnly)
 
-        case 7:
-            unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            try .parseSpsNal()
-
-        case 8:
-            unescapeRbsp(&.rbsp, nal[1 until nal.count])
-            try .parsePpsNal()
+        case 7, 8:
+            try .readParameterSet(nal)
 
         case 2, 3, 4:
             fail UnsupportedFormatError{"video decoder does not support H.264 data partitioning"}
@@ -803,8 +798,22 @@ impl Decoder
         }
     }
 
+    // Reads a parameter set from either a container packet or an Annex B index scan.
+    mtd readParameterSet(nal: const [..] u8, readVuiTiming = false) fail
+    {
+        unescapeRbsp(&.rbsp, nal[1 until nal.count])
+        if (nal[0] & 31) == 7
+        {
+            try .parseSpsNal(readVuiTiming)
+        }
+        else
+        {
+            try .parsePpsNal()
+        }
+    }
+
     // Parses one sequence parameter set and stores it under its identifier.
-    private mtd parseSpsNal() fail
+    private mtd parseSpsNal(readVuiTiming: bool) fail
     {
         // The identifier sits after the fixed 24-bit profile and level header.
         var probe: BitReader
@@ -817,7 +826,7 @@ impl Decoder
         }
 
         var parsed: Sps
-        try parsed.parse(.rbsp.toSlice())
+        try parsed.parse(.rbsp.toSlice(), readVuiTiming)
         if .spsSet.count <= id
         {
             .spsSet.resize(id + 1)

@@ -13,7 +13,7 @@ using Core, Core.Errors
 // @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const LOSSLESS_COLOR_CACHE_MULTIPLIER = 0x1E35A7BD_u32
-const LOSSLESS_LUT_BITS = 8_u32
+const LOSSLESS_LUT_BITS = 9_u32
 const LOSSLESS_LUT_MASK = (1 << LOSSLESS_LUT_BITS) - 1
 
 // The largest alphabet is green with 2,048 cache entries. A direct entry
@@ -80,7 +80,7 @@ impl LosslessBitReader
     #[Swag.Inline]
     mtd refill()
     {
-        if .last - .ptr >= 8 and .nBits < 8
+        if .last - .ptr >= 8 and .nBits <= 8
         {
             // The eighth byte remains available for the next refill.
             let word = cast(const [*] u64, .ptr)[0] & 0x00FFFFFFFFFFFFFF_u64
@@ -146,19 +146,20 @@ impl LosslessHuffmanGroup
 {
     mtd buildLiteralTable()
     {
+        const PrefixBits = 8_u32
         let maxBits = .trees[LOSSLESS_HUFF_RED].maxLength +
                       .trees[LOSSLESS_HUFF_BLUE].maxLength +
                       .trees[LOSSLESS_HUFF_ALPHA].maxLength
-        if maxBits > LOSSLESS_LUT_BITS and .trees[LOSSLESS_HUFF_ALPHA].maxLength
+        if maxBits > PrefixBits and .trees[LOSSLESS_HUFF_ALPHA].maxLength
         {
             return
         }
 
         // Many opaque literals fit together in a short prefix even when
         // uncommon red and blue symbols need longer codes.
-        let count = 1_u32 << Math.min(maxBits, LOSSLESS_LUT_BITS)
+        let count = 1_u32 << Math.min(maxBits, PrefixBits)
         var filled:  u32
-        var entries: [1 << LOSSLESS_LUT_BITS] u32
+        var entries: [1 << PrefixBits] u32
         for prefix in count
         {
             var bits = cast(u32, prefix)
@@ -186,7 +187,7 @@ impl LosslessHuffmanGroup
 
             let length = redBits + blueBits + (alpha >> LOSSLESS_LUT_SYMBOL_BITS)
 
-            if length > LOSSLESS_LUT_BITS + 1
+            if length > PrefixBits + 1
             {
                 continue
             }
@@ -269,11 +270,11 @@ impl LosslessHuffmanTree
         if codeLength > LOSSLESS_LUT_BITS
         {
             let shift = codeLength - LOSSLESS_LUT_BITS
-            baseCode = cast(u32, losslessReverseByte(cast(u8, ((code >> shift) & 0xFF)))) >> (8 - LOSSLESS_LUT_BITS)
+            baseCode = cast(u32, Math.reverse(cast(u16, code >> shift))) >> (16 - LOSSLESS_LUT_BITS)
         }
         else
         {
-            baseCode = cast(u32, losslessReverseByte(cast(u8, (code & 0xFF)))) >> (8 - codeLength)
+            baseCode = cast(u32, Math.reverse(cast(u16, code))) >> (16 - codeLength)
             let count = 1_u32 << (LOSSLESS_LUT_BITS - codeLength)
             for i in count
             {

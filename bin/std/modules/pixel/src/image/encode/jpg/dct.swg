@@ -269,6 +269,31 @@ impl Encoder
         return cast(u8, (32 - Math.leadingZeros(magnitude)))
     }
 
+    const ShortAcRadius = 128_u32
+    const ShortAcRuns   = 4
+    const ShortAcWidth  = ShortAcRadius * 2
+
+    func makeShortAcCodes(table: const [*] u32)->[ShortAcRuns * ShortAcWidth] u32
+    {
+        var result: #returntype
+        for run in ShortAcRuns
+        {
+            for index in ShortAcWidth
+            {
+                let value     = cast(s32, index) - cast(s32, ShortAcRadius)
+                let category  = magnitudeCategory(value)
+                let mask      = (1_u32 << category) - 1
+                let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
+                result[run * ShortAcWidth + index] = table[run * 16 + category] | amplitude
+            }
+        }
+
+        return result
+    }
+
+    const ShortLumaAcCodes   = #run makeShortAcCodes(LumaAcCodes)
+    const ShortChromaAcCodes = #run makeShortAcCodes(ChromaAcCodes)
+
     #[Swag.Inline]
     func rgbWord(source: const [*] u8)->u32
     {
@@ -357,7 +382,8 @@ impl Encoder
 
         .writeDc(.du[0], dC, hTDC)
 
-        var next = 1_u64
+        let shortCodes = hTAC == cast(const [*] u32, LumaAcCodes) ? cast(const [*] u32, ShortLumaAcCodes) : cast(const [*] u32, ShortChromaAcCodes)
+        var next       = 1_u64
         while occupied
         {
             let index = Math.trailingZeros(occupied)
@@ -368,9 +394,18 @@ impl Encoder
                 run -= 16
             }
 
-            let value    = .du[ZigzagToBlock[index]]
-            let category = magnitudeCategory(value)
-            .writeAmplitude(hTAC[run * 16 + category], value, category)
+            let value      = .du[ZigzagToBlock[index]]
+            let shortIndex = cast #bit(u32, (cast(s32, value) + cast(s32, ShortAcRadius)))
+            if run < ShortAcRuns and shortIndex < ShortAcWidth
+            {
+                .writePackedCode(shortCodes[run * ShortAcWidth + shortIndex])
+            }
+            else
+            {
+                let category = magnitudeCategory(value)
+                .writeAmplitude(hTAC[run * 16 + category], value, category)
+            }
+
             next     = index + 1
             occupied &= occupied - 1
         }

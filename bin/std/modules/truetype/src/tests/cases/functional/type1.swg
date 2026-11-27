@@ -195,3 +195,35 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     second.destroy()
     Swag.require(allocator.stats().countAlloc == baseline)
 }
+
+// Whole vectors and their remainders must carry the same state after leading padding.
+#test
+{
+    var ciphertext: [65] u8
+    for index in ciphertext.count
+    {
+        ciphertext[index] = cast(u8, (index * 91 + index * index * 17) & 0xFF)
+    }
+
+    for key in [0_u16, 4330, 55665, Swag.U16.Max]
+    {
+        var cleartext: [65] u8
+        var state = cast(u32, key)
+        for index in ciphertext.count
+        {
+            let cipher = ciphertext[index]
+            cleartext[index] = cipher ^ cast(u8, (state >> 8) & 0xFF)
+            state = ((state + cipher) * 52845 + 22719) & 0xFFFF
+        }
+
+        for size in [0_u64, 1, 15, 16, 17, 31, 32, 33, 64, 65]
+        {
+            for skip in [0_u64, 1, 4, 9, 16]
+            {
+                let decoded = eexecDecrypt(ciphertext[0 until size], key, skip)
+                let start   = Math.min(size, skip)
+                Swag.require(Slice.equals(decoded.toSlice(), cleartext[start until size]))
+            }
+        }
+    }
+}

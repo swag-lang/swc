@@ -100,6 +100,39 @@ func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array!{u8}
     return result
 }
 
+// Generate the eight successive powers of the multiplier modulo 2^16.
+private const EexecPowers: [8] u16 = #run
+{
+    var powers: [8] u16
+    var power = 1_u32
+    for index in powers.count
+    {
+        power         = (power * EexecC1) & 0xFFFF
+        powers[index] = cast(u16, power)
+    }
+
+    return powers
+}
+
+#[Swag.Inline]
+private func decryptEexecLanes(cipher: Math.Simd.U16x8, state: *u32)->Math.Simd.S16x8
+{
+    const Powers = cast(Math.Simd.U16x8, EexecPowers)
+    let zero = Math.Simd.splat(0_u16)
+
+    // Each byte contributes an affine state update. Combine updates one, two,
+    // and four lanes apart to obtain the cumulative state at every position.
+    let terms   = cipher * cast(u16, EexecC1) + cast(u16, EexecC2)
+    let pairs   = terms + Math.Simd.align(zero, terms, 14) * EexecPowers[0]
+    let quads   = pairs + Math.Simd.align(zero, pairs, 12) * EexecPowers[1]
+    let octet   = quads + Math.Simd.align(zero, quads, 8) * EexecPowers[3]
+    let initial = cast #wrap(u16, state[])
+    let next    = octet + Powers * initial
+    let prior   = Math.Simd.align(Math.Simd.splat(initial), next, 14)
+    state[] = next[7]
+    return cast #bit(Math.Simd.S16x8, cipher ^ (prior >> 8))
+}
+
 private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, skip: u64)
 {
     // Only bits 8–15 feed the output. Higher bits never feed back into them.
@@ -111,7 +144,18 @@ private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, ski
         input += 1
     }
 
-    for index in data.count - skip
+    let length = data.count - skip
+    var done   = 0_u64
+    while length - done >= 16
+    {
+        let packed = Math.Simd.load(input + done)
+        let lo     = decryptEexecLanes(Math.Simd.widenLow(packed), &state)
+        let hi     = decryptEexecLanes(Math.Simd.widenHigh(packed), &state)
+        Math.Simd.store(output + done, Math.Simd.packUnsigned(lo, hi))
+        done += 16
+    }
+
+    for index in done until length
     {
         let cipher = input[index]
         output[index] = cipher ^ cast #wrap(u8, state >> 8)
@@ -275,10 +319,12 @@ private const HexDigits: [256] u8 = #run
     {
         digits[index] = 0xFF
     }
+
     for value in 10
     {
         digits[cast(u32, '0') + value] = cast(u8, value)
     }
+
     for value in 6
     {
         digits[cast(u32, 'A') + value] = cast(u8, value + 10)
@@ -291,7 +337,7 @@ private const HexDigits: [256] u8 = #run
 // The common PFA line contains adjacent hexadecimal digits. Whitespace and
 // unusual tails fall through to the scalar decoder.
 #[Swag.Inline]
-private func scanHexPairs(input: const [*] u8, output: [*] u8)->bool
+private func scanHexPairs(input: const [*] u8, output: *Math.Simd.U16x8)->bool
 {
     let ascii = Math.Simd.load(input)
     let lower = ascii | 0x20_u8
@@ -301,10 +347,11 @@ private func scanHexPairs(input: const [*] u8, output: [*] u8)->bool
     {
         return false
     }
+
     const Weights = cast(Math.Simd.S8x16, [16_s8, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1])
     let nibbles = (ascii & 0x0F_u8) + (alpha & 9_u8)
     let pairs   = Math.Simd.mulAddPairs(nibbles, Weights)
-    Math.Simd.storeLow8(output, Math.Simd.packUnsigned(pairs, pairs))
+    output[] = cast #bit(Math.Simd.U16x8, pairs)
     return true
 }
 
@@ -321,10 +368,12 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
         {
             continue
         }
+
         if HexDigits[c] == 0xFF
         {
             return {false, Array!{u8}{}}
         }
+
         digits += 1
     }
 
@@ -348,20 +397,17 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
     var skip   = EexecPrivateSkip
     var count  = 0_u64
     var source = 0_u64
-    var block: [8] u8
+    var block: Math.Simd.U16x8
     let input  = data.buffer
     while source < data.count
     {
         if not have and
            not skip and
            data.count - source >= 16 and
-           scanHexPairs(input + source, &block[0])
+           scanHexPairs(input + source, &block)
         {
-            for cipher, lane in block
-            {
-                output[count + lane] = cipher ^ cast #wrap(u8, state >> 8)
-                state = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
-            }
+            let plain = decryptEexecLanes(block, &state)
+            Math.Simd.storeLow8(output + count, Math.Simd.packUnsigned(plain, plain))
 
             source += 16
             count  += 8
@@ -378,6 +424,7 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
             {
                 return {false, Array!{u8}{}}
             }
+
             continue
         }
 

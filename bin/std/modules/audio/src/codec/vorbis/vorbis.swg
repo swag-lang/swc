@@ -3085,30 +3085,50 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     let span  = x1 - x0
     let dy    = y1 - y0
-    let delta = cast(u32, Math.abs(dy))
+    let delta = cast(u64, Math.abs(dy))
     let sign  = dy < 0 ? -1 : 1
-    var x     = x0
+    if span < FloorReciprocals.count
+    {
+        // For spans up to 255 bins, accumulated Q16 rounding stays below 1/span,
+        // preserving the exact table index even at the last rendered bin.
+        let slope = ((delta * FloorReciprocals[span]) >> 40) + 1
+        renderFloorSlope!{16}(x0, end, y0, sign, slope, target)
+    }
+    else
+    {
+        // Wider spans need Q32 to keep the same error bound.
+        let slope = ((delta << 32) + span - 1) / span
+        renderFloorSlope!{32}(x0, end, y0, sign, slope, target)
+    }
+}
+
+#[Swag.Inline]
+private func(FractionBits: u32) renderFloorSlope(x0, end: u32, y0, sign: s32, slope: u64, target: [*] f32)
+{
+    var x = x0
     if end - x >= 4
     {
-        // The ceiling of the Q32 step gives the same floor as the integer walk:
-        // a span is at most 32768 and accumulating its error stays below 1/span.
-        // The rounded reciprocal overestimates the exact step by less than two
-        // Q32 units. For offsets below these small spans, the accumulated error
-        // remains less than 1/span, so the table index stays exact.
-        let slope = span < FloorReciprocals.count ?
-                    ((cast(u64, delta) * FloorReciprocals[span]) >> 24) + 1 :
-                    ((cast(u64, delta) << 32) + span - 1) / span
         let base       = Simd.splat(y0)
         let direction  = Simd.splat(sign)
-        let whole      = Simd.splat(cast(u32, slope >> 32))
         let step       = Simd.splat(cast(u32, slope & 0xFFFFFFFF))
         let amplitudes = cast(const [*] s32, &Floor1InverseDb[0])
         var offsets    = cast(Simd.U32x4, [0_u32, 1, 2, 3])
         while x + 4 <= end
         {
-            let distance = cast #bit(Simd.S32x4, whole * offsets + Simd.mulHigh(offsets, step))
-            let indices  = cast #bit(Simd.U32x4, base + distance * direction)
-            let gain     = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
+            var distance: Simd.U32x4
+            #static if FractionBits == 16
+            {
+                // The product fits in 32 bits for a short span and a delta of at most 255.
+                distance = (offsets * step) >> 16
+            }
+            else
+            {
+                let whole = Simd.splat(cast(u32, slope >> 32))
+                distance = whole * offsets + Simd.mulHigh(offsets, step)
+            }
+
+            let indices = cast #bit(Simd.U32x4, base + cast #bit(Simd.S32x4, distance) * direction)
+            let gain    = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
             Simd.store(target + x, Simd.load(target + x) * gain)
             offsets += Simd.splat(4_u32)
             x       += 4
@@ -3117,7 +3137,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     for line in x until end
     {
-        let distance = cast(s32, ((line - x0) * delta) / span)
+        let distance = cast(s32, (cast(u64, line - x0) * slope) >> FractionBits)
         target[line] *= Floor1InverseDb[cast(u32, y0 + sign * distance)]
     }
 }

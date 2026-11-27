@@ -527,6 +527,34 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBu
 
 #test
 {
+    const First:  [2] u8 = [0, 0x3C]
+    const Second: [2] u8 = [0, 0x40]
+    const Blocks         = 4_u32
+    var input = exrZipFixture(1, First, blocks: Blocks, alternate: Second)
+    var bytes = input.moveToArray()
+
+    // Four eight-byte offsets followed by four ten-byte raw scanline chunks.
+    let offsets = cast([*] u64, bytes.storage() + bytes.count - Blocks * 18)
+    let next    = offsets[2]
+    offsets[2] = offsets[3]
+    offsets[3] = next
+
+    let image = expect Image.decode("reordered-offsets.exr", bytes.toSlice())
+    assertImage(image, 1, cast(s32, Blocks), .GrayF16)
+    let samples = cast(const [*] u16, image.pixels.storage())
+    for x in Blocks
+    {
+        Swag.require(samples[x] == (x & 1 ? 0x3C00 : 0x4000))
+    }
+
+    offsets[3] = offsets[1]
+    var outcome: Swag.Error
+    discard catch Image.decode("duplicate-offset.exr", bytes.toSlice()) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+}
+
+#test
+{
     const Invalid: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var errorOutcome: Swag.Error
     discard catch Image.decode("bad.exr", Invalid) as errorOutcome

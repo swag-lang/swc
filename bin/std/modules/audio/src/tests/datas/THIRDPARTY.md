@@ -32,6 +32,14 @@ encoder priming and end padding. The encoders are used only to generate test dat
 - `aac-lc-stereo-44100-transients.pcm` SHA-256: `5dce9cc2164bf7be8464f48e6a917030b0f4cb8e66b5c1610dac96c12726f0a5`
 - License: same as this repository.
 
+`aac-lc-stereo-44100-intensity.aac` uses the same synthetic stereo input, FFmpeg 9.1 encoder,
+and ADTS settings as the transients fixture above, with intensity stereo enabled (`aac_is=1`).
+The `.pcm` file is the matching FFmpeg 9.1 decode to interleaved little-endian PCM16.
+
+- `aac-lc-stereo-44100-intensity.aac` SHA-256: `26d0b2f2ad30f31038db6571cb85d8645de05952c086c083a4ce68f12c9760ac`
+- `aac-lc-stereo-44100-intensity.pcm` SHA-256: `9b0f40f4edc4db74b2f07fba3fb2ae2ebe6ae621e1170590a9ab9e1c215a9227`
+- License: same as this repository.
+
 `dts-5.1-48000.dts` is a half-second 1,509 kbit/s DTS Core stream generated for this repository
 with dcaenc commit `68ed0d6d370268f04c22cadc9c8fc54a479958ab`. Its six synthetic inputs are
 300, 400, 500, 60, 700, and 800 Hz sine waves at amplitude 12,000 in signed 16-bit PCM, assigned

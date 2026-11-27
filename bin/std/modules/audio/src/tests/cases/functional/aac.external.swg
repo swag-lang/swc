@@ -40,3 +40,9 @@ private func aacCheckExternalReference(name: string, channels: u32, frames: u64)
 {
     aacCheckExternalReference("aac-lc-stereo-44100-transients", 2, 27_648)
 }
+
+// FFmpeg 9.1 encodes the staggered attacks with intensity stereo and no noise substitution.
+#test
+{
+    aacCheckExternalReference("aac-lc-stereo-44100-intensity", 2, 27_648)
+}

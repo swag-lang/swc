@@ -1536,7 +1536,7 @@ private impl AacCodec
                     sign = -sign
                 }
 
-                let scale = sign * bandGain(.scaleFactors[right, band])
+                let scale = sign * bandGain(-.scaleFactors[right, band])
                 for index in line until line + width
                 {
                     .coefficients[right, index] = cast(f32, scale * cast(f64, .coefficients[left, index]))

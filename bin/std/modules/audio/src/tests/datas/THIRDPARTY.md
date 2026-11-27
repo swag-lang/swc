@@ -189,6 +189,17 @@ fixtures and are not build or runtime dependencies.
 - License: same as this repository.
 
 
+`vorbis-6.1-continued-48000.ogg` contains 16,003 frames of synthetic, distinct speaker tones
+with short seeded noise bursts in 6.1 WAVE order. FFmpeg 7.1.5 and its `libvorbis` encoder
+produced the stream at quality 6. The first audio packet was then split across two Ogg
+pages without changing its data. The packet windows include short blocks and all four
+long-block window shapes. The accompanying `.pcm` stores 16-bit samples decoded by
+libvorbis 1.3.7 and reordered into WAVE speaker order.
+- `vorbis-6.1-continued-48000.ogg` SHA-256: `e3210b2183debc9d8f65f3c75463c30a766e72541e30f3bacd02fb4e68ae7a1d`
+- `vorbis-6.1-continued-48000.pcm` SHA-256: `bb99ddbd3fb2a6421e75ba8cbb14c209627bfb7f77d3751347c31be0b35bf05f`
+- License: same as this repository.
+
+
 `opus-stereo-48000.opus`, `opus-mono-silk.opus`, `opus-stereo-hybrid.opus`, and
 `opus-transient-48000.opus` are one-second Ogg Opus files generated for this repository with the
 FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, `libopus` encoder). The first is the

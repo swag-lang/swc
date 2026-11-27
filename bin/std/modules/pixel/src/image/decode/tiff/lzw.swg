@@ -116,13 +116,18 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         }
 
         let code = try reader.read(width, mask)
-        if code == LZW_EOI_CODE
+        if (code & ~1_u32) == LZW_CLEAR_CODE
         {
-            break
-        }
+            if code == LZW_EOI_CODE
+            {
+                if output == expected
+                {
+                    return
+                }
 
-        if code == LZW_CLEAR_CODE
-        {
+                break
+            }
+
             width    = 9
             mask     = 511
             nextCode = LZW_EOI_CODE
@@ -131,7 +136,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
 
         if output >= expected
         {
-            fail InvalidFormatError{"invalid lzw stream"}
+            break
         }
 
         let target = dst + output
@@ -144,7 +149,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         {
             if code > nextCode
             {
-                fail InvalidFormatError{"invalid lzw stream"}
+                break
             }
 
             // A reference to the next entry uses the previous word and its first byte.
@@ -154,7 +159,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
             length = repeat ? wordLength + 1 : wordLength
             if length > expected - output
             {
-                fail InvalidFormatError{"invalid lzw stream"}
+                break
             }
 
             let sourceOffset = word >> LengthBits
@@ -235,10 +240,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         output       += length
     }
 
-    if output != expected
-    {
-        fail InvalidFormatError{"invalid lzw stream"}
-    }
+    fail InvalidFormatError{"invalid lzw stream"}
 }
 
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array!{u64}) fail

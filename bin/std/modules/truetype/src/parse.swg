@@ -1389,12 +1389,35 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
 
     let numTables = readU16(data, faceOffset + 4)
     let directory = getSlice(data, faceOffset + 12, cast(u64, numTables) * 16)
-    var entry = cast(const [*] u32, directory.buffer)
-    for numTables
+    var entry     = cast(const [*] u32, directory.buffer)
+
+    // Widen the packed offsets and lengths before adding the extents.
+    let limit     = Math.Simd.splat(data.count)
+    var remaining = numTables
+    while remaining >= 2
     {
-        assertRange(data, Math.bigEndianToNative(entry[2]), Math.bigEndianToNative(entry[3]))
-        entry += 4
+        let first  = Math.Simd.load(entry)
+        let second = Math.Simd.load(entry + 4)
+        let fields = Math.bigEndianToNative(Math.Simd.interleaveHigh(first, second))
+        let ends   = Math.Simd.widenLow(fields) + Math.Simd.widenHigh(fields)
+        if Math.Simd.anyTrue(ends > limit)
+        {
+            fault(0x03)
+        }
+
+        remaining -= 2
+        entry     += 8
     }
+
+    if remaining
+    {
+        let end = cast(u64, Math.bigEndianToNative(entry[2])) + Math.bigEndianToNative(entry[3])
+        if end > data.count
+        {
+            fault(0x03)
+        }
+    }
+
     faceData.sfntDirectory = directory
 
     var cffTable = findTable(faceData, TAG_CFF)

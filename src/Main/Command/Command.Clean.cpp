@@ -45,12 +45,10 @@ namespace
         {
             addCleanTarget(outTargets, "Artifacts", WorkspaceLayout::workspaceOutputDirectory(workspacePath));
             addCleanTarget(outTargets, "Intermediate", WorkspaceLayout::workspaceWorkDirectory(workspacePath));
-            addCleanTarget(outTargets, "Dependencies", WorkspaceLayout::workspaceDependencyDirectory(workspacePath));
+            addCleanTarget(outTargets, "Legacy dependencies", WorkspaceLayout::workspaceDependencyDirectory(workspacePath));
             return;
         }
 
-        // The mirrored dependencies are shared by every module of the workspace, so naming one
-        // module leaves them where they are.
         const fs::path moduleDir(cmdLine.workspaceModuleFilter.c_str());
         addCleanTarget(outTargets, "Artifacts", WorkspaceLayout::workspaceOutputDirectory(workspacePath) / moduleDir);
         addCleanTarget(outTargets, "Intermediate", WorkspaceLayout::workspaceWorkDirectory(workspacePath) / moduleDir);
@@ -86,8 +84,8 @@ namespace
 
         // Only the compiler's own subdirectories: the cache root is a shared temporary directory,
         // and nothing else that lives there was put there by a build.
-        addCleanTarget(outTargets, "Dependency cache", WorkspaceLayout::dependencyCacheRoot());
-        addCleanTarget(outTargets, "Machine code cache", WorkspaceLayout::machineCacheRoot());
+        addCleanTarget(outTargets, "Legacy dependency cache", WorkspaceLayout::dependencyCacheRoot());
+        addCleanTarget(outTargets, "Shared compilation cache", WorkspaceLayout::machineCacheRoot());
         addCleanTarget(outTargets, "Legacy script cache", WorkspaceLayout::legacyScriptCacheRoot());
     }
 

@@ -1,9 +1,8 @@
 
-#import("runtime_context_base_static", link: "static-library")
+#import("runtime_context_base_static")
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.embeddedImports = true
     cfg.moduleNamespace = "RuntimeCtxDll"
-    cfg.backendKind     = .SharedLibrary
+    cfg.backendKind     = .None
 }

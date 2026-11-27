@@ -44,7 +44,6 @@ namespace SemaError
     void         addAvailableEnumValuesNote(Diagnostic& diag, const TaskContext& ctx, const SymbolEnum& symEnum);
     void         addAutoScopeMemberNotes(Diagnostic& diag, Sema& sema, const TaskContext& ctx, DiagnosticId diagId, TypeRef typeRef);
     void         addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
-    DiagnosticId unknownMemberDiagnosticId(const Sema& sema, const SymbolMap* owner);
 
     SymbolDiagnosticOrigin symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol);
     bool                   isCurrentModuleSymbol(const Sema& sema, const Symbol& symbol);

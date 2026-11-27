@@ -1,4 +1,4 @@
-var answerValue: s32
+var answerValue = 2_s32
 
 #init { answerValue = 40 }
 #premain { answerValue += 2 }

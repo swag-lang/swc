@@ -98,6 +98,12 @@ test('every compiler keyword, type, modifier and intrinsic has a complete syntax
     assert.deepEqual(failures, []);
 });
 
+test('source imports and global public declarations keep their directive scopes', () => {
+    assert.ok(scopesAt('#import("core", location: "swag@std")', 1).includes('meta.preprocessor'));
+    assert.ok(scopesAt('#global public', 8).includes('constant.character.escape'));
+    assert.ok(!scopesAt('#global export', 8).includes('constant.character.escape'));
+});
+
 test('compiler token prefixes do not color unknown directives as builtins', () => {
     for (const spelling of ['#typeofExtra', '#lineExtra', '#codeExtra', '#uniq0Extra', '#uniq10']) {
         for (let offset = 0; offset < spelling.length; offset++) {

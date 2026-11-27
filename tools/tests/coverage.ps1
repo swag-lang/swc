@@ -35,8 +35,8 @@ exit /b 0
 
     # One module owns renderer parity tests, another owns goldens, a third owns neither.
     $fixtures = @{
-        'std\modules\pixel\src\tests\cases\integration\parity.ogl.swg' = '#[Swag.TestTag("integration.renderer.opengl")]'
-        'std\modules\core\src\tests\cases\functional\text.swg'         = '#test {}'
+        'std\namespaces\pixel\src\tests\cases\integration\parity.ogl.swg' = '#[Swag.TestTag("integration.renderer.opengl")]'
+        'std\namespaces\core\src\tests\cases\functional\text.swg'         = '#test {}'
         'apps\modules\swagscope\src\tests\cases\golden\explorer.swg'   = '#[Swag.TestTag("golden")]'
     }
     foreach ($fixture in $fixtures.GetEnumerator()) {

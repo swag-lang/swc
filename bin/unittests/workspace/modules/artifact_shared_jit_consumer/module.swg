@@ -1,4 +1,4 @@
-#import("artifact_shared_provider", link: "shared-library")
+#import("artifact_shared_provider")
 
 #run
 {

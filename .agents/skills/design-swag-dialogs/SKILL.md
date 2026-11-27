@@ -1,6 +1,6 @@
 ---
 name: design-swag-dialogs
-description: Compose, review, or change a modal box — the predefined dialog family under bin/std/modules/gui/src/dialogs, a composite hosted inside one, or an application's own modal — to the Silence charter's floating sheet. Use whenever a dialog's width, height, inset, title, severity mark, field labels, actions, their order or wording, or the bottom-left slot changes.
+description: Compose, review, or change a modal box — the predefined dialog family under bin/std/namespaces/gui/src/dialogs, a composite hosted inside one, or an application's own modal — to the Silence charter's floating sheet. Use whenever a dialog's width, height, inset, title, severity mark, field labels, actions, their order or wording, or the bottom-left slot changes.
 ---
 
 # Design Swag Dialogs
@@ -29,16 +29,16 @@ Other skills govern the parts around the box:
   ([Make Space Describe Relationships](../build-swag-standard-apps/SKILL.md#make-space-describe-relationships)).
 
 This skill governs the box itself. The measurable half is enforced by
-[`dialogs.charter.swg`](../../../bin/std/modules/gui/src/tests/cases/functional/dialogs.charter.swg),
+[`dialogs.charter.swg`](../../../bin/std/namespaces/gui/src/tests/cases/functional/dialogs.charter.swg),
 which builds and measures every predefined box, and by
-[`dialogs.layout.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/dialogs.layout.swg),
+[`dialogs.layout.swg`](../../../bin/std/namespaces/gui/src/tests/cases/golden/dialogs.layout.swg),
 which pins what each box fits itself to. A number argued here with no line in those tests will
 drift back within a release.
 
 ## A Dialog Is A Floating Sheet
 
 - **Surface, corner 12, the floating shadow, over a dimmed window.** It is the same kind of
-  object as the lens and the sheet. [`Dialog`](../../../bin/std/modules/gui/src/dialogs/dialog.swg)
+  object as the lens and the sheet. [`Dialog`](../../../bin/std/namespaces/gui/src/dialogs/dialog.swg)
   stands on a `SurfaceFlags.Sheet` surface, which is drawn on the surface ground.
 - **No caption band and no close cross.** The dim and the shadow already say "this is a dialog".
   A box is dismissed by its own actions, and by `Esc`, which presses Cancel. From a text editor,
@@ -78,7 +78,7 @@ specific title that says what happened ("The file changed on disk.").
   label as the lens shows it, following
   [Word The Commands](../build-swag-standard-apps/SKILL.md#word-the-commands).
 
-Titles are keys in [`Strings`](../../../bin/std/modules/gui/src/localization.swg). A key added
+Titles are keys in [`Strings`](../../../bin/std/namespaces/gui/src/localization.swg). A key added
 without its line in `src/lang/<tag>/gui.tweak` ships half translated, and nothing reports it.
 
 Do not surround referenced names, commands or values with quotation marks in a title or message,
@@ -183,7 +183,7 @@ with a second copy of the layout.
 Everything in the column shares one left edge and one right edge: the title, the body, the
 fields, a list's rows, and the right edge of the primary action. A composite made of parts gives
 them **one** inset, not one each. Inside a stack,
-[`StackLayoutCtrl`](../../../bin/std/modules/gui/src/controls/composite/stacklayoutctrl.swg)
+[`StackLayoutCtrl`](../../../bin/std/namespaces/gui/src/controls/composite/stacklayoutctrl.swg)
 centres along the axis it is named for and leaves the other axis alone. A heading and a paragraph
 stacked with `VerticalCenter` are centred as a group and both start on the left edge.
 
@@ -191,7 +191,7 @@ stacked with `VerticalCenter` are centred as a group and both start on the left 
 
 1. `tools/std.bat dm test gui --test-file dialogs.charter.swg --test-file dialogs.layout.swg`,
    plus the test file of the dialog whose behaviour changed.
-2. Review the `dialogs.*` goldens in `bin/std/modules/gui/src/tests/goldens/`, **in Encre and in
+2. Review the `dialogs.*` goldens in `bin/std/namespaces/gui/src/tests/goldens/`, **in Encre and in
    Papier, each as a whole screen against its charter picture**, not only the diff. Check: no
    band, no cross, the title on the first line, the primary rightmost, the bottom-left slot empty
    or holding its one quiet control, and one left edge. A golden that changed in a part you did

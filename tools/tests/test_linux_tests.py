@@ -25,10 +25,10 @@ class LinuxCampaignTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         (self.root / 'logs').mkdir()
-        for workspace, modules in {'unittests/workspace': ('sandbox_consumer', 'runtime_context_dynamic_consumer', 'runtime_context_dynamic_dll'),
+        for workspace, modules in {'unittests/workspace': ('sandbox_consumer', 'runtime_context'),
                                    'std': ('core',), 'apps': ('swagcapture',), 'examples': ('gui1',), 'reference': ('language',)}.items():
             for module in modules:
-                path = self.root / workspace / 'modules' / module
+                path = self.root / workspace / ('namespaces' if workspace == 'std' else 'modules') / module
                 path.mkdir(parents=True)
                 (path / 'module.swg').touch()
 
@@ -44,9 +44,7 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertEqual(names, {'cpp', 'lexer', 'errors-lexer', 'parser', 'errors-parser',
                                 'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native',
                                 'errors-native-owning', 'errors-native-pointer',
-                                'workspace-build-dynamic-library', 'workspace-sandbox_consumer',
-                                'workspace-package-dynamic-library-dependency',
-                                'workspace-runtime_context_dynamic_consumer', 'workspace-runtime_context_dynamic_dll',
+                                'workspace-sandbox_consumer', 'workspace-runtime_context',
                                 'workspace-lifecycle-script',
                                 'workspace-import-script', 'workspace-import-png-script', 'std-core', 'apps-swagcapture',
                                 'examples-gui1', 'reference-language'})
@@ -59,13 +57,14 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertIn('--run-arg=--compiler=' + str(Path('/release/swc')), app)
         self.assertIn('--no-test-jit', app)
 
-    def test_dynamic_fixture_configuration_and_dependency(self):
-        stages = self.plan('dynamic-library', build_cfg='release')
-        self.assertEqual(len(stages), 3)
-        self.assertEqual(stages[1].requires, [stages[0].name])
-        self.assertEqual(stages[2].requires, [stages[1].name])
-        library = Path('/shared-library/release/x86_64/runtime_context_dynamic_dll.so')
-        self.assertTrue(any(str(library) in arg for arg in stages[2].command))
+    def test_native_library_suite_runs_core_ffi_test(self):
+        stage, = self.plan('dynamic-library', build_cfg='release')
+        self.assertEqual(stage.name, 'std-core')
+        self.assertIn('release', stage.command)
+        self.assertIn('--no-test-jit', stage.command)
+        self.assertIn('nativelibrary.linux.swg', stage.command)
+        self.assertFalse(stage.requires)
+
         workspace = self.plan('workspace')
         sandbox = next(stage.command for stage in workspace if stage.name == 'workspace-sandbox_consumer')
         self.assertIn('--rebuild', sandbox)

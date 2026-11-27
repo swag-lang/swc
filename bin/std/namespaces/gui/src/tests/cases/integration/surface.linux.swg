@@ -1,0 +1,349 @@
+#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Linux
+#global private
+
+using Core, Pixel
+
+// Exercises a real ARGB XCB drawable and EGL swap, including independent native queries.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    app.setMotionPreference(.Reduced)
+    let surface = expect app.createSurface(70, 60, 360, 240, surfaceId: "linux-native-gui")
+    surface.minSize = {300, 200}
+    surface.setTitle("Native GUI — é")
+    discard PushButton.create(surface.wnd.view, "Native button", {24, 72, 160, 36})
+    surface.show()
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(not surface.isHidden and surface.presentedFrame)
+    let drawable = expect surface.xcbDrawable()
+    Swag.require(drawable.window != 0 and drawable.visual != 0)
+    let context    = expect LinuxDesktop.ensure()
+    let connection = unwrap context.connection
+    let attrs      = context.xcb_get_window_attributes_reply(connection, context.xcb_get_window_attributes(connection, drawable.window), null)
+    Swag.require(attrs != null)
+    Swag.require(attrs.map_state == 2 and attrs.visual == drawable.visual)
+    Linux.free(attrs)
+    let title = expect LinuxDesktop.readProperty(context, drawable.window, expect LinuxDesktop.atom(context, "_NET_WM_NAME"))
+    Swag.require(Utf8.compare(title.toSlice(), "Native GUI — é") == 0)
+
+    // WM_NORMAL_HINTS says the position was asked for, so a window manager places the surface
+    // there rather than by its own policy.
+    let hints  = expect LinuxDesktop.readProperty(context, drawable.window, 40)
+    let fields = assume cast(const [*]u32, hints.buffer)
+    Swag.require(hints.count == 18 * 4)
+    Swag.require((fields[0] & 5) == 5)
+
+    // A minimum size set after creation, as an application sets it, still reaches the hints.
+    Swag.require((fields[0] & 16) == 16)
+    Swag.require(fields[5] == cast(u32, 300 * surface.dpiScale) and fields[6] == cast(u32, 200 * surface.dpiScale))
+
+    app.renderer.setCurrentContext(surface.rc)
+    let expected = app.renderer.readRenderTarget(&surface.rt, 160, 140, 1, 1).pixelColor(0, 0)
+    let image    = context.xcb_get_image_reply(connection, context.xcb_get_image(connection, 2, drawable.window, 160, 140, 1, 1, 0xFFFFFFFF), null)
+    Swag.require(image != null)
+    Swag.require(image.depth == 32 and context.xcb_get_image_data_length(image) >= 4)
+    let bytes = context.xcb_get_image_data(image)
+    Swag.require(context.xcb_get_setup(connection).image_byte_order == 0)
+    Swag.require(Math.abs(cast(s32, bytes[2]) - expected.r) <= 1)
+    Swag.require(Math.abs(cast(s32, bytes[1]) - expected.g) <= 1)
+    Swag.require(Math.abs(cast(s32, bytes[0]) - expected.b) <= 1)
+    Swag.require(bytes[3] == expected.a and expected.a == 255)
+    Linux.free(image)
+
+    // XCB rows start at the top; Pixel.Image storage starts at the bottom.
+    let snapshot = context.xcb_get_image_reply(connection,
+                                               context.xcb_get_image(connection,
+                                                                     2,
+                                                                     drawable.window,
+                                                                     0,
+                                                                     0,
+                                                                     cast(u16, surface.rc.width),
+                                                                     cast(u16, surface.rc.height),
+                                                                     0xFFFFFFFF),
+                                               null)
+    Swag.require(snapshot != null)
+    defer Linux.free(snapshot)
+    var saved = Image.create(surface.rc.width, surface.rc.height, .BGRA8)
+    Swag.require(cast(u64, context.xcb_get_image_data_length(snapshot)) == saved.byteCount)
+    Memory.copy(unwrap saved.pixels.buffer, context.xcb_get_image_data(snapshot), saved.byteCount)
+    saved.flip()
+    let reference = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
+    for index in saved.byteCount
+    {
+        Swag.require(Math.abs(cast(s32, saved.pixels[index]) - reference.pixels[index]) <= 1,
+                     "native presentation differs from its render target")
+    }
+
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+    if Env.variable("SWAG_GUI_NATIVE_CAPTURE") == "1"
+    {
+        let capturePath = Path.combine(Env.getSpecialDirectory(.Temp), "gui-native-window.png")
+        expect saved.save(capturePath.toString())
+        Console.println("Native GUI capture: ", capturePath)
+    }
+
+    var message: u64
+    surface.wnd.view.hookOnEvent = func|&message|(_, event)->bool
+    {
+        if event is SysUserEvent as notice where notice.kind == .CustomMessage
+        {
+            Swag.require(notice.messageId == 71)
+            message = notice.param
+            return true
+        }
+
+        return false
+    }
+
+    let sent = Surface.sendCustomMessage("linux-native-gui", 71, 0x12345678ABCDEF01)
+    Swag.require(sent)
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(message == 0x12345678ABCDEF01)
+    surface.wnd.view.hookOnEvent = null
+
+    surface.hide()
+    for 4
+    {
+        app.runFrame()
+    }
+
+    Swag.require(surface.isHidden)
+    surface.show()
+    let width  = Math.round(400 * surface.dpiScale)
+    let height = Math.round(280 * surface.dpiScale)
+    surface.setPosition({90, 80, width, height})
+    Swag.require(not surface.presentedFrame)
+    Swag.require(not (expect Testing.verifyNativePresentation(surface)))
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(surface.rc.width == cast(s32, width) and surface.rc.height == cast(s32, height))
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+
+    // Resize from X11 without dispatching ConfigureNotify to the application yet.
+    let resizedWidth        = cast(u16, width - 20)
+    let resizedHeight       = cast(u16, height - 20)
+    let sizeValues: [2] u32 = [resizedWidth, resizedHeight]
+    let resize              = context.xcb_configure_window_checked(connection, drawable.window, (1 << 2) | (1 << 3), sizeValues)
+    expect LinuxDesktop.check(context, resize)
+    let deadline = Time.monotonicMilliseconds() + 3000
+    while true
+    {
+        let geometryRequest = context.xcb_get_geometry(connection, drawable.window)
+        let geometry        = context.xcb_get_geometry_reply(connection, geometryRequest, null)
+        Swag.require(geometry != null)
+        defer Linux.free(geometry)
+        if geometry.width == resizedWidth and geometry.height == resizedHeight
+        {
+            break
+        }
+
+        Swag.require(Time.monotonicMilliseconds() < deadline, "X11 did not resize the window")
+        Threading.Thread.sleep(1_ms)
+    }
+
+    Swag.require(surface.presentedFrame)
+    Swag.require(not (expect Testing.verifyNativePresentation(surface)))
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(surface.rc.width == resizedWidth and surface.rc.height == resizedHeight)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
+    var point = Math.Point{20, 30}
+    surface.surfaceToScreen(&point)
+    surface.screenToSurface(&point)
+    Swag.require(point == {20, 30})
+    Cursor.activate(Cursor.from(.IBeam))
+    Cursor.activate(Cursor.from(.Arrow))
+    let second = expect app.createSurface(500, 80, 180, 160, surfaceId: "linux-native-secondary")
+    second.show()
+    for 4
+    {
+        app.runFrame()
+    }
+
+    second.destroy()
+    for 4
+    {
+        app.runFrame()
+    }
+
+    Swag.require(app.surfaces.count == 1 and not app.mustQuit)
+    surface.destroy()
+    app.runFrame()
+    app.runFrame()
+    Swag.require(app.surfaces.isEmpty() and app.mustQuit)
+}
+
+struct NativeInputProbe
+{
+    pressed, released, extra, wheel, shiftA, controlA, characters, screenshot: u32
+    character: rune
+    returns, pageDown, capsLock: u32
+}
+
+// Queued X11 input preserves short clicks, modifier text, canonical keys, and global shortcuts.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1")
+    var app: Application
+    app.setMotionPreference(.Reduced)
+    let surface = expect app.createSurface(60, 50, 320, 240, surfaceId: "linux-native-input")
+    surface.show()
+    for 4
+    {
+        app.runFrame()
+    }
+
+    surface.wnd.view.focusPolicy = .Click
+    surface.wnd.view.setFocus()
+    var probe: NativeInputProbe
+    surface.wnd.view.hookOnEvent = func|&probe|(_, event)->bool
+    {
+        if event is CommandEvent as command where command.id == "native.screenshot"
+        {
+            probe.screenshot += 1
+            return true
+        }
+        else if event is MouseEvent as mouse
+        {
+            if mouse.kind == .Pressed and mouse.button == .Left
+            {
+                probe.pressed += 1
+            }
+            else if mouse.kind == .Released and mouse.button == .Left
+            {
+                probe.released += 1
+            }
+            else if mouse.kind == .Pressed and mouse.button == .XButton1
+            {
+                probe.extra += 1
+            }
+            else if mouse.kind == .Wheel
+            {
+                probe.wheel += 1
+            }
+        }
+        else if event is KeyEvent as key
+        {
+            if key.kind == .Pressed and key.key == .A and key.modifiers.has(.Shift)
+            {
+                probe.shiftA += 1
+            }
+            else if key.kind == .Pressed and key.key == .A and key.modifiers.has(.Control)
+            {
+                probe.controlA += 1
+            }
+            else if key.kind == .Pressed and key.key == .Return
+            {
+                probe.returns += 1
+            }
+            else if key.kind == .Pressed and key.key == .PageDown
+            {
+                probe.pageDown += 1
+            }
+            else if key.kind == .Pressed and key.key == .CapsLock
+            {
+                probe.capsLock += 1
+            }
+            else if key.kind == .Character
+            {
+                probe.characters += 1
+                probe.character  = key.character
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    defer surface.wnd.view.hookOnEvent = null
+    expect app.registerHotKey(.Control, .PrintScreen, "native.screenshot", surface.wnd.view)
+    defer discard app.unregisterHotKey(.Control, .PrintScreen)
+    let script = Path.combine(testSourceRoot(), "datas/input.x11.peer.py")
+    let id     = Format.toString("%", surface.windowId)
+    var peer   = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), id.toString()],
+                                                       standardOutput: .Pipe, standardError: .Pipe})
+    defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
+    let deadline = Time.monotonicMilliseconds() + 3000
+    while peer.isRunning() and Time.monotonicMilliseconds() < deadline
+    {
+        app.runFrame()
+        discard expect peer.tryWaitForExit(5_ms)
+    }
+
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
+    Swag.require(probe.pressed == 1 and probe.released == 1 and probe.extra == 1 and probe.wheel == 1)
+    Swag.require(probe.returns == 1 and probe.pageDown == 1 and probe.capsLock == 2)
+    Swag.require(probe.screenshot == 1, "the native Print Screen shortcut did not reach its command target")
+    Swag.require(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
+                 Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
+}
+
+// A pointer grab the server refuses, as it does for a window it does not show yet, leaves the
+// capture to the application rather than stopping it.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab")
+    let view    = surface.wnd.view
+    view.captureMouse()
+    Swag.require(view.mouseCapture() == view)
+    view.releaseMouse()
+    Swag.require(view.mouseCapture() == null)
+}
+
+// Hiding or disabling the captured subtree releases the X11 pointer grab.
+#[Swag.TestTag("integration.desktop.capture")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab-lifecycle")
+    let target  = Wnd.create!{Wnd}(surface.wnd.view, {12, 12, 100, 50})
+    surface.show()
+    for 3
+    {
+        app.runFrame()
+    }
+
+    let context = expect LinuxDesktop.ensure()
+    target.captureMouse()
+    Swag.require(target.mouseCapture() == target and context.pointerCapture == surface)
+    target.releaseMouse()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
+
+    target.captureMouse()
+    Swag.require(context.pointerCapture == surface)
+    target.hide()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
+
+    target.show()
+    target.captureMouse()
+    Swag.require(context.pointerCapture == surface)
+    target.disable()
+    Swag.require(target.mouseCapture() == null and context.pointerCapture == null)
+}

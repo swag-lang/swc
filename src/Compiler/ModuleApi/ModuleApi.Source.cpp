@@ -609,12 +609,6 @@ namespace ModuleApi
         return true;
     }
 
-    bool tryGetModuleApiSnippetStartOffset(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
-    {
-        uint32_t endOffset = 0;
-        return tryGetModuleApiSnippetOffsets(ctx, file, nodeRef, outStartOffset, endOffset);
-    }
-
     bool tryGetModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
         outSnippet = {};

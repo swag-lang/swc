@@ -596,7 +596,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.090 — A COM object's ABI header is held first by a comment, not by the language
 
-- Evidence: the four OLE objects in `bin/std/modules/gui/src/dragdrop.win32.swg` copy their
+- Evidence: the four OLE objects in `bin/std/namespaces/gui/src/dragdrop.win32.swg` copy their
   interface header as a first `lpVtbl` field commented "must stay first", and
   `dropTargetOf`, `dataObjectOf`, `formatEnumOf`, and `dropSourceOf` recover the Swag object
   with `cast(*T, cast(*void, itf))`. Nothing checks the invariant, so a field inserted above

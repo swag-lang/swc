@@ -218,7 +218,7 @@ font-viewer path as TrueType outlines.
   the U+1F642 subset of Noto Emoji 3.002 at weight 400. Copyright 2013 Google LLC.
   SHA-256: `202b3a64e8a7da0ffd9a0ba8b35b671544c24f7cf9aada577bafd14f08390fc5`.
   License: SIL Open Font License 1.1, reproduced in `font-fixture-emoji-OFL.txt`.
-  Original provenance is recorded in `bin/std/modules/gui/src/tests/datas/fonts/README.md`.
+  Original provenance is recorded in `bin/std/namespaces/gui/src/tests/datas/fonts/README.md`.
 
 ## Licensed comic pages
 
@@ -325,17 +325,17 @@ PowerPoint presentation. They are openly licensed samples, not public-domain wor
 
 - License: [Apache License 2.0](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/legal/LICENSE).
   The complete license text is also reproduced for other Apache fixture copies in
-  `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+  `bin/std/namespaces/gui/src/tests/datas/THIRDPARTY.md`.
 
 `viewer.openmp-reference.pdf` is an unmodified 67-page LLVM OpenMP runtime reference manual
 already present in the GUI test corpus. It exercises both the beginning and end of a real
 technical document.
 
-- Source: `bin/std/modules/gui/src/tests/datas/llvm-openmp-reference.pdf`, originally
+- Source: `bin/std/namespaces/gui/src/tests/datas/llvm-openmp-reference.pdf`, originally
   [`openmp/runtime/doc/Reference.pdf`](https://github.com/swag-lang/swag/blob/7328b93084641fe1a86577aefc98c093b26133e5/llvm/openmp/runtime/doc/Reference.pdf).
 - SHA-256: `bf61427504a7cc96c532c220c9f5ecc58e7c05374617e4e3de21ce987ba2b8e6`.
 - License: the upstream LLVM project license; see the full provenance and license notice in
-  `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+  `bin/std/namespaces/gui/src/tests/datas/THIRDPARTY.md`.
 
 ## Other sources
 
@@ -369,10 +369,10 @@ Swag PDF writer and covers a PDF 1.4 classic cross-reference table with a Flate 
 
 - SHA-256: `a31f3b5fc79e6ae2703f9d2817af088f29aef4937e370b173512d820a9972c35`
 - License: Apache License 2.0. The complete upstream provenance and license notice are reproduced
-  in `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+  in `bin/std/namespaces/gui/src/tests/datas/THIRDPARTY.md`.
 
 `viewer.object-stream.pdf`, `viewer.rotation.pdf`, and `viewer.jpeg.pdf` are unmodified copies
-of the corresponding `pdfbox-*` files in `bin/std/modules/gui/src/tests/datas`. They cover
+of the corresponding `pdfbox-*` files in `bin/std/namespaces/gui/src/tests/datas`. They cover
 cross-reference/object streams, rotated pages, and JPEG image objects respectively. That
 corpus' `THIRDPARTY.md` records their exact upstream paths, SHA-256 hashes and Apache 2.0
 licence. `viewer.ccitt.pdf` copies the repository-generated `synthetic-ccitt-cmyk.pdf` from
@@ -448,7 +448,7 @@ images produced outside this repository.
 - License: MIT. The upstream repository carries the complete license notice.
 
 `rv40-legacy-clock.mkv` is an unmodified copy of the synthetic 96x64, nine-frame RV40 fixture
-in `bin/std/modules/video/src/tests/datas`. Its provenance, encoder settings, and timestamp
+in `bin/std/namespaces/video/src/tests/datas`. Its provenance, encoder settings, and timestamp
 mutation are documented in that directory's `THIRDPARTY.md`. It contains only generated picture
 samples and no audio. It verifies RV40 opening and seeking through Swag Scope's planar viewer.
 
@@ -577,9 +577,9 @@ The following entries map Scope names and original standard-module names to the 
 Each suite keeps its own copy under `src/tests/datas`. Temporary filename aliases reuse
 those local bytes.
 The mapping and hash identify each payload. Source provenance and licences
-are recorded in `bin/std/modules/audio/src/tests/datas/THIRDPARTY.md`,
-`bin/std/modules/video/src/tests/datas/THIRDPARTY.md`, and
-`bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`. Audio/video sources are generated examples
+are recorded in `bin/std/namespaces/audio/src/tests/datas/THIRDPARTY.md`,
+`bin/std/namespaces/video/src/tests/datas/THIRDPARTY.md`, and
+`bin/std/namespaces/gui/src/tests/datas/THIRDPARTY.md`. Audio/video sources are generated examples
 under this repository's licence; PDFBox files retain Apache License 2.0 terms, and the LLVM manual
 retains the LLVM project licence.
 

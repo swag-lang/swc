@@ -214,56 +214,6 @@ namespace
         return it != sortedReferencedOffsets.end() && *it < endOffset;
     }
 
-    Result synchronizeImportedRuntimeContexts(TaskContext& ctx)
-    {
-        if (!shouldUseSharedRuntimeSetup(ctx, ctx.state().runJitFunction))
-            return Result::Continue;
-
-        const auto& runtimeImports = ctx.compiler().nativeRuntimeImports();
-        if (runtimeImports.empty())
-            return Result::Continue;
-        SWC_RESULT(requireHostTarget(ctx));
-
-        ctx.compiler().markImportedNativeExecution();
-
-        // Constexpr evaluation can enter imported modules from several sema workers at once.
-        // Their hooks own process-wide DLL lifecycle state: one worker must finish Init and
-        // PreMain before another worker can observe or refresh that state.
-        static std::mutex      runtimeHookMutex;
-        const std::scoped_lock lock(runtimeHookMutex);
-
-        const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
-
-        // JIT arguments live in the compiler's ProcessInfo. Share them with imported
-        // modules so their separate slots yield the same Swag.args() values.
-        ctx.compiler().ensureProcessInfoRunArgs();
-        const Runtime::String* processArgs = &ctx.compiler().processInfo().args;
-        for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
-        {
-            if (!runtimeImport.hasSharedRuntimeHook)
-                continue;
-
-            const Utf8 hookSymbolName = runtimeHookSymbolName(runtimeImport.linkModuleName.view());
-            void*      hookAddress    = nullptr;
-            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, runtimeImport.linkModuleName.view(), hookSymbolName.view()))
-            {
-                RelocationResolveFailure failure;
-                failure.kind         = RelocationResolveFailureKind::ForeignLookupFailed;
-                failure.moduleName   = runtimeImport.linkModuleName;
-                failure.functionName = hookSymbolName;
-                return reportRelocationFailure(ctx, DiagnosticId::cmd_err_native_invalid_foreign_function_relocation, hookSymbolName.view(), failure);
-            }
-
-            // Hooks refresh TLS before their one-time lifecycle guards, keeping
-            // Swag.getContext() valid inside imported DLL code.
-            const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
-        }
-
-        return Result::Continue;
-    }
-
     struct RuntimeExceptionReport
     {
         Diagnostic      diag;
@@ -519,11 +469,7 @@ namespace
             }
         }
 
-        // The foreign module names the artifact to load ('ucrtbase' for system foreigns,
-        // the origin module for imported interfaces); an imported module maps to the link
-        // artifact dependency resolution selected for it.
-        const Utf8             originModule = targetFunction.resolveForeignModuleName(ctx);
-        const std::string_view moduleName   = ctx.compiler().runtimeImportLinkName(originModule.view());
+        const std::string_view moduleName = targetFunction.foreignModuleName();
         if (moduleName.empty())
         {
             if (outFailure)
@@ -2420,7 +2366,6 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         if (setupInvoker)
             setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
-        callResult = setupMode == JITRuntimeSetupMode::FromCompiler ? synchronizeImportedRuntimeContexts(ctx) : Result::Continue;
         if (callResult == Result::Continue)
         {
             if (arg0)

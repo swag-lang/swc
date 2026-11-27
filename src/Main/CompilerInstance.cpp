@@ -115,19 +115,15 @@ namespace
         return owner->isNamespace() && owner->idRef().isValid();
     }
 
-    bool canRegisterNativeFunction(const CompilerInstance& compiler, const SymbolFunction& symbol, const bool requireRoot)
+    bool canRegisterNativeFunction(const SymbolFunction& symbol, const bool requireRoot)
     {
         if (!isEligibleNativeFunction(symbol))
-            return false;
-        if (compiler.isImportedApiSource(symbol))
             return false;
         return !requireRoot || isNativeRootFunction(symbol);
     }
 
-    bool canRegisterNativeGlobalVariable(const CompilerInstance& compiler, const SymbolVariable& symbol)
+    bool canRegisterNativeGlobalVariable(const SymbolVariable& symbol)
     {
-        if (compiler.isImportedApiSource(symbol))
-            return false;
         if (!symbol.hasGlobalStorage())
             return false;
         return symbol.globalStorageKind() != DataSegmentKind::Compiler;
@@ -236,8 +232,6 @@ namespace
             return FileSystem::absolutePathNoThrow(fs::path(outDir.c_str()));
         if (!compiler.cmdLine().outDir.empty())
             return FileSystem::absolutePathNoThrow(compiler.cmdLine().outDir);
-        if (!compiler.cmdLine().exportApiDir.empty())
-            return FileSystem::absolutePathNoThrow(compiler.cmdLine().exportApiDir);
 
         return workOrTemporaryDirectory(compiler);
     }
@@ -273,10 +267,8 @@ namespace
         request->address       = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
     }
 
-    // The borrow registry belongs to the program running on this thread, which the interface
-    // object does not name: imported DLL globals keep the allocator interface of whichever JIT
-    // run first filled them, and that module's CompilerInstance can be destroyed by the time
-    // another module's code reaches them. A thread with no compiler task has no registry to check.
+    // Resolve the borrow registry from the active JIT task. The allocator interface
+    // itself carries no program identity.
     // This re-enters a Swag function, whose scalar ABI follows Windows x64 on every host.
 #if defined(__linux__) && defined(__x86_64__)
     using RuntimeAllocatorBorrowGuard = void(__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
@@ -365,8 +357,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
-    if (cmdLine.rebuild && !cmdLine.rebuildModule)
-        CompilerCacheStore::invalidateAll();
     if (cmdLine.optimizerStats)
         optimizerStats_ = std::make_unique<MicroOptimizerStats>();
 
@@ -897,7 +887,7 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, true))
+    if (!canRegisterNativeFunction(*symbol, true))
         return;
 
     bool inserted = false;
@@ -914,7 +904,7 @@ void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, Symbo
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
+    if (!canRegisterNativeFunction(*symbol, false))
         return;
 
     std::vector<SymbolFunction*>* bucket    = nullptr;
@@ -1021,7 +1011,7 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeGlobalVariable(*this, *symbol))
+    if (!canRegisterNativeGlobalVariable(*symbol))
         return;
 
     const bool hasFunctionInit = symbol->globalStorageKind() == DataSegmentKind::GlobalInit && symbol->globalFunctionInit() != nullptr;
@@ -1046,8 +1036,6 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    if (isImportedApiSource(*symbol))
-        return;
 
     bool inserted = false;
     {
@@ -1314,7 +1302,7 @@ const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 
 const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 {
-    return sourceViewFile(symbol.srcViewRef());
+    return symbol.decl() ? sourceViewFile(symbol.srcViewRef()) : nullptr;
 }
 
 // The file whose AST holds the symbol's declaration: the owner of its source view, else the file
@@ -1324,12 +1312,6 @@ const SourceFile* CompilerInstance::declaringSourceFile(const Symbol& symbol) co
     if (const SourceFile* ownerFile = ownerSourceFile(symbol.srcViewRef()))
         return ownerFile;
     return sourceViewFile(symbol);
-}
-
-bool CompilerInstance::isImportedApiSource(const Symbol& symbol) const
-{
-    const SourceFile* sourceFile = sourceViewFile(symbol);
-    return sourceFile && sourceFile->isImportedApi();
 }
 
 const SourceFile* CompilerInstance::owningSourceFile(const SourceView& srcView) const

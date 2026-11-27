@@ -4,7 +4,7 @@ This backlog covers `std/gui`, measured against the desktop toolkits it competes
 Qt, GTK4, Avalonia, Slint, Flutter, and — for the "we render every pixel ourselves" family —
 Dear ImGui and egui.
 
-Evidence, investigations, and intended outcomes owned by `bin/std/modules/gui` stay together here.
+Evidence, investigations, and intended outcomes owned by `bin/std/namespaces/gui` stay together here.
 Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.

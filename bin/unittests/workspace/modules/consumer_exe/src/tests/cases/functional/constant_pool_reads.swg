@@ -1,7 +1,7 @@
 #global private
 using Swag, RuntimeCtxDll
 
-// The constants read inside the shared library must carry the same values the
+// The constants read inside the imported source group must carry the same values the
 // consumer sees, whatever the read compiled to there: the address fold turns
 // a pool read into an instruction-pointer-relative access, and a library
 // image is where that rewrite has gone wrong before.

@@ -1,11 +1,10 @@
 #pragma once
 #include "Support/Core/RefTypes.h"
 
-// Value records shared with CompilerInstance; publication services stay in ModuleApi.h.
+// Declaration records used by API documentation.
 SWC_BEGIN_NAMESPACE();
 
 class Symbol;
-class SourceContent;
 
 struct ModuleApiPublicEntry
 {
@@ -32,14 +31,5 @@ struct ModuleApiPerThreadData
     ModuleApiFileEntries files;
 };
 
-namespace ModuleApi
-{
-    struct SourceSnapshot
-    {
-        fs::path                             path;
-        std::shared_ptr<const SourceContent> content;
-        fs::file_time_type                   writeTime{};
-    };
-}
 
 SWC_END_NAMESPACE();

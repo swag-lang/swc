@@ -63,7 +63,6 @@ private:
         const uint32_t* find(const std::string_view name) const { return indices.find(name, Math::hash(name)); }
 
         StringMap<uint32_t> indices;
-        std::deque<Utf8>    ownedNames;
     };
 
     struct CoffStringTable
@@ -91,10 +90,9 @@ private:
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
-    Result        buildRDataAllocationSection(CoffSectionBuild& section, const NativeRDataAllocationMapEntry& allocation) const;
-    Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
-    Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
-    Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
+    Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
+    Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols) const;
     static Result applySectionRelocations(CoffSectionBuild& section);
 
     void        addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex) const;

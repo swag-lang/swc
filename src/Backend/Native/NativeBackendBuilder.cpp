@@ -2,7 +2,6 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Linker/Archive.h"
-#include "Backend/Linker/Format.COFF.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Micro/MachineCodeCache.h"
@@ -16,7 +15,6 @@
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
@@ -69,19 +67,6 @@ Utf8 nativeScopedSectionBaseSymbol(const uint32_t scopeHash, const std::string_v
     return std::format("{}_{:08x}", baseName, scopeHash);
 }
 
-// The emitted offset, unlike the shard and source offset, does not depend on compilation scheduling.
-Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t emittedOffset, const DataSegmentAllocationKind kind)
-{
-    if (kind >= DataSegmentAllocationKind::TypeDescriptorIdentity)
-        return std::format("{}{:02x}_{:08x}_{:08x}", K_TYPE_IDENTITY_SYMBOL_PREFIX, std::to_underlying(kind), scopeHash, emittedOffset);
-    return std::format("{}{:08x}_{:08x}", kind == DataSegmentAllocationKind::TypeMetadata ? K_TYPE_METADATA_SYMBOL_PREFIX : "__swc_rdata_", scopeHash, emittedOffset);
-}
-
-Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t emittedOffset)
-{
-    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), emittedOffset, DataSegmentAllocationKind::Constant);
-}
-
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
 {
     Utf8 key = function.getFullScopedName(ctx);
@@ -119,10 +104,9 @@ namespace
 
     Utf8 locationTieKey(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        // The public API name and function type do not include the generic arguments of an
-        // owning struct or constant generic function arguments. Both distinguish instances
-        // sharing one declaration and signature; use their content, not scheduling-dependent refs.
-        Utf8 key = symbol.computePublicApiSymbolName(ctx);
+        // Generic instances can share a declaration and signature. Order them by
+        // their arguments so their positions are independent of worker scheduling.
+        Utf8 key = symbol.getFullScopedName(ctx);
         key += "|";
         if (symbol.typeRef().isValid())
             key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
@@ -316,165 +300,15 @@ namespace
         return Utf8Helper::toLowerHex(sha256(identity.span()));
     }
 
-    Utf8 lowerPathExtension(const fs::path& path)
-    {
-        Utf8 result = path.extension().string();
-        result.make_lower();
-        return result;
-    }
-
-    bool isPublishDependencyExtension(const Utf8& extension, const Runtime::TargetOs targetOs)
-    {
-        if (targetOs == Runtime::TargetOs::Linux)
-            return extension == ".so";
-        return extension == ".dll" || extension == ".pdb";
-    }
-
-    bool publishDependencyFilesHaveSameContent(const fs::path& lhsPath, const fs::path& rhsPath)
-    {
-        FileSystem::IoErrorInfo ioError;
-        ByteArray               lhsData;
-        if (FileSystem::readBinaryFile(lhsPath, lhsData, ioError) != Result::Continue)
-            return false;
-
-        ByteArray rhsData;
-        if (FileSystem::readBinaryFile(rhsPath, rhsData, ioError) != Result::Continue)
-            return false;
-
-        return lhsData == rhsData;
-    }
-
-    bool isCompilerFunction(const SymbolFunction& symbol)
-    {
-        return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
-    }
-
-    bool shouldCopyPublishDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
-    {
-        std::error_code ec;
-        const bool      dstExists = fs::exists(dstPath, ec);
-        if (ec || !dstExists)
-            return true;
-
-        ec.clear();
-        if (!fs::is_regular_file(dstPath, ec) || ec)
-            return true;
-
-        ec.clear();
-        const uintmax_t srcSize = fs::file_size(srcPath, ec);
-        if (ec)
-            return true;
-
-        ec.clear();
-        const uintmax_t dstSize = fs::file_size(dstPath, ec);
-        if (ec || srcSize != dstSize)
-            return true;
-
-        ec.clear();
-        const auto srcTime = fs::last_write_time(srcPath, ec);
-        if (ec)
-            return true;
-
-        ec.clear();
-        const auto dstTime = fs::last_write_time(dstPath, ec);
-        if (ec)
-            return true;
-
-        if (srcTime != dstTime)
-            return true;
-
-        return !publishDependencyFilesHaveSameContent(srcPath, dstPath);
-    }
-
     Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
     {
         const uint32_t scopeHash = builder.scopedSymbolNames().scopeHash;
         return std::format("__swc_fn_{:08x}_{:06}_{:08x}", scopeHash, ordinal, Math::hash(info.sortKey));
     }
 
-    SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, const NativeRuntimeDependency& dependency)
+    bool isCompilerFunction(const SymbolFunction& symbol)
     {
-        constexpr SymbolFlags syntheticFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
-
-        const IdentifierRef idRef = builder.ctx().idMgr().addIdentifier(dependency.hookSymbolName.view());
-        auto*               hook  = Symbol::make<SymbolFunction>(builder.ctx(), nullptr, TokenRef::invalid(), idRef, syntheticFlags);
-        hook->setReturnTypeRef(builder.ctx().typeMgr().typeVoid());
-        hook->setCallConvKind(CallConvKind::Swag);
-        AttributeList attributes;
-        attributes.setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view(), CallConvKind::Swag);
-        hook->setAttributes(builder.ctx(), attributes);
-        return hook;
-    }
-
-    void buildRuntimeDependencyOrders(NativeBackendBuilder& builder)
-    {
-        builder.runtimeDependencyInitOrder.clear();
-        builder.runtimeDependencyDropOrder.clear();
-        if (builder.runtimeDependencies.empty())
-            return;
-
-        std::unordered_map<Utf8, uint32_t> dependencyIndices;
-        dependencyIndices.reserve(builder.runtimeDependencies.size());
-        for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
-            dependencyIndices.emplace(builder.runtimeDependencies[i].moduleName, i);
-
-        std::vector<std::vector<uint32_t>> outgoing(builder.runtimeDependencies.size());
-        std::vector<uint32_t>              indegree(builder.runtimeDependencies.size(), 0);
-        for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
-        {
-            for (const Utf8& importedModule : builder.runtimeDependencies[i].transitiveImports)
-            {
-                const auto it = dependencyIndices.find(importedModule);
-                if (it == dependencyIndices.end() || it->second == i)
-                    continue;
-
-                // Modules are visited in order, so a repeated edge is the last one appended.
-                auto& dependents = outgoing[it->second];
-                if (!dependents.empty() && dependents.back() == i)
-                    continue;
-                dependents.push_back(i);
-                indegree[i] += 1;
-            }
-        }
-
-        builder.runtimeDependencyInitOrder.reserve(builder.runtimeDependencies.size());
-        std::vector<uint32_t> ready;
-        ready.reserve(builder.runtimeDependencies.size());
-        for (uint32_t i = 0; i < indegree.size(); ++i)
-        {
-            if (indegree[i] == 0)
-                ready.push_back(i);
-        }
-
-        // Preserve the lowest-index choice when completing a dependency unlocks an earlier module.
-        std::ranges::make_heap(ready, std::greater{});
-        while (!ready.empty())
-        {
-            std::ranges::pop_heap(ready, std::greater{});
-            const uint32_t index = ready.back();
-            ready.pop_back();
-            builder.runtimeDependencyInitOrder.push_back(index);
-            for (const uint32_t dependentIndex : outgoing[index])
-            {
-                SWC_ASSERT(indegree[dependentIndex] != 0);
-                indegree[dependentIndex] -= 1;
-                if (indegree[dependentIndex] == 0)
-                {
-                    ready.push_back(dependentIndex);
-                    std::ranges::push_heap(ready, std::greater{});
-                }
-            }
-        }
-
-        // Cycles and modules blocked by them retain the historical input-order fallback.
-        for (uint32_t i = 0; i < indegree.size(); ++i)
-        {
-            if (indegree[i] != 0)
-                builder.runtimeDependencyInitOrder.push_back(i);
-        }
-
-        builder.runtimeDependencyDropOrder = builder.runtimeDependencyInitOrder;
-        std::ranges::reverse(builder.runtimeDependencyDropOrder);
+        return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
 
     template<typename T>
@@ -839,73 +673,6 @@ namespace
         return functions;
     }
 
-    bool isExportedOpaqueLifecycleFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol)
-    {
-        const SymbolStruct* owner = symbol.ownerStruct();
-        if (!owner || !owner->isPublic() || !ModuleApi::isModuleApiOpaqueType(*owner))
-            return false;
-        if (owner->effectiveOpInit(builder.ctx()) != &symbol &&
-            owner->effectiveOpDrop(builder.ctx()) != &symbol &&
-            owner->effectiveOpPostCopy(builder.ctx()) != &symbol &&
-            owner->effectiveOpPostMove(builder.ctx()) != &symbol)
-            return false;
-
-        const SourceFile* sourceFile = builder.compiler().sourceViewFile(*owner);
-        const SourceFile* astFile    = builder.compiler().ownerSourceFile(owner->srcViewRef());
-        if (!astFile)
-            astFile = sourceFile;
-        if (!sourceFile || !astFile || (!ModuleApi::isCurrentModuleSourceFile(*sourceFile) && !ModuleApi::isCurrentModuleSourceFile(*astFile)))
-            return false;
-
-        AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), owner->decl(), declRef))
-        {
-            if (astFile->ast().hasSourceView() && owner->srcViewRef() != astFile->ast().srcView().ref())
-                declRef = astFile->ast().tryFindNodeRef(owner->decl());
-        }
-        if (declRef.isInvalid() || !ModuleApi::isExportedPublicDeclScope(*astFile, declRef, *owner))
-            return false;
-
-        std::vector<IdentifierRef> namespacePath;
-        return ModuleApi::findExportDeclRoot(*astFile, declRef).isValid() && ModuleApi::extractPublicNamespacePath(builder.ctx(), *astFile, declRef, *owner, namespacePath);
-    }
-
-    // An importer regenerates a struct's member-wise equality from the published struct, so the
-    // module's own copy is never called from outside.
-    bool isGeneratedEqualityOperator(NativeBackendBuilder& builder, const SymbolFunction& symbol)
-    {
-        return symbol.srcViewRef().isValid() && builder.compiler().srcView(symbol.srcViewRef()).isGeneratedEqualitySource();
-    }
-
-    // A local function can inherit public access without becoming a module declaration. Its
-    // symbol-map owner is not always the enclosing function, so check the source declaration
-    // before assigning a linker-visible API name.
-    bool isExportedFunctionDecl(NativeBackendBuilder& builder, const SymbolFunction& symbol)
-    {
-        const SourceFile* sourceFile = builder.compiler().sourceViewFile(symbol);
-        const SourceFile* astFile    = builder.compiler().ownerSourceFile(symbol.srcViewRef());
-        if (!astFile)
-            astFile = sourceFile;
-        if (!astFile)
-            return true;
-
-        const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(astFile->ast(), symbol);
-        if (declRef.isInvalid())
-            return true;
-        return ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol);
-    }
-
-    // What a library publishes under its API name, and what an importer can therefore call.
-    bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol, const bool supportsExportedFunctions)
-    {
-        if (!supportsExportedFunctions)
-            return false;
-        if (isExportedOpaqueLifecycleFunction(builder, symbol))
-            return true;
-        return symbol.isPublic() && !isCompilerFunction(symbol) && symbol.supportsPublicApiForeignExport() &&
-               !isGeneratedEqualityOperator(builder, symbol) && isExportedFunctionDecl(builder, symbol);
-    }
-
     // A function whose microcode the user asked to see is lowered even when nothing reaches it:
     // the listing is the request, and an unreached function would print nothing at all.
     bool requestsMicroListing(NativeBackendBuilder& builder, const SymbolFunction& symbol)
@@ -922,7 +689,6 @@ namespace
 
     struct NativeFunctionInfoOptions
     {
-        bool                          supportsExportedFunctions = false;
         bool                          includeDebugNames         = false;
         SymbolSort::LocationKeyCache* sortKeys                  = nullptr;
     };
@@ -936,18 +702,13 @@ namespace
         const bool closureAdapter = isClosureAdapter(builder.ctx(), symbol);
         if (closureAdapter)
             info.sortKey = closureAdapterName(builder.ctx(), symbol);
-        info.compilerFn               = isCompilerFunction(symbol);
-        const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol, options.supportsExportedFunctions);
-        if (exportPublicSymbol)
-            info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
-        else
-            info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
+        info.compilerFn = isCompilerFunction(symbol);
+        info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
         // Stack traces read an adapter's name from the debug name in every configuration.
         if (closureAdapter)
             info.debugName = info.sortKey;
         else if (options.includeDebugNames)
             info.debugName = symbol.getFullScopedName(builder.ctx());
-        info.exported = exportPublicSymbol;
         return info;
     }
 
@@ -958,7 +719,6 @@ namespace
         builder.functionInfos.reserve(functions.size());
         builder.functionBySymbol.reserve(functions.size());
         const NativeFunctionInfoOptions infoOptions{
-            .supportsExportedFunctions = Runtime::backendKindIsLibrary(builder.compiler().buildCfg().backendKind),
             .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
             .sortKeys                  = &sortKeys,
         };
@@ -1024,7 +784,6 @@ namespace
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
         const NativeFunctionInfoOptions infoOptions{
-            .supportsExportedFunctions = Runtime::backendKindIsLibrary(builder.compiler().buildCfg().backendKind),
             .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
         };
 
@@ -1168,7 +927,7 @@ void NativeBackendBuilder::prepareFunctionCache()
     const CommandLine& commandLine = compiler_->cmdLine();
     if (commandLine.rebuild || commandLine.command == CommandKind::Test ||
         compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
-        compiler_->buildCfg().backend.debugInfo || compiler_->importedNativeExecuted())
+        compiler_->buildCfg().backend.debugInfo)
         return;
 
     NativeArtifactPaths paths;
@@ -1186,7 +945,7 @@ void NativeBackendBuilder::prepareFunctionCache()
             existingElfFunctionCache_->load(std::move(bytes));
         return;
     }
-    functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.lib", paths.name.view());
+    functionCacheArchivePath_ = paths.buildDir / std::format("{}.incremental.coffcache", paths.name.view());
     functionCacheIndexPath_   = paths.buildDir / std::format("{}.incremental.idx", paths.name.view());
     functionCacheEnabled_     = true;
 
@@ -1264,7 +1023,7 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     if (function.decl())
     {
         const SourceFile* file = compiler().ownerSourceFile(function.srcViewRef());
-        if (file && (file->isRuntime() || file->isImportedApi()))
+        if (file && file->isRuntime())
             return false;
     }
 
@@ -1468,71 +1227,6 @@ const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbo
     return scopedSymbolNames_;
 }
 
-Result NativeBackendBuilder::remapRDataReference(NativeSectionData& section, NativeSectionRelocation& relocation, const ScopedSymbolNames& names)
-{
-    if (relocation.symbolName != names.rdataBase)
-        return Result::Continue;
-    const auto* allocation = relocation.addend <= UINT32_MAX ? tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend)) : nullptr;
-    if (!allocation)
-        return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, section.name);
-    relocation.symbolName = rdataAllocationSymbol(*allocation);
-    relocation.addend -= allocation->emittedOffset;
-    return Result::Continue;
-}
-
-Result NativeBackendBuilder::remapRDataReferences(NativeSectionData& section)
-{
-    const auto& names = scopedSymbolNames();
-    for (NativeSectionRelocation& relocation : section.relocations)
-        SWC_RESULT(remapRDataReference(section, relocation, names));
-    return Result::Continue;
-}
-
-Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation)
-{
-    SWC_ASSERT(std::has_single_bit(allocation.align));
-    SWC_ASSERT(allocation.emittedOffset + allocation.size <= mergedRData.bytes.size());
-
-    // The collector emits allocations in offset order and sorts each allocation's relocations.
-    // Visit only this allocation's range instead of scanning the entire module for every object.
-    const auto&                      relocations = mergedRData.relocations;
-    const auto                       first       = std::ranges::lower_bound(relocations, allocation.emittedOffset, {}, &NativeSectionRelocation::offset);
-    const std::span<const std::byte> allocationBytes{mergedRData.bytes.data() + allocation.emittedOffset, allocation.size};
-    const bool                       hasRelocations = first != relocations.end() && first->offset - allocation.emittedOffset < allocation.size;
-
-    if (!hasRelocations && allocation.zeroFilled)
-    {
-        // Keep all-zero allocations as uninitialized data without copying bytes
-        // into a section that would immediately discard them again.
-        section.name            = ".rbss";
-        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ;
-        section.requireAlignment(allocation.align);
-        section.bss     = true;
-        section.bssSize = allocation.size;
-        return Result::Continue;
-    }
-
-    section.name            = ".rdata";
-    section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ;
-    section.requireAlignment(allocation.align);
-    section.bytes.append(allocationBytes);
-
-    const auto& names = scopedSymbolNames();
-    for (auto it = first; it != relocations.end(); ++it)
-    {
-        const NativeSectionRelocation& sourceRelocation = *it;
-        if (sourceRelocation.offset - allocation.emittedOffset >= allocation.size)
-            break;
-
-        NativeSectionRelocation relocation = sourceRelocation;
-        relocation.offset -= allocation.emittedOffset;
-        SWC_RESULT(remapRDataReference(section, relocation, names));
-        section.relocations.push_back(std::move(relocation));
-    }
-
-    return Result::Continue;
-}
-
 Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(target.bytes != nullptr);
@@ -1573,21 +1267,12 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         {
             DataSegmentRef sourceRef;
             SWC_RESULT(resolveConstantSourceRef(sourceRef, ownerName, relocation));
-            const auto* allocation = tryFindRDataSourceAllocation(sourceRef.shardIndex, sourceRef.offset);
-            if (!allocation)
+            uint32_t emittedOffset = 0;
+            if (!tryMapRDataSourceOffset(emittedOffset, sourceRef.shardIndex, sourceRef.offset))
                 return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
 
-            if (target.splitRDataReferences)
-            {
-                record.symbolName = rdataAllocationSymbol(*allocation);
-                record.addend     = sourceRef.offset - allocation->sourceOffset;
-            }
-            else
-            {
-                record.symbolName = scopedSymbolNames().rdataBase;
-                record.addend     = allocation->emittedOffset + (sourceRef.offset - allocation->sourceOffset);
-            }
-
+            record.symbolName = scopedSymbolNames().rdataBase;
+            record.addend     = emittedOffset;
             patchDataRelocationAddend(record, *target.bytes, patchOffset, relocation);
             break;
         }
@@ -1629,26 +1314,6 @@ const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataSourceAll
         return nullptr;
 
     return &entry;
-}
-
-const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataEmittedAllocation(const uint32_t emittedOffset) const noexcept
-{
-    const auto it = std::ranges::upper_bound(rdataAllocations, emittedOffset, {}, &NativeRDataAllocationMapEntry::emittedOffset);
-    if (it == rdataAllocations.begin())
-        return nullptr;
-
-    const auto& entry = *std::prev(it);
-    if (emittedOffset < entry.emittedOffset || emittedOffset - entry.emittedOffset >= entry.size)
-        return nullptr;
-
-    return &entry;
-}
-
-Utf8 NativeBackendBuilder::rdataAllocationSymbol(const NativeRDataAllocationMapEntry& allocation) const
-{
-    if (!allocation.symbolName.empty())
-        return allocation.symbolName;
-    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.emittedOffset, allocation.kind);
 }
 
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
@@ -1749,20 +1414,6 @@ Result NativeBackendBuilder::prepareForLink()
     return deferredLinker_->prepareLink(deferredToolRun_);
 }
 
-Result NativeBackendBuilder::tryPrepareIncrementalLink(bool& outPrepared, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)
-{
-    outPrepared = false;
-    SWC_ASSERT(compiler_ != nullptr);
-    SWC_RESULT(validateTarget());
-
-    adoptArtifactPaths();
-
-    deferredLinker_ = Linker::create(*this);
-    SWC_ASSERT(deferredLinker_ != nullptr);
-    deferredToolRun_ = {};
-    return deferredLinker_->tryPrepareIncrementalLink(outPrepared, deferredToolRun_, objectPaths, libraryNames);
-}
-
 // Foreground continuation of the deferred link: interpret the result of the background process,
 // report diagnostics/output in order, then run the artifact if this is an executable run.
 Result NativeBackendBuilder::finishDeferredLink()
@@ -1801,9 +1452,6 @@ Result NativeBackendBuilder::prepare()
     SWC_ASSERT(compiler_ != nullptr);
     compiler_->markNativeBackendStarted();
     compiler_->setActiveNativeBuilder(nullptr);
-    runtimeDependencies.clear();
-    runtimeDependencyInitOrder.clear();
-    runtimeDependencyDropOrder.clear();
     functionInfos.clear();
     functionBySymbol.clear();
     generatedMachineCodes.clear();
@@ -1823,17 +1471,13 @@ Result NativeBackendBuilder::prepare()
     filterPreparedSymbols(mainFunctions, *this);
     filterPreparedSymbols(regularGlobals, *this);
 
-    // An executable holds only what its roots reach, and a library only what it exports and what
-    // that reaches, so both start from those roots: a function nothing calls, such as an equality
-    // operator a struct is given whether or not anything compares it, is never lowered.
-    const bool                   executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
-    const bool                   library    = Runtime::backendKindIsLibrary(compiler().buildCfg().backendKind);
+    const bool executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
     std::vector<SymbolFunction*> functions;
-    if (executable || library)
+    if (executable)
     {
         for (SymbolFunction* function : compiler_->nativeCodeSegment())
         {
-            if (function && ((library && isExportedLibraryFunction(*this, *function, library)) || requestsMicroListing(*this, *function)))
+            if (function && requestsMicroListing(*this, *function))
                 functions.push_back(function);
         }
     }
@@ -1850,15 +1494,26 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_, sortKeys);
     for (std::vector<SymbolFunction*>* roots : {&testFunctions, &initFunctions, &preMainFunctions, &dropFunctions, &mainFunctions})
         orderLocationTies(ctx_, *roots);
+    if (compiler_->hasSourceDependencies())
+    {
+        const auto lifecycleRank = [&](const SymbolFunction* symbol) {
+            const SourceFile* file = compiler_->sourceViewFile(*symbol);
+            if (!file || file->isRuntime())
+                return uint32_t{0};
+            return file->sourceOwner() ? file->sourceOwner() : std::numeric_limits<uint32_t>::max();
+        };
+        for (auto* hooks : {&initFunctions, &preMainFunctions, &dropFunctions})
+            std::ranges::stable_sort(*hooks, {}, lifecycleRank);
+    }
+
     // Release hooks in the reverse source order of initialization hooks.
     std::ranges::reverse(dropFunctions);
     orderLocationTies(ctx_, regularGlobals);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     std::vector<SymbolFunction*> executableRoots;
-    // Export-only modules can still run JIT tests. Their runtime entry points are lazy and
-    // must be prepared even though there will be no executable or library to link.
+    // JIT tests also need the lazy runtime entry points.
     const bool jitTests = compiler_->cmdLine().command == CommandKind::Test && compiler_->cmdLine().testJit && !testFunctions.empty();
-    if (executable || library || jitTests)
+    if (executable || jitTests)
     {
         executableRoots = collectExecutableFunctionRoots(*this);
         for (SymbolFunction* function : executableRoots)
@@ -1867,22 +1522,6 @@ Result NativeBackendBuilder::prepare()
                 functions.push_back(function);
         }
     }
-
-    const auto& importedRuntimeDeps = compiler_->nativeRuntimeImports();
-    runtimeDependencies.reserve(importedRuntimeDeps.size());
-    for (const auto& importedRuntimeDep : importedRuntimeDeps)
-    {
-        NativeRuntimeDependency dependency;
-        dependency.moduleName        = importedRuntimeDep.moduleName;
-        dependency.linkModuleName    = importedRuntimeDep.linkModuleName;
-        dependency.hookSymbolName    = runtimeHookSymbolName(dependency.linkModuleName.view());
-        dependency.transitiveImports = importedRuntimeDep.transitiveImports;
-        runtimeDependencies.push_back(std::move(dependency));
-    }
-
-    for (auto& runtimeDependency : runtimeDependencies)
-        runtimeDependency.hookSymbol = createRuntimeDependencyHookSymbol(*this, runtimeDependency);
-    buildRuntimeDependencyOrders(*this);
 
     std::optional<ScopedTimedLog> microStage;
     if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Micro) && ctx_.global().logger().claimStageOnce("micro"))
@@ -2006,130 +1645,6 @@ Result NativeBackendBuilder::buildObject(const uint32_t objIndex)
     return objectWriter->buildObjectFile(description.objBytes, description);
 }
 
-Result NativeBackendBuilder::publishExistingArtifact()
-{
-    SWC_ASSERT(compiler_ != nullptr);
-    if (!compiler_->buildCfg().publishDependencies || compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
-        return Result::Continue;
-
-    SWC_RESULT(validateTarget());
-
-    adoptArtifactPaths();
-
-    if (!fs::exists(artifactPath))
-        return reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(artifactPath));
-
-    return publishExecutableDependencies();
-}
-
-Result NativeBackendBuilder::publishExecutableDependencies()
-{
-    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
-        return Result::Continue;
-
-    const bool     publishDependencies = compiler_->buildCfg().publishDependencies;
-    const fs::path artifactDir         = artifactPath.parent_path();
-    if (artifactDir.empty())
-        return Result::Continue;
-
-    std::error_code ec;
-    const auto      removePublishedFile = [this, &ec](const fs::path& path) -> Result {
-        ec.clear();
-        const bool exists = fs::exists(path, ec);
-        if (ec)
-            return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-        if (!exists)
-            return Result::Continue;
-
-        ec.clear();
-        fs::remove(path, ec);
-        if (ec)
-            return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), path));
-        return Result::Continue;
-    };
-
-    // Every shared directory is read, including the ones this executable does not link against
-    // because it took their module's code in instead: such a directory is the only place that still
-    // names the shared library, and naming it is what lets a copy an earlier build published beside the
-    // executable be taken back out.
-    std::vector<fs::path>        sourceDirs = compiler_->importedDependencyLinkDirs();
-    std::unordered_set<fs::path> linkedAgainst(sourceDirs.begin(), sourceDirs.end());
-    for (const fs::path& sharedDir : compiler_->importedDependencySharedDirs())
-    {
-        if (!linkedAgainst.contains(sharedDir))
-            sourceDirs.push_back(sharedDir);
-    }
-
-    const bool publishDebugInfo = compiler_->buildCfg().backend.debugInfo;
-    for (const fs::path& sourceDir : sourceDirs)
-    {
-        if (sourceDir.empty())
-            continue;
-
-        const fs::path normalizedSourceDir = FileSystem::normalizePath(sourceDir);
-        if (FileSystem::pathEquals(normalizedSourceDir, FileSystem::normalizePath(artifactDir)))
-            continue;
-
-        // Only a module this executable actually imports is published beside it. One whose code was
-        // linked in has nothing to ship, so its files are removed instead of copied.
-        const bool publishFromThisDir = publishDependencies && linkedAgainst.contains(normalizedSourceDir);
-
-        for (fs::directory_iterator it(normalizedSourceDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(normalizedSourceDir), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-
-            ec.clear();
-            if (!it->is_regular_file(ec) || ec)
-                continue;
-            const Utf8 extension = lowerPathExtension(it->path());
-            if (!isPublishDependencyExtension(extension, ctx_.cmdLine().targetOs))
-                continue;
-
-            const fs::path dstPath = (artifactDir / it->path().filename()).lexically_normal();
-            if (FileSystem::pathEquals(FileSystem::normalizePath(it->path()), FileSystem::normalizePath(dstPath)))
-                continue;
-
-            // A dependency PDB may no longer exist in the source directory after switching off
-            // debug information. Derive it from the DLL so an older published copy is still removed.
-            if (extension == ".dll" && (!publishFromThisDir || !publishDebugInfo))
-            {
-                fs::path stalePdbPath = dstPath;
-                stalePdbPath.replace_extension(".pdb");
-                SWC_RESULT(removePublishedFile(stalePdbPath));
-            }
-
-            if (!publishFromThisDir || (extension == ".pdb" && !publishDebugInfo))
-            {
-                // Retire files published by an earlier build when publication is disabled,
-                // including ELF libraries found through the executable's $ORIGIN runpath.
-                SWC_RESULT(removePublishedFile(dstPath));
-
-                continue;
-            }
-
-            if (!shouldCopyPublishDependencyFile(it->path(), dstPath))
-                continue;
-
-            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
-            if (ec)
-                return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), dstPath));
-
-            ec.clear();
-            const auto srcTime = fs::last_write_time(it->path(), ec);
-            if (!ec)
-            {
-                ec.clear();
-                fs::last_write_time(dstPath, srcTime, ec);
-                if (ec)
-                    return reportError(DiagnosticId::cmd_err_native_publish_dependency_failed, Diagnostic::ARG_PATH, Utf8(dstPath), Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-            }
-        }
-    }
-
-    return Result::Continue;
-}
-
 Result NativeBackendBuilder::reportError(DiagnosticId id)
 {
     return reportError(Diagnostic::get(id));
@@ -2177,14 +1692,7 @@ Result NativeBackendBuilder::buildObjects()
     objBuildFailed.store(false, std::memory_order_release);
 
     const NativeArtifactBuilder artifactBuilder(*this);
-    SWC_RESULT(artifactBuilder.prepareOutputFolders());
-
-    // The integrated PE linker builds executable/DLL images directly from functionInfos, so it only
-    // needs COFF object bytes when producing a static library archive.
-    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
-        return Result::Continue;
-
-    return buildObjectBytes();
+    return artifactBuilder.prepareOutputFolders();
 }
 
 Result NativeBackendBuilder::buildObjectBytes()
@@ -2210,22 +1718,7 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
 
     uint32_t              exitCode = 0;
     std::string           artifactOutput;
-    std::vector<fs::path> runtimePathDirs;
-    const fs::path        artifactDir = artifactPath.parent_path();
-    for (const fs::path& importedLinkDir : compiler_->importedDependencyLinkDirs())
-    {
-        if (!importedLinkDir.empty())
-            runtimePathDirs.push_back(importedLinkDir);
-    }
-
-    // The shared directories go on the path even when this executable linked its dependencies in
-    // and needs none of them itself: a library it loads at run time was built against the DLLs, and
-    // the loader resolves that library's own imports from the process path.
-    for (const fs::path& importedSharedDir : compiler_->importedDependencySharedDirs())
-    {
-        if (!importedSharedDir.empty() && std::ranges::find(runtimePathDirs, importedSharedDir) == runtimePathDirs.end())
-            runtimePathDirs.push_back(importedSharedDir);
-    }
+    const fs::path artifactDir = artifactPath.parent_path();
 
     // A smoke run is supposed to stop by itself once its frame budget is spent, and a test
     // executable once its tests are done. Give both a deadline: a program that stops making
@@ -2238,7 +1731,6 @@ Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
         .capturedOutput            = &artifactOutput,
         .forwardLineCallback       = [](const void* context, const std::string_view line) { Logger::printAndFlush(*static_cast<const TaskContext*>(context), line); },
         .forwardLineUserData       = &ctx_,
-        .additionalPathDirectories = runtimePathDirs,
         .suppressForwardLinePrefix = "[swag.test] executed=",
         .timeoutMs                 = timeoutMs,
     };

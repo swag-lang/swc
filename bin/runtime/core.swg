@@ -990,7 +990,6 @@ func __resetRuntimeContext()
     cxt.tempAllocator.release()
     __releaseErrContext(cxt)
 
-    // Module hooks adopt this slot; clearing it would split the process's runtime contexts.
     Swag.memset(cxt, 0, #sizeof(Swag.Context))
     cxt.allocator           = allocator
     cxt.defaultAllocator    = allocator
@@ -1004,10 +1003,7 @@ func __resetRuntimeContext()
 // so it stays reachable on the very CPU that cannot execute the rest.
 //
 // Only a standalone program reaches an unchecked host. Under the compiler the answer is already
-// known -- 'swc' refused to start below the baseline before it could run any of this -- and the
-// compiler is reached three ways: JIT code, the JIT-run test entry (which carries no flag of its
-// own), and the native modules the compiler loads. Ending the process in any of them would kill
-// the compiler instead of reporting.
+// known because 'swc' checked the baseline at startup.
 #[Swag.Optimize(false)]
 func __checkCpuBaseline(flags: RuntimeFlags)
 {
@@ -1033,10 +1029,8 @@ func __setupRuntime(flags: RuntimeFlags)
     let cxt = Swag.getContext()
     cxt.runtimeFlags = flags
 
-    // A native run owns its command line, and every artifact keeps its own 'Swag.processInfo()', so the
-    // executable seeds its copy here and hands it down the hook chain to the modules it imports.
-    // Under the compiler the real command line belongs to 'swc' itself; the host has already
-    // filled the slot with the one the program is effectively launched with, so leave it alone.
+    // The executable reads the process arguments. For a JIT run the compiler already
+    // filled the same slot with the arguments supplied for the program.
     if not (flags & .FromCompiler) and not __hostSetupProcessArguments()
     {
         __printString("cannot initialize process arguments\n")

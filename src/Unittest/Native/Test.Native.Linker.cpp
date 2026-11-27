@@ -670,18 +670,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 SWC_TEST_END()
 
 #ifdef __linux__
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxDependencyUsesPublishedArtifactName)
-{
-    LinkerTestDirectory directory("published_artifact_name");
-    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_name_provider", "artifact_name_consumer"}));
-    const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_name_consumer",
-        "--num-cores", "3"};
-    return runCompiler(arguments, ExitCode::Success, "artifact provider dropped");
-}
-SWC_TEST_END()
-
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesUseChildLibraryPaths)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSourceDependenciesShareRuntimeArguments)
 {
     LinkerTestDirectory directory("shared_library_paths");
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
@@ -692,7 +681,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesUseChildLibraryPaths)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedModulesExecuteDuringCompilation)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSourceDependenciesExecuteDuringCompilation)
 {
     LinkerTestDirectory directory("shared_library_jit");
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_jit_consumer"}));
@@ -705,15 +694,10 @@ SWC_TEST_END()
 
 #endif
 
-SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSharedModulesExecuteDuringCompilation)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSourceDependenciesExecuteDuringCompilation)
 {
     LinkerTestDirectory directory("transitive_shared_library_jit");
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
-    // Build providers in a separate process so their earlier compilation cannot preload them.
-    const std::vector<Utf8> dependencies = {
-        "build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_middle",
-        "--num-cores", "3"};
-    SWC_RESULT(runCompiler(dependencies, ExitCode::Success, ""));
     const std::vector<Utf8> arguments = {
         "run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
         "--num-cores", "3"};
@@ -721,86 +705,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSharedModulesExecuteDuringCompilation
     return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
 }
 SWC_TEST_END()
-
-#ifdef __linux__
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxCompanionArchivesKeepRuntimeHooksDistinct)
-{
-    LinkerTestDirectory directory("companion_archive_runtime_hooks");
-    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
-    for (const std::string_view module : {"artifact_transitive_middle", "artifact_transitive_consumer"})
-    {
-        const fs::path          setupPath = fs::path("modules") / module / "module.swg";
-        std::string             setup;
-        FileSystem::IoErrorInfo ioError;
-        SWC_RESULT(FileSystem::readTextFile(directory.path() / setupPath, setup, ioError));
-        constexpr std::string_view sharedLink = ", link: \"shared-library\"";
-        const size_t               offset     = setup.find(sharedLink);
-        if (offset == std::string::npos)
-            return Result::Error;
-        setup.erase(offset, sharedLink.size());
-        SWC_RESULT(directory.write(setupPath, setup));
-    }
-    const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
-        "--num-cores", "3"};
-    return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
-}
-SWC_TEST_END()
-
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxPublishedSharedModulesSurviveRelocation)
-{
-    LinkerTestDirectory directory("published_shared_library");
-    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
-    const fs::path          setupPath = directory.path() / "modules" / "artifact_shared_consumer" / "module.swg";
-    std::string             setup;
-    FileSystem::IoErrorInfo ioError;
-    SWC_RESULT(FileSystem::readTextFile(setupPath, setup, ioError));
-    const std::string_view setting       = "cfg.publishDependencies = false";
-    const size_t           settingOffset = setup.find(setting);
-    if (settingOffset == std::string::npos)
-        return Result::Error;
-    std::string publishedSetup = setup;
-    publishedSetup.replace(settingOffset, setting.size(), "cfg.publishDependencies = true");
-    SWC_RESULT(directory.write("modules/artifact_shared_consumer/module.swg", publishedSetup));
-    const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
-        "--num-cores", "3"};
-    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared provider dropped"));
-    const fs::path  artifactDirectory = directory.path() / ".output" / "artifact_shared_consumer" / "executable" / "devmode" / "x86_64";
-    const fs::path  publishedLibrary  = artifactDirectory / "artifact_shared_provider.so";
-    std::error_code error;
-    if (!fs::is_regular_file(publishedLibrary, error) || error)
-        return Result::Error;
-    const fs::path relocated = directory.path() / "relocated";
-    fs::copy(artifactDirectory, relocated, fs::copy_options::recursive, error);
-    if (error)
-        return Result::Error;
-
-    // Turning publication off must retire the prior copy while the compiler's
-    // launch still finds the original dependency through its child search path.
-    SWC_RESULT(directory.write("modules/artifact_shared_consumer/module.swg", setup));
-    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared provider dropped"));
-    if (fs::exists(publishedLibrary, error) || error)
-        return Result::Error;
-    fs::rename(directory.path() / ".output", directory.path() / "old-output", error);
-    if (error)
-        return Result::Error;
-
-    // A deployed executable has no compiler-provided paths or original workspace.
-    std::string                 output;
-    uint32_t                    exitCode = 0;
-    const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-    const std::vector<Utf8>     runArguments = {"", "two words", "a\"b", "tail\\", "café"};
-    const auto                  result       = Os::runProcess(exitCode, relocated / "artifact_shared_consumer", runArguments, relocated, &options);
-    if (result != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("shared artifact passed") == std::string::npos || output.find("shared provider dropped") == std::string::npos)
-    {
-        std::println(stderr, "[published-library-test] result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
-        return Result::Error;
-    }
-    return Result::Continue;
-}
-SWC_TEST_END()
-#endif
 
 SWC_FILESYSTEM_TEST_BEGIN(Linker_CompilerConfigurationUsesHostContextForForeignTarget)
 {
@@ -822,6 +726,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_CompilerConfigurationUsesHostContextForForeignT
 }
 SWC_TEST_END()
 
+#ifdef __linux__
 SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
 {
     const LinkerTestDirectory testDir("missing_resource");
@@ -877,42 +782,34 @@ func(T) accumulate(value: T)
     const LinkerTestDirectory testDir("parallel_determinism");
     SWC_RESULT(testDir.write("main.swg", source));
 
-    struct ArtifactKind
-    {
-        std::string_view name;
-        std::string_view extension;
-    };
-
-    // A static library also covers the archive members the constants are split into.
     const bool windows = hostTargetOs() == Runtime::TargetOs::Windows;
-    for (const ArtifactKind kind : {ArtifactKind{"executable", windows ? ".exe" : ""}, ArtifactKind{"static-library", windows ? ".lib" : ".a"}})
+    ByteArray first;
+    for (uint32_t round = 0; round < 3; ++round)
     {
-        ByteArray first;
-        for (uint32_t round = 0; round < 3; ++round)
+        const fs::path          roundDir = testDir.path() / std::to_string(round);
+        const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", "executable", "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
+
+        ByteArray               bytes;
+        FileSystem::IoErrorInfo ioError;
+        SWC_RESULT(FileSystem::readBinaryFile(roundDir / "output" / (windows ? "determinism.exe" : "determinism"), bytes, ioError));
+
+        // The PE header carries a build timestamp.
+        if (windows)
+            bytes.writeLe32(bytes.readLe32(0x3c) + 8, 0);
+
+        if (!round)
+            first = std::move(bytes);
+        else if (bytes.size() != first.size() || std::memcmp(bytes.data(), first.data(), bytes.size()) != 0)
         {
-            const fs::path          roundDir = testDir.path() / kind.name / std::to_string(round);
-            const std::vector<Utf8> args     = {"build", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
-            SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
-
-            ByteArray               bytes;
-            FileSystem::IoErrorInfo ioError;
-            SWC_RESULT(FileSystem::readBinaryFile(roundDir / "output" / std::format("determinism{}", kind.extension), bytes, ioError));
-
-            // PE carries a build timestamp. GNU ELF images and archives are deterministic as written.
-            if (kind.extension == ".exe")
-                bytes.writeLe32(bytes.readLe32(0x3c) + 8, 0);
-
-            if (!round)
-                first = std::move(bytes);
-            else if (bytes.size() != first.size() || std::memcmp(bytes.data(), first.data(), bytes.size()) != 0)
-            {
-                std::println(stderr, "[linker-test] {} build {} differs from build 0", kind.name, round);
-                return Result::Error;
-            }
+            std::println(stderr, "[linker-test] executable build {} differs from build 0", round);
+            return Result::Error;
         }
     }
 }
 SWC_TEST_END()
+
+#endif
 
 SWC_TEST_BEGIN(PeLinker_FoldsReadOnlyDependenciesRegardlessOfDiscoveryOrder)
 {
@@ -2040,73 +1937,130 @@ SWC_TEST_BEGIN(ELFObject_RejectsUnrepresentableSectionsAndRelocations)
 }
 SWC_TEST_END()
 
-#if defined(__linux__) && defined(__x86_64__)
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRelinksChangedStaticDependenciesAndRecoversDamagedCache)
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_CompilesSourceDependencyDiamond)
 {
-    const LinkerTestDirectory directory("elf_module_relink");
-    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"Provider\"; cfg.backendKind = .StaticLibrary }\n"));
-    SWC_RESULT(directory.write("modules/consumer/module.swg", "#import(\"provider\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"Consumer\"; cfg.backendKind = .Executable }\n"));
-    std::string main = "#main\n{\n    switch Provider.value()\n    {\n";
-    for (uint32_t phase = 1; phase <= 7; ++phase)
-        main += std::format("    case {}: Swag.print(\"value-{}\\n\")\n", phase, phase);
-    main += "    default: Swag.panic(\"unexpected provider value\", #curlocation)\n    }\n}\n";
-    SWC_RESULT(directory.write("modules/consumer/src/main.swg", main));
-    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
-    fs::path                cachePath;
-    for (uint32_t phase = 1; phase <= 7; ++phase)
-    {
-        std::string provider = std::format("#[Swag.NoInline]\npublic func value()->s32 {{ return {} }}\n", phase);
-        provider += "#init { Swag.print(\"provider-init\\n\") }\n#drop { Swag.print(\"provider-drop\\n\") }\n";
-        // An API change requires compilation even when an older object cache is intact.
-        if (phase == 7)
-            provider += "public func added()->s32 { return 1 }\n";
-        SWC_RESULT(directory.write("modules/provider/src/value.swg", provider));
-        std::error_code error;
-        if (phase == 3)
-        {
-            const auto originalTime = fs::last_write_time(cachePath, error);
-            if (error)
-                return Result::Error;
-            ByteArray               bytes;
-            FileSystem::IoErrorInfo ioError;
-            SWC_RESULT(FileSystem::readBinaryFile(cachePath, bytes, ioError));
-            if (bytes.empty())
-                return Result::Error;
-            bytes[bytes.size() - 1] ^= std::byte{1};
-            SWC_RESULT(FileSystem::writeBinaryFile(cachePath, bytes.data(), bytes.size(), ioError));
-            // Reach the cache integrity check, not just manifest mtime invalidation.
-            fs::last_write_time(cachePath, originalTime, error);
-            if (error)
-                return Result::Error;
-        }
-        if (phase == 5 && (!fs::remove(cachePath, error) || error))
-            return Result::Error;
-        std::string                 output;
-        uint32_t                    exitCode = 0;
+    const LinkerTestDirectory directory("source_dependency_diamond");
+    const auto writeDependency = [&](std::string_view name, std::string_view imports, std::string_view source) -> Result {
+        const fs::path root = fs::path("modules") / fs::path(name);
+        const auto setup = std::format("{}#run {{ let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }}\n", imports);
+        SWC_RESULT(directory.write(root / "module.swg", setup));
+        return directory.write(root / "src/main.swg", source);
+    };
+
+    SWC_RESULT(writeDependency("base", "", R"(
+const Hidden = 17
+
+namespace Base
+{
+    const HiddenShadow = 999
+}
+
+#message(CompilerMsgMask.PassAfterSemantic)
+{
+    Swag.compiler().compileString("public func generatedValue()->s32 => Hidden")
+}
+
+#init { Swag.print("base init\n") }
+#drop { Swag.print("base drop\n") }
+)"));
+    SWC_RESULT(writeDependency("left", "#import(\"base\")\n", "public func leftValue()->s32 => Base.generatedValue()\n"));
+    SWC_RESULT(writeDependency("right", "#import(\"base\")\n", "public const RightValue = #run Base.generatedValue()\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"left\")\n#import(\"right\")\n"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+using Base
+
+#init { Swag.print("app init\n") }
+#main
+{
+    Swag.require(Base.generatedValue() == 17 and Left.leftValue() == 17 and Right.RightValue == 17)
+    Swag.print("main\n")
+}
+#drop { Swag.print("app drop\n") }
+)"));
+
+    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                         "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    const auto run = [&](std::string& output, uint32_t& exitCode) {
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        const auto                  status      = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
-        const auto                  initialized = output.find("provider-init");
-        const auto                  value       = output.find(std::format("value-{}", phase));
-        const auto                  dropped     = output.find("provider-drop");
-        const bool                  reused      = phase == 2 || phase == 4 || phase == 6;
-        if (status != Os::ProcessRunResult::Ok || exitCode || initialized == std::string::npos || value == std::string::npos || dropped == std::string::npos ||
-            initialized >= value || value >= dropped || (output.find("relinked") != std::string::npos) != reused)
+        const auto result = Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options);
+        std::erase(output, '\r');
+        return result;
+    };
+
+    for (const bool upToDate : {false, true})
+    {
+        std::string output;
+        uint32_t exitCode = 0;
+        constexpr std::string_view lifecycle = "base init\napp init\nmain\napp drop\nbase drop";
+        if (run(output, exitCode) != Os::ProcessRunResult::Ok || exitCode || !output.contains(lifecycle) ||
+            output.contains("module up-to-date: app") != upToDate)
         {
-            std::println(stderr, "[ELF module relink phase {}] result={}, exit={}\n{}", phase, static_cast<uint32_t>(status), exitCode, output);
+            std::println(stderr, "[source dependency diamond] {}", output);
             return Result::Error;
         }
-        if (phase == 1)
-        {
-            for (fs::recursive_directory_iterator it(directory.path(), error), end; it != end && !error; it.increment(error))
-                if (it->path().filename().string().ends_with(".relink.elfcache"))
-                    cachePath = it->path();
-            if (error || cachePath.empty())
-                return Result::Error;
-        }
+    }
+
+    if (fs::exists(directory.path() / ".output/base"))
+        return Result::Error;
+
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.print(Base.Hidden) }\n"));
+    std::string output;
+    uint32_t exitCode = 0;
+    if (run(output, exitCode) != Os::ProcessRunResult::Ok || !exitCode || !output.contains("sema_err_unknown"))
+    {
+        std::println(stderr, "[source dependency visibility] {}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.require(Right.RightValue == 17) }\n"));
+    SWC_RESULT(directory.write("modules/right/src/main.swg", "public const RightValue = #run Left.leftValue()\n"));
+    output.clear();
+    if (run(output, exitCode) != Os::ProcessRunResult::Ok || !exitCode || !output.contains("sema_err_unknown"))
+    {
+        std::println(stderr, "[source dependency isolation] {}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(directory.write("modules/base/module.swg", "#import(\"left\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    output.clear();
+    if (run(output, exitCode) != Os::ProcessRunResult::Ok || !exitCode || !output.contains("cmd_err_workspace_dependency_cycle"))
+    {
+        std::println(stderr, "[source dependency cycle] {}", output);
+        return Result::Error;
     }
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
+{
+    const LinkerTestDirectory directory("shared_source_load");
+    constexpr std::string_view load = "#load(\"../../shared.swg\")\n";
+    constexpr std::string_view sourceKind = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n";
+    const auto dependencySetup = std::format("{}{}", load, sourceKind);
+    SWC_RESULT(directory.write("shared.swg", "func sharedValue()->s32 => 17\n"));
+    SWC_RESULT(directory.write("modules/left/module.swg", dependencySetup));
+    SWC_RESULT(directory.write("modules/right/module.swg", dependencySetup));
+    SWC_RESULT(directory.write("modules/left/src/main.swg", "public func value()->s32 => sharedValue()\n"));
+    SWC_RESULT(directory.write("modules/right/src/main.swg", "public func value()->s32 => sharedValue()\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"left\")\n#import(\"right\")\n#load(\"../../shared.swg\")\n"));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+#main
+{
+    Swag.require(sharedValue() == 17 and Left.value() == 17 and Right.value() == 17)
+    Swag.print("shared source load passed\n")
+}
+)"));
+
+    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared source load passed"));
+
+    constexpr std::string_view conflictingSetup = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None; cfg.moduleNamespace = \"Left\" }\n";
+    SWC_RESULT(directory.write("modules/right/module.swg", conflictingSetup));
+    SWC_RESULT(runCompiler(arguments, ExitCode::CompileError, "source group namespace 'Left' is already declared by"));
+}
+SWC_TEST_END()
+
+#if defined(__linux__) && defined(__x86_64__)
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");
@@ -2185,118 +2139,70 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRuntimeSymbolsResolveStaticAndSharedFrames)
+SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxRuntimeSymbolsResolveSourceDependencyFrames)
 {
-    for (const bool shared : {false, true})
-    {
-        const LinkerTestDirectory directory(shared ? "runtime_symbols_shared" : "runtime_symbols_static");
-        SWC_RESULT(directory.write("modules/symbols/module.swg", std::format("#run {{ let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"NativeSymbols\"; cfg.backendKind = .{} }}\n", shared ? "SharedLibrary" : "StaticLibrary")));
-        SWC_RESULT(directory.write("modules/symbols/src/leaf.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
+    const LinkerTestDirectory directory("runtime_symbols_sources");
+    SWC_RESULT(directory.write("modules/symbols/module.swg", R"(#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "NativeSymbols"
+    cfg.backendKind = .None
+}
+)"));
+    SWC_RESULT(directory.write("modules/symbols/src/leaf.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
 public func leaf()
 {
     Swag.panic("native-symbol-probe", #curlocation)
 }
 )"));
-        SWC_RESULT(directory.write("modules/consumer/module.swg", std::format("#import(\"symbols\"{})\n#run {{ let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.moduleNamespace = \"SymbolConsumer\"; cfg.backendKind = .Executable; cfg.publishDependencies = true }}\n", shared ? ", link: \"shared-library\"" : "")));
-        SWC_RESULT(directory.write("modules/consumer/src/caller.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
+    SWC_RESULT(directory.write("modules/consumer/module.swg", R"(#import("symbols")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "SymbolConsumer"
+    cfg.backendKind = .Executable
+}
+)"));
+    SWC_RESULT(directory.write("modules/consumer/src/caller.swg", R"(#[Swag.NoInline, Swag.Optimize(false)]
 func caller()
 {
     NativeSymbols.leaf()
 }
 #main { caller() }
 )"));
-        const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--num-cores", "3", "--rebuild"};
-        SWC_RESULT(runCompiler(arguments, ExitCode::Success, ""));
-        const fs::path              artifacts  = directory.path() / ".output/consumer/executable/devmode/x86_64";
-        const fs::path              executable = artifacts / "consumer";
-        const fs::path              library    = artifacts / "symbols.so";
+
+    const std::vector<Utf8> arguments  = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "-bc", "devmode", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    const fs::path          executable = directory.path() / ".output/consumer/executable/devmode/x86_64/consumer";
+    uintmax_t               sizeWithSymbols = 0;
+    for (const bool withSymbols : {true, false, true})
+    {
+        std::vector<Utf8> buildArguments = arguments;
+        if (!withSymbols)
+            buildArguments.emplace_back("--no-runtime-symbols");
+        SWC_RESULT(runCompiler(buildArguments, ExitCode::Success, ""));
+
+        const uintmax_t size = fs::file_size(executable);
+        if (!sizeWithSymbols)
+            sizeWithSymbols = size;
+        if ((withSymbols && size != sizeWithSymbols) || (!withSymbols && size >= sizeWithSymbols))
+            return Result::Error;
+
         std::string                 output;
         uint32_t                    exitCode = 0;
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        const auto                  initialRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
-        if (initialRun != Os::ProcessRunResult::Ok || exitCode != 102)
-        {
-            std::println(stderr, "unittest error: Linux runtime symbols initial panic, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(initialRun), exitCode, output);
+        const auto                  result = Os::runProcess(exitCode, executable, {}, directory.path(), &options);
+        if (result != Os::ProcessRunResult::Ok || exitCode != 102 || !output.contains("native-symbol-probe"))
             return Result::Error;
-        }
+
         const auto leaf   = output.find("NativeSymbols.leaf --> ");
         const auto caller = output.find("SymbolConsumer.caller --> ");
-        if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:4", caller) == std::string::npos)
+        if (withSymbols)
         {
-            std::println(stderr, "[ELF runtime symbols] {}", output);
+            if (leaf == std::string::npos || caller == std::string::npos || leaf >= caller || output.find("leaf.swg:3", leaf) == std::string::npos || output.find("caller.swg:4", caller) == std::string::npos)
+                return Result::Error;
+        }
+        else if (output.contains("runtime trace"))
             return Result::Error;
-        }
-
-        std::vector<fs::path> artifactPaths = {executable};
-        if (shared)
-            artifactPaths.push_back(library);
-        std::vector<uint64_t> defaultSizes;
-        for (const fs::path& artifact : artifactPaths)
-            defaultSizes.push_back(fs::file_size(artifact));
-
-        std::vector<Utf8> omitSymbolsArguments = arguments;
-        std::erase(omitSymbolsArguments, Utf8("--rebuild"));
-        omitSymbolsArguments.push_back("--no-runtime-symbols");
-        SWC_RESULT(runCompiler(omitSymbolsArguments, ExitCode::Success, ""));
-
-        // Omitting the runtime table makes the images smaller, but leaves the
-        // panic message itself available to callers.
-        for (size_t index = 0; index < artifactPaths.size(); ++index)
-        {
-            const fs::path& artifact    = artifactPaths[index];
-            const uint64_t  omittedSize = fs::file_size(artifact);
-            if (omittedSize >= defaultSizes[index])
-            {
-                std::println(stderr, "unittest error: Linux runtime symbol omission did not shrink '{}', shared={}, before={}, after={}", artifact.string(), shared, defaultSizes[index], omittedSize);
-                return Result::Error;
-            }
-            output.clear();
-            const std::vector<Utf8> inspect   = {"-lW", "-d", "-SW", Utf8(artifact)};
-            const auto              inspected = Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options);
-            if (inspected != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos || output.find(".swagdbg") != std::string::npos)
-            {
-                std::println(stderr, "unittest error: Linux runtime symbol omission left an unexpected ELF layout in '{}', shared={}, process={}, exit={}\n{}", artifact.string(), shared, static_cast<uint32_t>(inspected), exitCode, output);
-                return Result::Error;
-            }
-        }
-        output.clear();
-        const auto omittedRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
-        if (omittedRun != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("native-symbol-probe") == std::string::npos || output.find("runtime trace") != std::string::npos)
-        {
-            std::println(stderr, "unittest error: Linux runtime symbol omission changed the panic contract, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(omittedRun), exitCode, output);
-            return Result::Error;
-        }
-
-        // Switching back without --rebuild must restore the table from cached object/archive
-        // contributions, including the dependency's static-library frames.
-        std::vector<Utf8> restoreSymbolsArguments = omitSymbolsArguments;
-        std::erase(restoreSymbolsArguments, Utf8("--no-runtime-symbols"));
-        SWC_RESULT(runCompiler(restoreSymbolsArguments, ExitCode::Success, ""));
-        for (size_t index = 0; index < artifactPaths.size(); ++index)
-        {
-            const fs::path& artifact     = artifactPaths[index];
-            const uint64_t  restoredSize = fs::file_size(artifact);
-            if (restoredSize != defaultSizes[index])
-            {
-                std::println(stderr, "unittest error: Linux runtime symbol restoration changed '{}', shared={}, before={}, after={}", artifact.string(), shared, defaultSizes[index], restoredSize);
-                return Result::Error;
-            }
-            output.clear();
-            const std::vector<Utf8> inspect   = {"-lW", "-d", "-SW", Utf8(artifact)};
-            const auto              inspected = Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options);
-            if (inspected != Os::ProcessRunResult::Ok || exitCode || output.find(".swagdbg") == std::string::npos)
-            {
-                std::println(stderr, "unittest error: Linux runtime symbol restoration did not restore the ELF table in '{}', shared={}, process={}, exit={}\n{}", artifact.string(), shared, static_cast<uint32_t>(inspected), exitCode, output);
-                return Result::Error;
-            }
-        }
-        output.clear();
-        const auto restoredRun = Os::runProcess(exitCode, executable, {}, artifacts, &options);
-        if (restoredRun != Os::ProcessRunResult::Ok || exitCode != 102 || output.find("NativeSymbols.leaf --> ") == std::string::npos || output.find("SymbolConsumer.caller --> ") == std::string::npos)
-        {
-            std::println(stderr, "unittest error: Linux runtime symbol restoration did not restore the panic trace, shared={}, process={}, exit={}\n{}", shared, static_cast<uint32_t>(restoredRun), exitCode, output);
-            return Result::Error;
-        }
     }
 }
 SWC_TEST_END()
@@ -2320,125 +2226,32 @@ public func second(value: s64)->s64
 }
 )"));
     SWC_RESULT(directory.write("main.swg", "#main { Swag.assert(second(1) == 5) }\n"));
-    for (const bool shared : {false, true})
-    {
-        const Utf8        outputDirectory = Utf8(directory.path() / (shared ? "shared" : "executable"));
-        std::vector<Utf8> args            = {"build", "--os", "linux", "--artifact-kind", shared ? "shared-library" : "executable", "--debug", "-f", Utf8(directory.path() / "first.swg"), "-f", Utf8(directory.path() / "second.swg"), "-n", "dwarf", "--out-dir", outputDirectory, "--work-dir", Utf8(directory.path() / (shared ? "work-shared" : "work-executable")), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild"};
-        if (!shared)
-        {
-            args.emplace_back("-f");
-            args.emplace_back(directory.path() / "main.swg");
-        }
-        SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
-        const Utf8                  artifact = Utf8(fs::path(outputDirectory.c_str()) / (shared ? "dwarf.so" : "dwarf"));
-        std::string                 output;
-        uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        const std::vector<Utf8>     debugInfo = {"--debug-dump=info", "--debug-dump=loc", "--debug-dump=decodedline", artifact};
-        if (Os::runProcess(exitCode, "readelf", debugInfo, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("DW_TAG_formal_parameter") == std::string::npos || output.find("adjusted") == std::string::npos || output.find("DW_OP_bregx") == std::string::npos || output.find("first.swg") == std::string::npos || output.find("second.swg") == std::string::npos || output.find("Warning:") != std::string::npos)
-        {
-            std::println(stderr, "[DWARF records] {}", output);
-            return Result::Error;
-        }
-        const auto firstUnit = output.find("Compilation Unit @ offset");
-        if (firstUnit == std::string::npos || output.find("Compilation Unit @ offset", firstUnit + 1) == std::string::npos)
-            return Result::Error;
-        output.clear();
-        const std::vector<Utf8> segments = {"-lW", artifact};
-        if (Os::runProcess(exitCode, "readelf", segments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(".debug_") != std::string::npos)
-            return Result::Error;
-        if (!shared)
-        {
-            output.clear();
-            if (Os::runProcess(exitCode, artifact.c_str(), {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
-                return Result::Error;
-            continue;
-        }
-        output.clear();
-        const std::vector<Utf8> dynamic = {"-d", artifact};
-        if (Os::runProcess(exitCode, "readelf", dynamic, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("TEXTREL") != std::string::npos)
-            return Result::Error;
-        output.clear();
-        const std::vector<Utf8> symbols = {"--defined-only", artifact};
-        if (Os::runProcess(exitCode, "nm", symbols, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
-            return Result::Error;
-        const std::string symbolTable = output;
-        for (const std::string_view name : {"first", "second"})
-        {
-            const auto found = symbolTable.find(std::format(" __swc_api_6477617266__{}", name));
-            if (found == std::string::npos)
-                return Result::Error;
-            const auto              preceding = symbolTable.rfind('\n', found);
-            const auto              start     = preceding == std::string::npos ? 0 : preceding + 1;
-            const auto              end       = symbolTable.find(' ', start);
-            const Utf8              address   = symbolTable.substr(start, end - start);
-            const std::vector<Utf8> resolve   = {"-f", "-e", artifact, address};
-            output.clear();
-            if (Os::runProcess(exitCode, "addr2line", resolve, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(std::format("{}.swg:", name)) == std::string::npos || output.find("??") != std::string::npos)
-            {
-                std::println(stderr, "[DWARF address lookup] {}", output);
-                return Result::Error;
-            }
-        }
-    }
-}
-SWC_TEST_END()
-
-SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSharedFunctionPointersPreserveIdentityWithoutTextRelocations)
-{
-    const LinkerTestDirectory directory("pic_functions");
-    SWC_RESULT(directory.write("functions.swg", R"(#[Swag.Foreign(module: "libc.so.6", function: "labs", link: "c", callconv: .C)]
-func foreignAbs(value: s64)->s64
-#[Swag.CallingConvention(.C)]
-alias AbsFunction = func(s64)->s64
-public func localValue(value: u64)->u64 => value + 1
-#[Swag.NoInline]
-public func localPointer()->func(u64)->u64 => &localValue
-#[Swag.NoInline]
-public func foreignPointer()->AbsFunction => &foreignAbs
-#test
-{
-    let local = localPointer()
-    let foreign = foreignPointer()
-    Swag.assert(local == localPointer() and local(41) == 42)
-    Swag.assert(foreign == foreignPointer() and foreign(-17) == 17)
-}
-)"));
-    const std::vector<Utf8> common = {"--os", "linux", "-f", Utf8(directory.path() / "functions.swg"), "-n", "pic", "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work"), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild"};
-    std::vector<Utf8>       args   = {"test", "--artifact-kind", "executable", "--no-test-native"};
-    args.insert(args.end(), common.begin(), common.end());
-    SWC_RESULT(runCompiler(args, ExitCode::Success, "1 passed"));
-    args = {"build", "--artifact-kind", "shared-library"};
-    args.insert(args.end(), common.begin(), common.end());
+    const fs::path outputDirectory = directory.path() / "output";
+    const std::vector<Utf8> args = {
+        "build", "--os", "linux", "--artifact-kind", "executable", "--debug",
+        "-f", Utf8(directory.path() / "first.swg"), "-f", Utf8(directory.path() / "second.swg"), "-f", Utf8(directory.path() / "main.swg"),
+        "-n", "dwarf", "--out-dir", Utf8(outputDirectory), "--work-dir", Utf8(directory.path() / "work"),
+        "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--rebuild"};
     SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
-    SWC_RESULT(directory.write("consumer.cpp", R"(#include <cstdint>
-#include <dlfcn.h>
-using Local = uint64_t (__attribute__((ms_abi)) *)(uint64_t);
-using GetLocal = Local (__attribute__((ms_abi)) *)();
-using Foreign = long (*)(long);
-using GetForeign = Foreign (__attribute__((ms_abi)) *)();
-int main()
-{
-    void* library = dlopen("./output/pic.so", RTLD_NOW | RTLD_LOCAL);
-    if (!library) return 1;
-    auto local = reinterpret_cast<GetLocal>(dlsym(library, "__swc_api_706963__local_pointer"));
-    auto foreign = reinterpret_cast<GetForeign>(dlsym(library, "__swc_api_706963__foreign_pointer"));
-    if (!local || !foreign) return 2;
-    const bool valid = reinterpret_cast<void*>(local()) == dlsym(library, "__swc_api_706963__local_value") &&
-        local()(41) == 42 && reinterpret_cast<void*>(foreign()) == dlsym(RTLD_DEFAULT, "labs") && foreign()(-17) == 17;
-    return dlclose(library) == 0 && valid ? 0 : 3;
-}
-)"));
+    const Utf8 artifact = Utf8(outputDirectory / "dwarf");
     std::string                 output;
     uint32_t                    exitCode = 0;
     const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-    const std::vector<Utf8>     inspect = {"-d", "output/pic.so"};
-    if (Os::runProcess(exitCode, "readelf", inspect, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0 || output.find("TEXTREL") != std::string::npos)
+    const std::vector<Utf8>     debugInfo = {"--debug-dump=info", "--debug-dump=loc", "--debug-dump=decodedline", artifact};
+    if (Os::runProcess(exitCode, "readelf", debugInfo, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find("DW_TAG_formal_parameter") == std::string::npos || output.find("adjusted") == std::string::npos || output.find("DW_OP_bregx") == std::string::npos || output.find("first.swg") == std::string::npos || output.find("second.swg") == std::string::npos || output.find("Warning:") != std::string::npos)
+    {
+        std::println(stderr, "[DWARF records] {}", output);
         return Result::Error;
-    const std::vector<Utf8> compile = {"consumer.cpp", "-ldl", "-o", "consumer"};
-    if (Os::runProcess(exitCode, "c++", compile, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    }
+    const auto firstUnit = output.find("Compilation Unit @ offset");
+    if (firstUnit == std::string::npos || output.find("Compilation Unit @ offset", firstUnit + 1) == std::string::npos)
         return Result::Error;
-    if (Os::runProcess(exitCode, directory.path() / "consumer", {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    output.clear();
+    const std::vector<Utf8> segments = {"-lW", artifact};
+    if (Os::runProcess(exitCode, "readelf", segments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode || output.find(".debug_") != std::string::npos)
+        return Result::Error;
+    output.clear();
+    if (Os::runProcess(exitCode, artifact.c_str(), {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
         return Result::Error;
 }
 SWC_TEST_END()

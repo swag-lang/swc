@@ -1,6 +1,6 @@
 # HTML Backlog
 
-This backlog covers the HTML engine in `bin/std/modules/gui/src/controls/html` — the
+This backlog covers the HTML engine in `bin/std/namespaces/gui/src/controls/html` — the
 parser, the CSS cascade, the layout engine, the painter, and the `HtmlView` widget on top of
 them. It is measured against the embedded engines it competes with — litehtml, Sciter and
 Ultralight — with a browser as the reference for what a page means. This engine is an offline,

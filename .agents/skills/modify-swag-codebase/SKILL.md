@@ -185,7 +185,7 @@ Three test surfaces exist, and they are not interchangeable:
 | Module tests | `<module>/src/tests/` | The behavior a `bin/` module or application publishes |
 
 `unittests` names the language suites and nothing else. A module never has one: its tests live in
-`src/tests`, whether the module sits under `bin/std/modules` or under `bin/apps`.
+`src/tests`, whether the module sits under `bin/std/namespaces` or under `bin/apps`.
 
 - Add relevant tests for every new Swag language feature under the appropriate `bin/unittests` folder.
 - Put C++ unit tests in `src/Unittest`.

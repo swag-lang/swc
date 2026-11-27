@@ -20,6 +20,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Command
 {
+    namespace
+    {
+        bool markPublicNamespaces(SymbolNamespace& root)
+        {
+            if (root.isPrivate())
+                return false;
+
+            std::vector<const Symbol*> symbols;
+            root.getAllSymbols(symbols);
+            bool hasPublic = false;
+            for (const Symbol* symbol : symbols)
+            {
+                if (const auto* child = symbol->safeCast<SymbolNamespace>())
+                    hasPublic |= markPublicNamespaces(*const_cast<SymbolNamespace*>(child));
+                else
+                    hasPublic |= symbol->isPublic();
+            }
+
+            if (hasPublic)
+                root.addFlag(SymbolFlagsE::Public);
+            return hasPublic;
+        }
+    }
+
     void sema(CompilerInstance& compiler)
     {
         TaskContext ctx(compiler);
@@ -69,11 +93,6 @@ namespace Command
             SWC_SCHED_PHASE(jobMgr, "parse");
             parseSourceFiles(ctx, inputFiles, parserOptions);
         }
-        // Parsing consumes the dependency's already published API snapshot.
-        // Semantic analysis can execute its native code, so join before it starts,
-        // including when parsing reported an error that must drain the pipeline.
-        if (compiler.completeWorkspaceDependency() != Result::Continue)
-            return;
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
@@ -125,35 +144,76 @@ namespace Command
             compiler.setImportRootNamespace(importRootNamespace);
         }
 
-        for (SourceFile* f : files)
-        {
-            f->setModuleNamespace(*moduleNamespace);
-            auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), true);
-            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
-        }
-
-        {
-            SWC_SCHED_PHASE(jobMgr, "sema declarations");
-            jobMgr.waitAll(clientId);
-        }
-
-        {
-            SWC_SCHED_PHASE(jobMgr, "sema");
-            for (SourceFile* f : files)
+        compiler.assignSourceNamespaces(ctx, files);
+        const auto semaFiles = [&](const std::span<SourceFile* const> group) {
             {
-                auto* job = compiler.makeJob<SemaJob>(ctx, f->nodePayloadContext(), false);
-                jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+                SWC_SCHED_PHASE(jobMgr, "sema declarations");
+                for (SourceFile* file : group)
+                {
+                    auto* job = compiler.makeJob<SemaJob>(ctx, file->nodePayloadContext(), true);
+                    jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+                }
+                jobMgr.waitAll(clientId);
             }
 
-            Sema::waitDone(ctx, clientId);
+            {
+                SWC_SCHED_PHASE(jobMgr, "sema");
+                for (SourceFile* file : group)
+                {
+                    auto* job = compiler.makeJob<SemaJob>(ctx, file->nodePayloadContext(), false);
+                    jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+                }
+                Sema::waitDone(ctx, clientId);
+            }
+        };
+
+        if (!compiler.hasSourceDependencies())
+        {
+            semaFiles(files);
+        }
+        else
+        {
+            std::vector<SourceFile*> runtimeFiles;
+            std::map<uint32_t, std::vector<SourceFile*>> sourceGroups;
+            for (SourceFile* file : files)
+            {
+                if (file->isRuntime())
+                    runtimeFiles.push_back(file);
+                else
+                    sourceGroups[file->sourceOwner()].push_back(file);
+            }
+
+            semaFiles(runtimeFiles);
+            if (Stats::getNumErrors() != errorsBefore)
+                return;
+
+            SmallVector<const SymbolMap*> prelude;
+            moduleNamespace->copyUsingSymMaps(prelude);
+            auto application = sourceGroups.extract(0);
+            for (const auto& [owner, group] : sourceGroups)
+            {
+                auto* ns = const_cast<SymbolNamespace*>(group.front()->moduleNamespace());
+                for (const SymbolMap* usingMap : prelude)
+                    ns->addUsingSymMap(ctx, const_cast<SymbolMap*>(usingMap));
+                compiler.beginSourceSemanticPass(owner);
+                semaFiles(group);
+                if (Stats::getNumErrors() != errorsBefore)
+                    return;
+                markPublicNamespaces(*ns);
+            }
+
+            compiler.beginSourceSemanticPass(0);
+            if (!application.empty())
+                semaFiles(application.mapped());
         }
 
         if (compiler.validateAllocatorConfig(ctx) == Result::Error)
             return;
 
+        if (compiler.cmdLine().command == CommandKind::Doc)
         {
-            SWC_SCHED_PHASE(jobMgr, "api export");
-            if (!files.empty() && !Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
+            SWC_SCHED_PHASE(jobMgr, "documentation symbols");
+            if (!files.empty() && !Stats::hasError() && CompilerInstance::collectDocumentation(ctx) == Result::Error)
                 return;
         }
 

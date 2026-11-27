@@ -321,7 +321,7 @@ alignment numerically and review complete images; isolated menu crops miss coinc
 ## Match Every Syntax Surface
 
 `vscode/themes/swag-dark.json`, the documentation colorizer and `RichEditLexerSwag`
-([lexerswag.swg](../../../bin/std/modules/gui/src/controls/richedit/lexerswag.swg)) use the same
+([lexerswag.swg](../../../bin/std/namespaces/gui/src/controls/richedit/lexerswag.swg)) use the same
 lexical colours:
 
 | Token | Color | Documentation class |

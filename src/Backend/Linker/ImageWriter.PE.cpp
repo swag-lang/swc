@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/ImageWriter.PE.h"
 #include "Backend/Debug/SymbolTable.h"
-#include "Backend/Linker/Archive.COFF.h"
 #include "Backend/Linker/Format.PE.h"
 #include "Backend/Linker/Writer.PDB.h"
 #include "Main/Version.h"
@@ -1152,16 +1151,6 @@ bool PEWriter::writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnosti
     buildBaseRelocations();
 
     return emit(outBytes, outDiag);
-}
-
-bool PEWriter::buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members)
-{
-    return buildCoffStaticArchive(outBytes, outDiag, members);
-}
-
-bool PEWriter::buildImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
-{
-    return buildCoffImportLibrary(outBytes, outDiag, dllFileName, exportNames);
 }
 
 SWC_END_NAMESPACE();

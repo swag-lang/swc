@@ -1,7 +1,7 @@
 # Pixel Image Backlog
 
 This backlog covers image decoding, encoding, metadata, multi-image containers, and SVG input
-owned by `bin/std/modules/pixel`. Module-wide rendering, effects, image transformations, surface,
+owned by `bin/std/namespaces/pixel`. Module-wide rendering, effects, image transformations, surface,
 texture-sampling, vector-output, and geometry work lives in [std.pixel.md](std.pixel.md).
 Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in

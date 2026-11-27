@@ -190,7 +190,7 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
-    bool canDelayImportedOrRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    bool canDelayRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
@@ -204,10 +204,7 @@ namespace
         if (!sym.ownerSymMap())
             return false;
 
-        // Imported methods need the receiver binding created while walking their declaration
-        // scope. Replaying only the function body cannot currently reconstruct that binding.
-        const bool delayImported = file->isImportedApi() && !sym.isMethod();
-        if (!delayImported && !file->isRuntime())
+        if (!file->isRuntime())
             return false;
         if (declImpl && declImpl->isForInterface())
             return false;
@@ -231,7 +228,7 @@ namespace
             return false;
 
         return canDelayGenericInstanceFunctionBody(sema, node, sym, declImpl) ||
-               canDelayImportedOrRuntimeFunctionBody(sema, node, sym, declImpl);
+               canDelayRuntimeFunctionBody(sema, node, sym, declImpl);
     }
 
     struct LazyBodyRun
@@ -1850,9 +1847,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         sym.setVariadicParamFlag(sema.ctx());
 
-        // Only a generated module API leaves the module out: it is the one the API file
-        // describes. Anywhere else the declaration has nothing to bind to.
-        if (sym.isForeign() && sym.resolveForeignModuleName(sema.ctx()).empty())
+        if (sym.isForeign() && sym.foreignModuleName().empty())
             return SemaError::raise(sema, DiagnosticId::sema_err_foreign_needs_module, sema.curNodeRef(), SemaError::ReportLocation::Token);
 
         // A simd value rides a float register only in the Swag calling

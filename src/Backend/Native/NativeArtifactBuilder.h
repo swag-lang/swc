@@ -20,9 +20,6 @@ struct NativeArtifactPaths
     fs::path artifactPath;
     fs::path pdbPath;
 
-    // The static archive a shared library publishes beside its DLL, from the same objects. Empty
-    // unless the build was asked for one through CommandLine::staticLibraryOutDir.
-    fs::path staticLibraryPath;
 
     std::vector<fs::path> objectPaths;
 
@@ -55,17 +52,9 @@ private:
     Result partitionObjects() const;
 
 public:
-    // Partition lowered code into one-function members so archive extraction
-    // retains only the requested functions. Object 0 owns writable data; read-only
-    // allocations use transitively linked members, batched to fit the 16-bit directory.
-    //
-    // Lowering must be complete: partitioning overwrites its text offsets.
-    Result partitionArchiveObjects() const;
-    Result partitionIncrementalObject() const;
     Result partitionIncrementalFunctionObjects() const;
 
 private:
-    Result buildRuntimeHook(TaskContext& ctx) const;
     Result buildStartup(TaskContext& ctx) const;
 
     NativeBackendBuilder* builder_ = nullptr;

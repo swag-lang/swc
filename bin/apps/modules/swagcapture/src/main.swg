@@ -44,6 +44,8 @@ const OpenImageMessage = 1_u32
     }
 
     try Library.init()
+    // Close native surfaces before the display backends shut down.
+    defer Swag.drop(&g_App, 1)
 
     // Settings use a role-based file name so a product rename does not change their identity.
     g_App.setStatePath(Library.getStatePath())

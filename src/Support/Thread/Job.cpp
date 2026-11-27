@@ -32,8 +32,8 @@ const char* Job::kindName(const JobKind kind)
             return "NativeLinkPrepare";
         case JobKind::NativeLink:
             return "NativeLink";
-        case JobKind::ModuleApiExport:
-            return "ModuleApiExport";
+        case JobKind::DocSymbols:
+            return "DocSymbols";
         default:
             return "Unknown";
     }

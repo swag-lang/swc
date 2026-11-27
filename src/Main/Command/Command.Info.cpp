@@ -38,8 +38,6 @@ namespace
         addFolderEntry(entries, "Resources", resources);
         addFolderEntry(entries, "Runtime", resources / "runtime");
         addFolderEntry(entries, "Standard library", stdRoot);
-        if (!stdRoot.empty())
-            addFolderEntry(entries, "Standard artifacts", WorkspaceLayout::workspaceOutputDirectory(stdRoot));
         addFolderEntry(entries, "Documentation", resources / "help");
         addFolderEntry(entries, "Examples", resources / "examples");
         addFolderEntry(entries, "Applications", resources / "apps");
@@ -50,7 +48,7 @@ namespace
         std::error_code   ec;
         if (!stdRoot.empty())
         {
-            for (fs::directory_iterator it(stdRoot / "modules", fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
+            for (fs::directory_iterator it(WorkspaceLayout::workspaceSourceGroupsDirectory(stdRoot), fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
             {
                 std::error_code entryError;
                 if (fs::is_regular_file(it->path() / "module.swg", entryError))
@@ -62,7 +60,6 @@ namespace
         addInfoEntry(entries, "Source modules", modules.empty() ? Utf8("(none found)") : Utf8Helper::join(modules, ", "));
         if (ec)
             addInfoEntry(entries, "Module scan", FileSystem::normalizeSystemMessage(ec));
-        addInfoEntry(entries, "Availability", "List source modules; generated artifacts depend on the build configuration");
         Logger::printFieldGroup(ctx, "Standard modules", entries);
     }
 
@@ -70,9 +67,7 @@ namespace
     {
         std::vector<Logger::FieldEntry> entries;
         addFolderEntry(entries, "Cache root", WorkspaceLayout::cacheRoot());
-        addFolderEntry(entries, "Dependency copies", WorkspaceLayout::dependencyCacheRoot());
-        addFolderEntry(entries, "Dependency staging", WorkspaceLayout::dependencyCacheStagingRoot());
-        addFolderEntry(entries, "Machine code", WorkspaceLayout::machineCacheRoot());
+        addFolderEntry(entries, "Shared compilation", WorkspaceLayout::machineCacheRoot());
         addFolderEntry(entries, "Legacy scripts", WorkspaceLayout::legacyScriptCacheRoot());
         addInfoEntry(entries, "Preview cleanup", "swc clean --cache --dry-run");
         Logger::printFieldGroup(ctx, "Caches", entries);
@@ -86,10 +81,9 @@ namespace
         {
             const fs::path module(cmdLine.workspaceModuleFilter.c_str());
             addFolderEntry(entries, "Workspace", cmdLine.workspacePath);
-            addFolderEntry(entries, "Modules", cmdLine.workspacePath / "modules");
+            addFolderEntry(entries, "Modules", WorkspaceLayout::workspaceSourceGroupsDirectory(cmdLine.workspacePath));
             addFolderEntry(entries, "Build outputs", WorkspaceLayout::workspaceOutputDirectory(cmdLine.workspacePath) / module);
             addFolderEntry(entries, "Intermediate files", WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath) / module);
-            addFolderEntry(entries, "Dependency copies", WorkspaceLayout::workspaceDependencyDirectory(cmdLine.workspacePath));
         }
         else if (!cmdLine.modulePath.empty())
         {

@@ -1,4 +1,4 @@
-# Exercises suite routing, failure propagation, and dynamic fixture preparation without swc.
+# Exercises suite routing, failure propagation, and source workspace tests without swc.
 param([string] $Tool = (Join-Path $PSScriptRoot '..\unittests.bat'))
 
 $ErrorActionPreference = 'Stop'
@@ -45,15 +45,6 @@ public static class CompilerProbe
                 if (arg == "-bc" || arg.StartsWith("--build-cfg"))
                     return 13;
 
-        const string libraryPrefix = "--run-arg=--dynamic-runtime-library=";
-        string library = Array.Find(args, arg => arg.StartsWith(libraryPrefix, StringComparison.Ordinal));
-        if (library != null)
-        {
-            string dependency = Path.Combine(Path.GetDirectoryName(library.Substring(libraryPrefix.Length)),
-                                             "runtime_context_dynamic_dep.dll");
-            if (!File.Exists(dependency) || File.ReadAllText(dependency) != "probe dependency")
-                return 14;
-        }
         return 0;
     }
 }
@@ -61,7 +52,7 @@ public static class CompilerProbe
     Add-Type -TypeDefinition $compilerSource -OutputAssembly (Join-Path $scratch 'bin\swc.dm.exe') -OutputType ConsoleApplication
     Copy-Item -LiteralPath (Join-Path $scratch 'bin\swc.dm.exe') -Destination (Join-Path $scratch 'bin\swc.exe')
 
-    foreach ($module in @('runtime_context_dynamic_consumer', 'runtime_context_dynamic_dll')) {
+    foreach ($module in @('runtime_context', 'sandbox_consumer')) {
         $null = New-Item -ItemType Directory -Path (Join-Path $scratch "bin\unittests\workspace\modules\$module") -Force
     }
 
@@ -85,25 +76,16 @@ public static class CompilerProbe
     }
 
     foreach ($configuration in @('release', 'devmode')) {
-        $output = Join-Path $scratch 'bin\unittests\workspace\.output'
-        $dependency = Join-Path $output "runtime_context_dynamic_dep\shared-library\$configuration\x86_64"
-        $library = Join-Path $output "runtime_context_dynamic_dll\shared-library\$configuration\x86_64"
-        $null = New-Item -ItemType Directory -Path $dependency, $library
-        [IO.File]::WriteAllText((Join-Path $dependency 'runtime_context_dynamic_dep.dll'), 'probe dependency')
-
         Invoke-Suite @('dm', 'workspace', '-bc', $configuration, '--num-cores', '1') 0
-        Assert-Call 0 "build`t--workspace"
-        Assert-Call 0 "--workspace-module`truntime_context_dynamic_dll"
+        Assert-Call 0 "test`t--workspace"
+        Assert-Call 0 "--workspace-module`truntime_context"
         Assert-Call 0 "--build-cfg`t$configuration"
         Assert-Call 0 "--num-cores`t1"
-        Assert-Call 1 "--workspace-module`truntime_context_dynamic_consumer"
-        Assert-Call 1 "shared-library\$configuration\x86_64\runtime_context_dynamic_dll.dll"
-        Assert-Call 2 "--num-cores`t1"
+        Assert-Call 1 "--workspace-module`tsandbox_consumer"
+        Assert-Call 1 "--no-test-native"
     }
-    Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "build`t--workspace"
-    if ($calls.Count -ne 1) { throw 'Workspace tests continued after fixture preparation failed.' }
     Invoke-Suite @('dm', 'workspace', '-bc', 'release') 7 "test`t--workspace"
-    if ($calls.Count -ne 2) { throw 'Workspace tests continued after the consumer failed.' }
+    if ($calls.Count -ne 1) { throw 'Workspace tests continued after the first stage failed.' }
     Write-Output 'Compiler suite runner: 15 regression cases passed.'
 }
 finally {

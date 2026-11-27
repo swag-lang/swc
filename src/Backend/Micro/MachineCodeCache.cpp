@@ -175,7 +175,7 @@ namespace
             appendTypeQualifiers(out, ctx, parameter->typeRef(), ABITypeNormalize::Usage::Argument, function.callConvKind());
         if (function.isForeign())
         {
-            appendString(out, function.resolveForeignModuleName(ctx).view());
+            appendString(out, function.foreignModuleName());
             appendString(out, function.resolveForeignFunctionName(ctx).view());
         }
         return true;
@@ -535,7 +535,6 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     identity.appendLe32(ctx.compiler().buildCfg().backend.enableExceptions);
     identity.appendLe32(static_cast<uint32_t>(command.targetOs));
     identity.appendLe32(static_cast<uint32_t>(command.targetArch));
-    identity.appendLe32(!command.scriptMode && Runtime::backendKindProducesNativeArtifact(ctx.compiler().buildCfg().backendKind));
     identity.appendLe32(builder.usesIntReturnRegOnRet());
     identity.appendLe32(builder.usesFloatReturnRegOnRet());
     identity.appendLe64(builder.extraReturnRegsOnRet());
@@ -619,7 +618,7 @@ bool MachineCodeCache::read(MachineCode& out) const
 {
     if (key_.empty() || ctx_->cmdLine().rebuild)
         return false;
-    const auto record = CompilerCacheStore::get(false).read(key_);
+    const auto record = CompilerCacheStore::get().read(key_);
     if (!record || record.bytes.size() < K_HEADER_SIZE || record.bytes.readLe64(0) != K_MAGIC)
         return false;
     const ByteView& bytes    = record.bytes;
@@ -842,7 +841,7 @@ void MachineCodeCache::write(const MachineCode& code) const
         return;
     const auto checksum = sha256Parts({bytes.span(), std::as_bytes(std::span{key_.data(), key_.size()})});
     std::memcpy(bytes.data() + K_CHECKSUM_OFFSET, checksum.data(), checksum.size());
-    CompilerCacheStore::get(ctx_->cmdLine().rebuild && !ctx_->cmdLine().rebuildModule).write(key_, std::move(bytes));
+    CompilerCacheStore::get().write(key_, std::move(bytes));
 }
 
 SWC_END_NAMESPACE();

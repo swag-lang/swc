@@ -39,7 +39,7 @@ findings. Put campaign results in their reports and Git history.
 | [6. Compiler code health](#6-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
 | [7. Swag code health](#7-swag-code-health) | Review runtime and app-used standard modules, including APIs |
 
-Campaign 6 cleans up swc itself; campaign 7 reviews `bin/runtime/` and the `bin/std/modules/`
+Campaign 6 cleans up swc itself; campaign 7 reviews `bin/runtime/` and the `bin/std/namespaces/`
 modules used by shipped applications, in both substance and presentation. Semantic refactoring,
 API quality, and visual readability belong to the same campaign and coverage inventory. A
 formatter pass alone completes neither review; keep presentation-only edits distinct from
@@ -918,7 +918,7 @@ result. Report structural dependency counts when useful, but no timing or memory
 Read and follow the shared working protocol for prompts 2 through 7 in backlog/repo.prompts.md.
 
 You are running the Swag code-health campaign for `bin/runtime/` and the standard modules under
-`bin/std/modules/` that shipped applications use, directly or through module dependencies. Improve
+`bin/std/namespaces/` that shipped applications use, directly or through module dependencies. Improve
 both their substance and presentation, just as prompt 6 cleans up swc itself. Read AGENTS.md, then
 the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code and its
 references/readability.md, design-swag-bin-modules, and write-swag-public-api-docs. Read
@@ -943,7 +943,7 @@ of their own. Keep already clear code unchanged; do not manufacture churn to dem
 SCOPE: RUNTIME AND STANDARD MODULES USED BY APPS
 
 The in-scope code is `bin/runtime/`, its tests and helpers under `bin/unittests/native/runtime/`,
-and the transitive dependency closure of the `bin/std/modules/` modules imported by shipped
+and the transitive dependency closure of the `bin/std/namespaces/` modules imported by shipped
 applications in `bin/apps/`. Determine that closure from application module descriptors and
 sources, then follow declared and conditional imports among standard modules. Record the resulting
 module list in campaign state so the scope is reproducible. The current shipped-app closure is

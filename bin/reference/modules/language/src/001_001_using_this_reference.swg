@@ -12,7 +12,7 @@ execution, metaprogramming, and foreign interoperability.
 
 The reference focuses on the **language and compiler runtime**. Containers,
 filesystem access, text formatting, threading, and other library facilities
-live under 'bin/std/modules' and are outside this module's scope.
+live under 'bin/std/namespaces' and are outside this module's scope.
 
 # Running the Examples
 

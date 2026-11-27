@@ -43,10 +43,8 @@ class JITExecManager;
 class CompilerMessageTypeInfoJob;
 class NativeBackendBuilder;
 class MicroOptimizerStats;
-struct ModuleSetupInputApplier;
 struct CommandLine;
 struct WorkspaceModuleLink;
-struct DependencyPlanBuilder;
 
 namespace Runtime
 {
@@ -63,23 +61,14 @@ public:
     {
         Utf8                         moduleName;
         Utf8                         location;
-        Utf8                         version;
         fs::path                     baseDir;
-        Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
-    };
-
-    struct NativeRuntimeImport
-    {
-        Utf8              moduleName;
-        Utf8              linkModuleName;
-        std::vector<Utf8> transitiveImports;
-        bool              hasSharedRuntimeHook = false;
     };
 
     struct CompilerMessageEvent
     {
         Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
         Symbol*                  symbol = nullptr;
+        std::optional<uint32_t>  sourceOwner;
     };
 
     struct CompilerMessageListener
@@ -87,6 +76,7 @@ public:
         SymbolFunction*                   function        = nullptr;
         AstNodeRef                        nodeRef         = AstNodeRef::invalid();
         uint64_t                          mask            = 0;
+        uint32_t                          sourceOwner      = 0;
         size_t                            nextReplayIndex = 0;
         size_t                            nextEventIndex  = 0;
         std::vector<CompilerMessageEvent> replayEvents;
@@ -204,13 +194,11 @@ public:
     uint32_t                        valueBorrowExtentCacheOffset();
     void                            ensureProcessInfoRunArgs();
     const Runtime::ProcessInfo&     processInfo();
-    void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
     // Set when the native backend starts, after the module's semantic analysis: whole-module
     // facts such as a global's address escaping are final from then on.
     void markNativeBackendStarted() { nativeBackendStarted_.store(true, std::memory_order_release); }
     bool nativeBackendStarted() const { return nativeBackendStarted_.load(std::memory_order_acquire); }
-    bool importedNativeExecuted() const { return importedNativeExecuted_.load(std::memory_order_acquire); }
-    bool hasImportedStaticLinkInputs() const { return !moduleStaticLinkReadTimes_.empty(); }
+
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -218,10 +206,8 @@ public:
     SymbolNamespace*    moduleNamespace() { return moduleNamespace_; }
     void                setModuleNamespace(SymbolNamespace* moduleNamespace) { moduleNamespace_ = moduleNamespace; }
 
-    // Root scope hosting symbols imported from other modules. Imported-API files are scoped here
-    // (instead of under this module's namespace) so an imported module keeps its own namespace
-    // hierarchy (e.g. `Lib.Color`) exactly as if compiled directly, rather than being nested
-    // under the importing module (`Importer.Lib.Color`). Empty-named, so it adds no prefix.
+    // An unnamed root for dependency namespaces. A group's qualified names stay the same
+    // when it becomes part of an application.
     SymbolNamespace*       importRootNamespace() { return importRootNamespace_; }
     const SymbolNamespace* importRootNamespace() const { return importRootNamespace_; }
     void                   setImportRootNamespace(SymbolNamespace* ns) { importRootNamespace_ = ns; }
@@ -231,7 +217,6 @@ public:
     // main thread. See runWorkspace.
     void                                  setDeferNativeLink(bool defer) { deferNativeLink_ = defer; }
     bool                                  deferNativeLink() const { return deferNativeLink_; }
-    Result                                completeWorkspaceDependency();
     void                                  setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder);
     std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
     void                                  setActiveNativeBuilder(NativeBackendBuilder* builder) { activeNativeBuilder_ = builder; }
@@ -400,7 +385,6 @@ public:
     const SourceFile*                       sourceViewFile(SourceViewRef ref) const;
     const SourceFile*                       sourceViewFile(const Symbol& symbol) const;
     const SourceFile*                       declaringSourceFile(const Symbol& symbol) const;
-    bool                                    isImportedApiSource(const Symbol& symbol) const;
     const SourceFile*                       owningSourceFile(const SourceView& srcView) const;
     const SourceFile*                       owningSourceFile(const SourceView* srcView) const;
     bool                                    tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const;
@@ -411,24 +395,24 @@ public:
     const ModuleApiPerThreadData&           moduleApiPerThreadData(size_t index) const;
     ModuleApiFileEntries&                   prepareModuleApiPublicEntries() { return moduleApiPublicEntries_.emplace(); }
     const ModuleApiFileEntries*             moduleApiPublicEntries() const { return moduleApiPublicEntries_ ? &*moduleApiPublicEntries_ : nullptr; }
-    const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
-    const std::vector<fs::path>&            importedDependencySharedDirs() const { return importedDependencySharedDirs_; }
     std::vector<ModuleSetupImport>          moduleSetupImports() const;
     std::set<fs::path>                      moduleSetupLoadedFiles() const;
-    const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
-    std::string_view                        runtimeImportLinkName(std::string_view moduleName) const;
 
     // Appends a position text that every build of the same sources spells the same way.
     void appendStableSourceIdentity(Utf8& out, const SourceCodeRef& codeRef) const;
 
+    void                     beginSourceSemanticPass(uint32_t sourceOwner);
+    bool                     canSeeSourceOwner(uint32_t from, uint32_t owner) const;
+    bool                     hasSourceDependencies() const { return sourceDependencyPlan_ != nullptr; }
+    void                     assignSourceNamespaces(TaskContext& ctx, std::span<SourceFile* const> files);
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);
     Result                   validateAllocatorConfig(TaskContext& ctx) const;
     Result                   prepareModuleBuildConfig(TaskContext& ctx);
-    static Result            exportModuleApi(TaskContext& ctx);
+    static Result            collectDocumentation(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
-    Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
+    Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location);
     Result                   registerModuleSetupLoad(const fs::path& filePath);
     void                     registerCompilerInputFile(const fs::path& filePath);
     std::set<fs::path>       compilerInputFiles() const;
@@ -459,8 +443,6 @@ private:
 
     friend class CompilerMessageTypeInfoJob;
     friend class TaskContext;
-    friend struct DependencyPlanBuilder;
-    friend struct ModuleSetupInputApplier;
 
     struct ModuleSetupSnapshot
     {
@@ -478,47 +460,18 @@ private:
         ModuleSetupSnapshot& operator=(ModuleSetupSnapshot&&) noexcept = default;
     };
 
-    struct ResolvedDependencyPaths
+    struct SourceDependency
     {
-        fs::path                     apiDir;
-        Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
-        fs::path                     linkDir;
-        fs::path                     sharedDir;
-
-        // Where this module publishes the archive of its own code, when it publishes one. The
-        // executable-wide choice below is what turns it into linkDir; a module that contributes no
-        // code of its own ('export') leaves both empty and takes part in either choice.
-        fs::path staticDir;
-        fs::path sourceRoot;
+        Utf8                  namespaceName;
+        std::vector<fs::path> files;
+        std::set<fs::path>    loadedFiles;
+        std::vector<uint32_t> visibleOwners;
     };
 
-    struct ResolvedDependencyNode
+    struct SourceDependencyPlan
     {
-        Utf8                                   moduleName;
-        Utf8                                   location;
-        Utf8                                   version;
-        Runtime::BuildCfgBackendKind           linkBackendKind = Runtime::BuildCfgBackendKind::None;
-        ResolvedDependencyPaths                paths;
-        ResolvedDependencyPaths                sourcePaths;
-        fs::file_time_type                     nativeReadTime{};
-        fs::file_time_type                     apiReadTime{};
-        fs::path                               apiSourceDir;
-        std::vector<ModuleApi::SourceSnapshot> apiFiles;
-        std::vector<size_t>                    dependencies;
-    };
-
-    struct ResolvedDependencyBinding
-    {
-        ModuleSetupImport   request;
-        size_t              nodeIndex = 0;
-        std::vector<size_t> closure;
-        std::vector<Utf8>   transitiveImports;
-    };
-
-    struct DependencyPlan
-    {
-        std::vector<ResolvedDependencyNode>    nodes;
-        std::vector<ResolvedDependencyBinding> bindings;
+        std::vector<SourceDependency> dependencies;
+        std::vector<fs::path>          inputs;
     };
 
     struct WorkspaceModuleBuild
@@ -527,11 +480,8 @@ private:
         fs::path            moduleDir;
         fs::path            moduleFile;
         fs::path            sourceDir;
-        ModuleSetupSnapshot setup;
-        std::vector<Utf8>   workspaceDependencies;
-        bool                ignoreInWorkspace = false;
-        bool                filteredOut       = false;
-        bool                commandTarget     = false;
+        ModuleSetupSnapshot                    setup;
+        std::unique_ptr<SourceDependencyPlan>  sourceDependencies;
 
         WorkspaceModuleBuild()                                           = default;
         WorkspaceModuleBuild(const WorkspaceModuleBuild&)                = delete;
@@ -543,11 +493,7 @@ private:
     struct WorkspaceModuleRun
     {
         const WorkspaceModuleBuild*           moduleBuild    = nullptr;
-        const DependencyPlan*                 dependencyPlan = nullptr;
         WorkspaceModuleLogState               logState;
-        bool                                  writeModuleApi        = false;
-        bool                                  buildNativeDependency = false;
-        std::unique_ptr<WorkspaceModuleLink>* pendingDependency     = nullptr;
     };
 
     struct CompilerMessageTypeInfoPrepRequest
@@ -559,27 +505,18 @@ private:
 
     SourceFile&       addResolvedFile(fs::path path, FileFlags flags);
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
-    void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, std::string_view apiModuleName = {});
+    void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    Result            collectImportedApiFolderFiles(TaskContext& ctx, const fs::path& folder, std::string_view moduleName);
-    void              appendImportedApiSnapshot(std::span<const ModuleApi::SourceSnapshot> files, std::string_view moduleName);
-    static Utf8       apiModuleNameFromPath(const fs::path& file);
-    Result            collectImportedApiFiles(TaskContext& ctx);
     Result            resolveModuleInputPaths(TaskContext& ctx);
     bool              hasResolvedFilePath(const fs::path& path) const;
-    void              registerImportedDependencyLinkDir(const fs::path& path);
-    void              registerImportedSharedModuleDir(const fs::path& path);
     void              adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
     Result            adoptModuleBuildCfg(TaskContext& ctx, const Runtime::BuildCfg& buildCfg);
     Result            collectModuleSetupLoadedFiles(TaskContext& ctx, const std::set<fs::path>& alreadyRead, std::vector<SourceFile*>& outFiles);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
-    Result            resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const;
-    Result            prepareDependencyPlan(TaskContext& ctx, DependencyPlan& outPlan, std::span<const ModuleSetupImport> imports);
-    Result            collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, std::span<const ModuleSetupImport> imports);
-    Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
-    static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
-    ExitCode          runWorkspace(const DependencyPlan* preparedDependencies = nullptr);
-    ExitCode          runWorkspacePublishPass(const DependencyPlan& dependencies) const;
+    Result            resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const;
+    Result            prepareSourceDependencies(TaskContext& ctx, std::unique_ptr<SourceDependencyPlan>& outPlan, const fs::path& rootModule, const ModuleSetupSnapshot& setup) const;
+    void              applySourceDependencies(const ModuleSetupSnapshot& setup);
+    ExitCode          runWorkspace();
     Result            runWorkspaceModule(const WorkspaceModuleRun& moduleRun, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
@@ -590,6 +527,8 @@ private:
     static void                            runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str);
     const SourceView*                      findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const;
 
+    const SourceDependencyPlan*                sourceDependencyPlan_ = nullptr;
+    std::unique_ptr<SourceDependencyPlan>       ownedSourceDependencyPlan_;
     const CommandLine*                          cmdLine_ = nullptr;
     const Global*                               global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>>    files_;
@@ -626,36 +565,17 @@ private:
     std::optional<ModuleApiFileEntries>    moduleApiPublicEntries_;
     bool                                   moduleSetupMode_ = false;
     std::vector<ModuleSetupImport>         moduleSetupImports_;
-    std::vector<NativeRuntimeImport>       nativeRuntimeImports_;
     std::set<fs::path>                     moduleSetupLoadedFiles_;
-    std::map<fs::path, fs::file_time_type> moduleApiReadTimes_;
-    std::map<fs::path, fs::file_time_type> moduleNativeReadTimes_;
-    std::map<fs::path, fs::file_time_type> moduleStaticLinkReadTimes_;
-    std::vector<fs::path>                  moduleApiInputs_;
     mutable std::mutex                     moduleInputsMutex_;
     std::set<fs::path>                     compilerInputFiles_;
-    std::vector<fs::path>                  importedDependencyLinkDirs_;
-    std::unordered_set<fs::path>           importedDependencyLinkDirSet_;
 
-    // Where each imported module's shared library lives. It is what the compiler loads to run that
-    // module at compile time, and it stays known even when the executable links the module's code
-    // in instead: publication reads it to take a DLL an earlier build left beside the executable
-    // back out.
-    std::vector<fs::path>              importedDependencySharedDirs_;
-    std::unordered_set<fs::path>       importedDependencySharedDirSet_;
     std::vector<std::unique_ptr<Utf8>> ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*         precomputedModuleSetup_    = nullptr;
-    const DependencyPlan*              precomputedDependencyPlan_ = nullptr;
-    std::unique_ptr<DependencyPlan>    ownedDependencyPlan_;
-    // The coordinator's in-flight slot outlives this module's frontend. Only
-    // the driving thread consumes it, after parser workers have drained.
-    std::unique_ptr<WorkspaceModuleLink>*                            pendingWorkspaceLink_ = nullptr;
     bool                                                             deferNativeLink_      = false;
     std::unique_ptr<NativeBackendBuilder>                            deferredBuilder_;
     NativeBackendBuilder*                                            activeNativeBuilder_ = nullptr;
     Utf8                                                             lastArtifactLabel_;
     bool                                                             nativeArtifactBuilt_    = false;
-    std::atomic_bool                                                 importedNativeExecuted_ = false;
     std::atomic_bool                                                 nativeBackendStarted_   = false;
     WorkspaceBuildLogState                                           workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>                           workspaceModuleLogState_;
@@ -734,6 +654,7 @@ private:
     std::deque<CompilerMessageTypeInfoPrepRequest>        compilerMessageTypeInfoPrepQueue_;
     std::atomic<uint64_t>                                 compilerMessageActiveMask_         = 0;
     std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_   = 0;
+    uint32_t                                             semanticPassSourceOwner_          = 0;
     std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
     std::once_flag                                        nativeProcessInfoOffsetOnce_;

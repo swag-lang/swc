@@ -2,6 +2,7 @@
 #include "Compiler/Lexer/Lexer.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -206,7 +207,7 @@ namespace
         return !word.empty() && word != "and" && word != "or" && word != "orelse" && word != "as" && word != "is";
     }
 
-    GlobalIfValue evaluateRawGlobalIf(const LangSpec& langSpec, const CommandLine& cmdLine, const char8_t*& cursor)
+    GlobalIfValue evaluateRawGlobalIf(const LangSpec& langSpec, const CommandLine& cmdLine, CommandKind command, const char8_t*& cursor)
     {
         if (readIdentifierRaw(langSpec, cursor) != "if")
             return GlobalIfValue::Unknown;
@@ -263,7 +264,7 @@ namespace
             Runtime::CompilerCommand expected;
             if (!commandFromName(expected, expectedName))
                 return GlobalIfValue::Unknown;
-            value = compilerCommandFromKind(cmdLine.command) == expected;
+            value = compilerCommandFromKind(command) == expected;
         }
 
         // A prefix is not a complete condition: leave combined expressions to sema.
@@ -903,7 +904,9 @@ void Lexer::checkGlobalCompilerIfSkip() const
     const char8_t* cursor = buffer_;
     skipBlanksRaw(*langSpec_, cursor);
 
-    if (evaluateRawGlobalIf(*langSpec_, ctx_->cmdLine(), cursor) == GlobalIfValue::False)
+    const SourceFile* file = srcView_->file();
+    const CommandKind command = file && file->sourceOwner() ? CommandKind::Build : ctx_->cmdLine().command;
+    if (evaluateRawGlobalIf(*langSpec_, ctx_->cmdLine(), command, cursor) == GlobalIfValue::False)
         srcView_->setMustSkip();
 }
 

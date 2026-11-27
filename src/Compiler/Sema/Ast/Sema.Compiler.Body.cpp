@@ -304,6 +304,7 @@ namespace
         SourceView& srcView = sourceFile.ast().srcView();
         if (const SourceFile* ownerFile = sema.file())
         {
+            sourceFile.setSourceOwner(ownerFile->sourceOwner());
             srcView.setOwnerFileRef(ownerFile->ref());
             srcView.setDebugSourceCodeRef(sema.node(ownerRef).codeRef());
             if (const SymbolNamespace* moduleNamespace = ownerFile->moduleNamespace())
@@ -607,11 +608,14 @@ Result AstCompilerMessageFunc::semaPostNode(Sema& sema) const
 
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
-    TaskContext& ctx                = sema.ctx();
-    const Token& tok                = sema.token(codeRef());
-    const bool   ignoreTestFunc     = tok.id == TokenId::CompilerFuncTest && !ctx.cmdLine().sourceDrivenTest;
-    const bool   ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain && !ctx.cmdLine().scriptMode && ctx.cmdLine().backendKind != Runtime::BuildCfgBackendKind::Executable;
-    const bool   ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
+    TaskContext&      ctx                = sema.ctx();
+    const Token&      tok                = sema.token(codeRef());
+    const SourceFile* file               = sema.file();
+    const bool        sourceDependency   = file && file->sourceOwner();
+    const bool        ignoreTestFunc     = tok.id == TokenId::CompilerFuncTest && (sourceDependency || !ctx.cmdLine().sourceDrivenTest);
+    const bool        ignoreMainFunc     = tok.id == TokenId::CompilerFuncMain &&
+                                           (sourceDependency || (!ctx.cmdLine().scriptMode && ctx.cmdLine().backendKind != Runtime::BuildCfgBackendKind::Executable));
+    const bool        ignoreCompilerFunc = ignoreTestFunc || ignoreMainFunc;
 
     if (tok.id == TokenId::CompilerFuncMain && !ignoreMainFunc)
     {

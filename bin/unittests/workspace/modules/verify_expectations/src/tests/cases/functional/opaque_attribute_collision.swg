@@ -29,5 +29,5 @@ using StaticApi.OpaqueAttributeCollision
 
 func rejectMissingCollisionDefault()
 {
-    let value = Required{}     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = Required{}     // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
 }

@@ -1,4 +1,4 @@
-#import("borrow_field_provider", link: "shared-library")
+#import("borrow_field_provider")
 #import("core", location: "swag@std")
 
 #run

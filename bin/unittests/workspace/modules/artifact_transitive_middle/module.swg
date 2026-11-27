@@ -1,8 +1,7 @@
-#import("artifact_transitive_leaf", link: "shared-library")
+#import("artifact_transitive_leaf")
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.backendKind         = .SharedLibrary
+    cfg.backendKind         = .None
     cfg.moduleNamespace     = "TransitiveMiddle"
-    cfg.publishDependencies = false
 }

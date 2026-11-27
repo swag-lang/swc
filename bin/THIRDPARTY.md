@@ -12,16 +12,16 @@ Some redistributions are documented closer to the files they cover:
 
 - `apps/modules/swagscope/src/tests/datas/THIRDPARTY.md`: media viewer test fixtures.
 - `apps/modules/swagvault/THIRDPARTY.md`: WinFsp and the other Swag Vault dependencies.
-- `std/modules/audio/src/tests/datas/THIRDPARTY.md`: audio test fixtures.
-- `std/modules/audio/src/codec/dts/THIRDPARTY.md`: FFmpeg's DTS ADPCM predictor codebook.
-- `std/modules/audio/src/codec/opus/THIRDPARTY.md`: libopus SILK and CELT tables.
-- `std/modules/audio/src/codec/vorbis/THIRDPARTY.md`: the libvorbis floor 1 inverse decibel table.
-- `std/modules/gui/src/theme/THIRDPARTY.md`: GUI fonts.
-- `std/modules/gui/src/testing/fonts/THIRDPARTY.md`: fallback font subsets of the headless test host.
-- `std/modules/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
-- `std/modules/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.
-- `std/modules/video/src/tests/datas/THIRDPARTY.md`: video test fixtures.
-- `std/modules/video/src/decode/realvideo/THIRDPARTY.md`: RealVideo decoder algorithms and tables.
+- `std/namespaces/audio/src/tests/datas/THIRDPARTY.md`: audio test fixtures.
+- `std/namespaces/audio/src/codec/dts/THIRDPARTY.md`: FFmpeg's DTS ADPCM predictor codebook.
+- `std/namespaces/audio/src/codec/opus/THIRDPARTY.md`: libopus SILK and CELT tables.
+- `std/namespaces/audio/src/codec/vorbis/THIRDPARTY.md`: the libvorbis floor 1 inverse decibel table.
+- `std/namespaces/gui/src/theme/THIRDPARTY.md`: GUI fonts.
+- `std/namespaces/gui/src/testing/fonts/THIRDPARTY.md`: fallback font subsets of the headless test host.
+- `std/namespaces/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
+- `std/namespaces/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.
+- `std/namespaces/video/src/tests/datas/THIRDPARTY.md`: video test fixtures.
+- `std/namespaces/video/src/decode/realvideo/THIRDPARTY.md`: RealVideo decoder algorithms and tables.
 
 ## Go standard library
 
@@ -142,7 +142,7 @@ Some redistributions are documented closer to the files they cover:
 - Licence: MIT
 - Copyright: Copyright (c) 2026 Karpeles Lab Inc.
 - Origin: <https://github.com/OxideAV/oxideav-mpeg4video>
-- Used by: the Part 2 tables in `std/modules/video/src/decode/mpeg4/tables.swg`.
+- Used by: the Part 2 tables in `std/namespaces/video/src/decode/mpeg4/tables.swg`.
 
 The tables themselves are the normative content of ISO/IEC 14496-2 - the macroblock type, coded
 block pattern, motion vector, direct-current size and coefficient code tables of Annex B, the scan
@@ -159,7 +159,7 @@ that project is reproduced here.
 - Licence: CC0-1.0 (minimp3) and the Unlicence (PDMP3)
 - Copyright: both projects are dedicated to the public domain by their authors.
 - Origin: <https://github.com/lieff/minimp3> and <https://github.com/technosaurus/PDMP3>
-- Used by: the Layer III tables in `std/modules/audio/src/codec/mp3/tables.swg`.
+- Used by: the Layer III tables in `std/namespaces/audio/src/codec/mp3/tables.swg`.
 
 The tables themselves are the normative content of ISO/IEC 11172-3 and 13818-3 — Huffman code
 tables, scalefactor band widths, and the synthesis window — and are facts of the format rather

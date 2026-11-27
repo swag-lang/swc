@@ -46,7 +46,6 @@ struct CompilerCacheStoreTestAccess
     }
 
     static void   flush(CompilerCacheStore& store) { store.flush(); }
-    static void   invalidate(CompilerCacheStore& store) { store.invalidateOnce(); }
     static size_t segmentCount(const CompilerCacheStore& store) { return store.listSegments().size(); }
 };
 
@@ -137,18 +136,10 @@ SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_RetainsEveryPublication)
             return Result::Error;
     }
 
-    {
-        auto rebuilding = CompilerCacheStoreTestAccess::open(directory.path);
-        CompilerCacheStoreTestAccess::invalidate(*rebuilding);
-        CompilerCacheStoreTestAccess::flush(*rebuilding);
-    }
-    auto cleared = CompilerCacheStoreTestAccess::open(directory.path);
-    if (cleared->read(firstKey) || cleared->read(secondKey) || cleared->read(thirdKey) || CompilerCacheStoreTestAccess::segmentCount(*cleared))
-        return Result::Error;
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_PublishedRecordOutlivesWriterAndInvalidation)
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_PublishedRecordOutlivesWriterAndReplacement)
 {
     CacheStoreTestDirectory    directory;
     const Utf8                 key = testKey(1);
@@ -168,8 +159,6 @@ SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_PublishedRecordOutlivesWriterAndInv
         const auto replacement = writer->read(key);
         if (!replacement || replacement.bytes.size() != 1 || replacement.bytes.data()[0] != std::byte{23})
             return Result::Error;
-        CompilerCacheStoreTestAccess::invalidate(*writer);
-        CompilerCacheStoreTestAccess::flush(*writer);
     }
     if (retained.bytes.size() != 4096 ||
         !std::ranges::all_of(retained.bytes.span(), [](std::byte value) { return value == std::byte{17}; }))

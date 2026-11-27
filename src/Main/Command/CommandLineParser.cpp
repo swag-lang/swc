@@ -1219,8 +1219,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
             return reportConflictingArgument(ctx, "--workspace", "--out-dir");
         if (!cmdLine_->workDir.empty())
             return reportConflictingArgument(ctx, "--workspace", "--work-dir");
-        if (!cmdLine_->exportApiDir.empty())
-            return reportConflictingArgument(ctx, "--workspace", "--export-api-dir");
     }
 
     // A module directory selects its setup file and conventional sources. Normalize it before
@@ -1242,8 +1240,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->directories, FileSystem::resolveFolder));
     SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->files, FileSystem::resolveFile));
-    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiDirs, FileSystem::resolveFolder));
-    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiFiles, FileSystem::resolveFile));
 
     if (!cmdLine_->scriptMode &&
         (cmdLine_->command == CommandKind::Run || cmdLine_->command == CommandKind::Smoke) &&
@@ -1268,7 +1264,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->outDir, &cmdLine_->outDirStorage));
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->workDir, &cmdLine_->workDirStorage));
-    SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->exportApiDir));
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->docOutputDir));
 
     // Nothing about a removal is guessed: the command empties the directories it was pointed at.

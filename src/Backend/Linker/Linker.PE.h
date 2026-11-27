@@ -20,7 +20,6 @@ public:
     explicit PELinker(NativeBackendBuilder& builder);
 
     Result prepareLink(LinkJob& outJob) override;
-    Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
 
     // Fold compiler-owned immutable allocations after archive extraction. Keep object indices
     // stable for function candidates; discarded objects become empty and aliases name survivors.
@@ -33,18 +32,13 @@ public:
 private:
     Result buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const;
     Result buildNativeImage(LinkImage& image) const;
-    Result prepareImageLink(LinkJob& outJob, LinkJob::Output output) const;
+    Result prepareImageLink(LinkJob& outJob) const;
     Result prepareImageLinkParallel(LinkJob& outJob) const;
-    Result prepareStaticLibraryLink(LinkJob& outJob) const;
-    Result prepareStaticLibrarySideArchive(LinkJob& outJob) const;
-    Result prepareIncrementalObjects(LinkJob& outJob) const;
     Result prepareIncrementalFunctionCache(LinkJob& outJob) const;
     Result appendIncrementalFunctionArchive(std::vector<Archive>& outArchives) const;
-    Result collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
     Result resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& ioSymbols, std::vector<Archive>& archives) const;
-    void   collectExports(LinkImage& image) const;
     Result collectWin32ApplicationConfig(LinkWin32ApplicationConfig& outConfig) const;
     void   finishImage(LinkImage& image, LinkWin32ApplicationConfig&& win32Config) const;
     void   collectDebugInfo(LinkJob& outJob) const;

@@ -278,10 +278,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Struct)]
     attr DynCast()
 
-    // Exports the struct without its fields: users see its name and methods only.
+    // Hides the struct's fields in generated API documentation.
     //
-    // 'runtimeDefault' and 'requiresInit' carry initialization metadata in generated
-    // module APIs. Source declarations normally leave both at their defaults.
+    // The optional flags describe defaults that run at program startup and types
+    // that need explicit initialization.
     #[AttrUsage(AttributeUsage.Struct)]
     attr Opaque(runtimeDefault: bool = false, requiresInit: bool = false)
 

@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -282,7 +283,7 @@ SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(const Sema& 
     if (!sourceFile)
         return SymbolDiagnosticOrigin::Unknown;
 
-    if (sourceFile->hasFlag(FileFlagsE::ImportedApi) || sourceFile->hasFlag(FileFlagsE::Runtime))
+    if (sourceFile->isRuntime())
         return SymbolDiagnosticOrigin::ExternalDependency;
     if (sourceFile->hasFlag(FileFlagsE::Module) || sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->hasFlag(FileFlagsE::CustomSrc))
         return SymbolDiagnosticOrigin::CurrentModule;
@@ -566,9 +567,17 @@ namespace
     {
         std::vector<const Symbol*> symbols;
         scope.getAllSymbols(symbols);
+        MatchContext lookup;
+        if (sema.compiler().hasSourceDependencies())
+        {
+            const SourceFile* site = sema.compiler().sourceViewFile(sema.ctx().state().codeRef.srcViewRef);
+            lookup.setSourceAccess(sema.compiler(), site ? site : sema.file());
+        }
 
         for (const Symbol* symbol : symbols)
         {
+            if (!lookup.canSeeSourceSymbol(*symbol))
+                continue;
             const std::string_view name = symbol->name(sema.ctx());
             if (!name.empty() && !name.starts_with("__"))
                 out.emplace_back(name);
@@ -601,21 +610,6 @@ void SemaError::addUnknownMemberArguments(Sema& sema, Diagnostic& diag, Identifi
 
     if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(sema.idMgr().get(idRef).name, names))
         diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
-}
-
-// An imported struct publishes only its public methods: the others never reach the module API the
-// importer reads, so a name missing there may exist and simply not be public. Runtime types are
-// read from source, so their non-public members are known and keep the plain report.
-DiagnosticId SemaError::unknownMemberDiagnosticId(const Sema& sema, const SymbolMap* owner)
-{
-    if (!owner || !owner->isStruct() || owner->srcViewRef().isInvalid())
-        return DiagnosticId::sema_err_unknown_symbol;
-
-    const SourceFile* sourceFile = sema.ownerSourceFile(owner->srcViewRef());
-    if (sourceFile && sourceFile->hasFlag(FileFlagsE::ImportedApi))
-        return DiagnosticId::sema_err_unknown_public_member;
-
-    return DiagnosticId::sema_err_unknown_symbol;
 }
 
 Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)

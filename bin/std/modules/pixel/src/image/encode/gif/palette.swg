@@ -203,27 +203,38 @@ impl Encoder
         return true
     }
 
-    // If the first row used every gray value, it determines the entire palette. The image's
-    // bytes can serve as LZW dictionary literals; only literal codes written to the file need
-    // translating to the palette order.
+    // Once an initial part of the image used every gray value, it determines the entire
+    // palette. The image bytes can serve as dictionary literals, translated on emission.
     func tryBuildFullGrayPalette(data: *PaletteData, image: Image, order: *[256] u8)->bool
     {
-        let first = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
+        let first     = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
         var seen:  [256] bool
         var count: u32
-        for x in image.width
+        var remaining = Math.max(image.width, 4096)
+        for y in image.height
         {
-            let gray = first[x]
-            if seen[gray]
+            let source = first - cast(u64, y) * image.rowStride
+            let length = Math.min(image.width, remaining)
+            for x in length
             {
-                continue
+                let gray = source[x]
+                if seen[gray]
+                {
+                    continue
+                }
+
+                seen[gray]         = true
+                order[][gray]      = cast(u8, count)
+                data.colors[count] = {gray, gray, gray}
+                count              += 1
+                if count == MaxPaletteColors
+                {
+                    break
+                }
             }
 
-            seen[gray]         = true
-            order[][gray]      = cast(u8, count)
-            data.colors[count] = {gray, gray, gray}
-            count              += 1
-            if count == MaxPaletteColors
+            remaining -= length
+            if not remaining or count == MaxPaletteColors
             {
                 break
             }

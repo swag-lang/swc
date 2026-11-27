@@ -655,6 +655,36 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool, width: u8 = 33,
     Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
+// The first occurrence of each gray still determines palette order across narrow rows.
+#test
+{
+    const Width  = 97
+    const Height = 1031
+    let source = Image.create(Width, Height, .Gray8)
+    let pixels = source.pixels.storage()
+    for y in Height
+    {
+        let row = pixels + cast(u64, y) * Width
+        for x in Width
+        {
+            row[x] = cast #wrap(u8, ((Height - 1 - y) * Width + x) * 73)
+        }
+    }
+
+    let encoded = expect source.encodeToBytes("gray-across-rows.gif")
+    Swag.require(Hash.Crc32.compute(encoded.toSlice()) == 4260205349_u32)
+    let decoded = expect Image.decode("gray-across-rows.gif", encoded.toSlice())
+    Swag.require(decoded.width == Width and decoded.height == Height and decoded.pixelFormat == .RGB8)
+    let output = decoded.pixels.storage()
+    for pixel in Width * Height
+    {
+        let gray = pixels[pixel]
+        Swag.require(output[3 * pixel] == gray and
+                     output[3 * pixel + 1] == gray and
+                     output[3 * pixel + 2] == gray)
+    }
+}
+
 // GIF uniform fills use the same transparency threshold when source samples differ.
 #test
 {

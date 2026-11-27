@@ -295,6 +295,28 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertNearByte(blue[2], 0_u8, 8_u8)
 }
 
+// A single padded MCU has 2×2 cyan and black sampling, with constant ink values 20, 80, 140 and 50.
+#test
+{
+    let bytes    = expect File.readAllBytes(getTestDataPath("cmyk-subsampled-11x13.jpg"))
+    let standard = expect Image.decode(".jpg", bytes.toSlice())
+    Swag.require(standard.isValid() and standard.width == 11 and standard.height == 13)
+
+    let direct   = expect Jpg.decodeCmyk(bytes.toSlice(), [{0, 1}, {0, 1}, {0, 1}, {0, 1}])
+    let reversed = expect Jpg.decodeCmyk(bytes.toSlice(), [{1, 0}, {1, 0}, {1, 0}, {1, 0}])
+    let remapped = expect Jpg.decodeCmyk(bytes.toSlice(), [{1, 1}, {0, 0}, {0, 0}, {0.25, 0.25}])
+    Swag.require(direct.pixelFormat == .BGR8)
+    for y in 13_s32
+    {
+        for x in 11_s32
+        {
+            Swag.require(direct.pixelColor(x, y) == Color.fromRgb(189, 141, 92))
+            Swag.require(reversed.pixelColor(x, y) == Color.fromRgb(4, 16, 27))
+            Swag.require(remapped.pixelColor(x, y) == Color.fromRgb(0, 191, 191))
+        }
+    }
+}
+
 // ImageMagick encoded this 13×11 RGB pattern as unsubsampled Adobe YCCK at quality 87.
 // Channel c of pixel (x, y) is (23*x + 17*y + c*(7*x + 3*y + 43)) % 256.
 #test

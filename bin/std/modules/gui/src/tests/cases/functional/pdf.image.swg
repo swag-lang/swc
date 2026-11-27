@@ -878,6 +878,26 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(Slice.equals(bytes.toSlice(), image.encoded().bytes.toSlice()))
 }
 
+// DeviceCMYK DCT images apply the PDF ranges to the encoded samples before composing the inks.
+#test
+{
+    let jpeg = expect File.readAllBytes(guiTestDataPath("cmyk-subsampled-11x13.jpg"))
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 11 /Height 13 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /DCTDecode"
+    let direct = imageDocument(Dictionary, jpeg.toSlice())
+    let first  = direct.pages[0].items[0].image
+    Swag.require(first.value()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+    Swag.require(first.encoded().channels == 4 and Slice.equals(first.encoded().bytes.toSlice(), jpeg.toSlice()))
+    let saved = expect direct.encode()
+    let read  = expect Document.decode(saved.toSlice())
+    Swag.require(read.pages[0].items[0].imageValue()!.pixelColor(10, 12) == Color.fromRgb(189, 141, 92))
+
+    let invertedDictionary = String.from(Dictionary)
+    var inverted = invertedDictionary
+    inverted += " /Decode [1 0 1 0 1 0 1 0]"
+    let reversed = imageDocument(inverted.toString(), jpeg.toSlice())
+    Swag.require(reversed.pages[0].items[0].imageValue()!.pixelColor(10, 12) == Color.fromRgb(4, 16, 27))
+}
+
 // A Flate predictor keeps its parameters, image samples and interpolation request.
 #test
 {

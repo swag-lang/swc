@@ -299,20 +299,16 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.012 — The `/Decode` array is not applied to a DCT image
 
-- Intent: four-component frames decode now, but a DCT image is the one sample representation whose
-  `/Decode` array is ignored, because the frame reaches this module already converted to screen
-  colours. A file that states its inks are stored complemented through that array rather than
-  through the Adobe marker therefore renders inverted, and a partial range on a gray or colour
-  photograph is dropped silently.
-- Evidence: `decodeImage` hands `DCTDecode` straight to `Image.decode(".jpg", …)` and returns its
-  colour result; every sampled representation beside it goes through `readSamplePlane`, which does
-  read `/Decode`. The four-component path in `pixel` applies the Adobe complement itself, which is
-  what a standalone CMYK JPEG needs and what a `/Decode` array would then apply twice.
-- Next: decide where ink values are allowed to exist — either a four-component frame comes back from
-  `pixel` as inks and this module converts them, or the decoder takes the decode ranges as an
-  option — then apply the array on the DCT path for every component count.
-- Done when: a DCT image honours `/Decode` exactly as a sampled image does, and a fixture
-  carries a CMYK photograph inverted through that array.
+- Evidence: direct, unmasked `DeviceCMYK` DCT images use the declared ink ranges before
+  conversion to screen colours. The decoder handles subsampled four-component JPEG streams
+  and a default-range stream survives saving with its original JPEG bytes. The 62-page check
+  gains the public `cmykjpeg.pdf` page and improves the explicitly inverted stress page's
+  mean RGB difference against PDFium from 20.40 to 12.49 channel levels. The other 60 pages
+  have the same bitmap checksums in that comparison.
+- Remaining: grayscale, RGB, masked and resource-named DCT paths still drop their `/Decode`
+  arrays. The direct CMYK path uses a device-colour approximation without an ICC transform.
+- Done when: each DCT image path honours `/Decode` with coverage for ranges, masks and
+  colour spaces.
 - Related: std.gui.pdf.002
 
 ### std.gui.pdf.014 — JBIG2 images are refused

@@ -1310,6 +1310,7 @@ private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [.
     {
     case "DeviceGray": channels = 1
     case "DeviceRGB":  channels = 3
+    case "DeviceCMYK": channels = 4
     default: return 0
     }
 
@@ -1474,7 +1475,31 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
         var raw     = #move try parser.decodeStream(nodeId, true)
         let options = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
-        var decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
+        var decoded: Image
+        if deviceOnly and
+           colorName == "DeviceCMYK" and
+           parser.dict(nodeId, "DecodeParms") == InvalidNode
+        {
+            var ranges: [4] Vector2 = [{0, 1}, {0, 1}, {0, 1}, {0, 1}]
+            let decodeId = parser.dict(nodeId, "Decode")
+            if decodeId != InvalidNode and
+               parser.nodes[decodeId].kind == .Array and
+               parser.nodes[decodeId].values.count >= 8
+            {
+                for component in 4
+                {
+                    let lower = parser.nodes[decodeId].values[component * 2]
+                    let upper = parser.nodes[decodeId].values[component * 2 + 1]
+                    ranges[component] = {cast(f32, parser.number(lower)), cast(f32, parser.number(upper))}
+                }
+            }
+
+            decoded = #move try Jpg.decodeCmyk(raw.toSlice(), ranges)
+        }
+        else
+        {
+            decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
+        }
 
         // An unmasked photograph is already the answer. It comes back bottom-up, which is how
         // an image stores its rows, so routing it through the sample plane would flip it to

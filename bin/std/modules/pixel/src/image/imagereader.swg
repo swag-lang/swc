@@ -536,6 +536,7 @@ public impl ImageReader
             .lastIndex = -1
         }
 
+        let gif = .decoderType == #typeof(Gif.SetDecoder) ? cast(*Gif.SetDecoder, .decoder) : null
         while .lastIndex < cast(s32, index)
         {
             if .lastIndex >= 0
@@ -556,10 +557,19 @@ public impl ImageReader
                 .copyPreviousRectangle!{true}(descriptor[])
             }
 
-            let image = try multiple.readFrame(current, .options)
-            try .composite(descriptor[], image)
-            .canvas.metadata = image.metadata
-            .lastIndex       += 1
+            if gif
+            {
+                try gif.compositeFrame(current, &.canvas)
+                .canvas.metadata.clear()
+            }
+            else
+            {
+                let image = try multiple.readFrame(current, .options)
+                try .composite(descriptor[], image)
+                .canvas.metadata = image.metadata
+            }
+
+            .lastIndex += 1
         }
 
         succeeded = true

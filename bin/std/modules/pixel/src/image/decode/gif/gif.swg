@@ -567,3 +567,144 @@ impl Decoder
         }
     }
 }
+
+impl SetDecoder
+{
+    // Expand directly on the animation canvas. GIF alpha either replaces or retains a pixel.
+    mtd compositeFrame(index: u32, canvas: *Image) fail
+    {
+        Swag.assert(canvas.pixelFormat == .RGBA8)
+        let indexed = &.frames[index]
+        try .decoder.decodeIndices(indexed)
+        let bottom = canvas.height - indexed.y - indexed.height
+        let target = canvas.pixels.storage() + cast(u64, bottom) * canvas.rowStride + cast(u64, indexed.x) * 4
+        try .decoder.compositeCanvasPixels(indexed, target, canvas.rowStride)
+    }
+}
+
+#[Swag.Inline]
+private func compositeGatheredColors(target: [*] u32, table: const [*] s32, keys: Math.Simd.U32x4)
+{
+    let colors = cast #bit(Math.Simd.U32x4, Math.Simd.gather(table, keys))
+    let opaque = (colors >> 24) == Math.Simd.splat(255_u32)
+    if Math.Simd.allTrue(opaque)
+    {
+        Math.Simd.store(target, colors)
+    }
+    else
+    {
+        let previous = Math.Simd.load(target)
+        let visible  = (previous >> 24) != Math.Simd.splat(0_u32)
+        Math.Simd.store(target, (colors & opaque) | (previous & visible & ~opaque))
+    }
+}
+
+impl Decoder
+{
+    mtd compositeCanvasPixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32) fail
+    {
+        let palette = &indexed.palette
+        let colors  = cast(const [*] u8, unwrap palette.colors)
+        var packed: [256] u32
+        for paletteIndex in palette.size
+        {
+            let color = colors + paletteIndex * 3
+            packed[paletteIndex] = cast(u32, color[0]) | (cast(u32, color[1]) << 8) |
+                                   (cast(u32, color[2]) << 16) | 0xFF000000
+        }
+
+        let width  = cast(s32, indexed.width)
+        let height = cast(s32, indexed.height)
+        let table  = cast(const [*] u32, &packed[0])
+        if indexed.control.transparency
+        {
+            packed[indexed.control.tindex] = 0
+        }
+        else
+        {
+            if palette.size <= 16 and width >= 32 and cast(u64, width) * height >= 256
+            {
+                try .writeSmallPalettePixels(indexed, pixels, stride, true, table)
+                return
+            }
+
+            if palette.size == 256 and width >= 64
+            {
+                .writeFullPalettePixels!{true}(indexed, pixels, stride, table)
+                return
+            }
+        }
+
+        if palette.size == 256
+        {
+            try .compositePalettePixels!{false}(indexed, pixels, stride, table)
+        }
+        else
+        {
+            try .compositePalettePixels!{true}(indexed, pixels, stride, table)
+        }
+    }
+
+    #[Swag.NoInline]
+    private mtd(CHECK_BOUNDS: bool) compositePalettePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, packed: const [*] u32) fail
+    {
+        let width           = cast(s32, indexed.width)
+        let height          = cast(s32, indexed.height)
+        let indices         = .frame.storage()
+        let table           = cast(const [*] s32, packed)
+        var combinedVectors = Math.Simd.splat(0_u8)
+        var combinedTail: u8
+        for y in height
+        {
+            let source = indices + cast(u64, y) * width
+            let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
+            let target = cast([*] u32, pixels + cast(u64, (height - row - 1)) * stride)
+            var x      = 0
+            while width >= 64 and width - x >= 16
+            {
+                let keys = Math.Simd.load(source + x)
+                #static if CHECK_BOUNDS
+                {
+                    combinedVectors |= keys
+                }
+
+                let lo = Math.Simd.widenLow(keys)
+                let hi = Math.Simd.widenHigh(keys)
+                compositeGatheredColors(target + x, table, Math.Simd.widenLow(lo))
+                compositeGatheredColors(target + x + 4, table, Math.Simd.widenHigh(lo))
+                compositeGatheredColors(target + x + 8, table, Math.Simd.widenLow(hi))
+                compositeGatheredColors(target + x + 12, table, Math.Simd.widenHigh(hi))
+                x += 16
+            }
+
+            for i in x until width
+            {
+                let key = source[i]
+                #static if CHECK_BOUNDS
+                {
+                    combinedTail |= key
+                }
+
+                let color = packed[key]
+                if color >> 24
+                {
+                    target[i] = color
+                }
+                else if target[i] >> 24 == 0
+                {
+                    target[i] = 0
+                }
+            }
+        }
+
+        #static if CHECK_BOUNDS
+        {
+            let paletteSize = indexed.palette.size
+            let invalidBits = ~cast(u8, paletteSize - 1)
+            if combinedTail >= paletteSize or Math.Simd.anyTrue((combinedVectors & invalidBits) != Math.Simd.splat(0_u8))
+            {
+                fail InvalidFormatError{"GIF palette index is out of range"}
+            }
+        }
+    }
+}

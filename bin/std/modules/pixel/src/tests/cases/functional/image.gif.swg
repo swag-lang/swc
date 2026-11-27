@@ -380,25 +380,28 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(image.pixels.storage(), canvas.pixels.storage(), image.byteCount) == 0)
 }
 
-func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
+func wideGifPaletteFixture(withTransparency, invalidIndex: bool, width: u8 = 33, height: u8 = 9)->Array!{u8}
 {
     const Header: [25] u8 = [
         'G', 'I', 'F', '8', '9', 'a',
         33, 0, 9, 0, 0x81, 0, 0,
         17, 103, 219, 255, 40, 13, 150, 235, 72, 249, 128, 213]
-    const Control:    [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 1, 0]
-    const Descriptor: [11] u8 = [0x2C, 0, 0, 0, 0, 33, 0, 9, 0, 0, 3]
-    const PixelCount          = 33 * 9
+    const Control: [8] u8 = [0x21, 0xF9, 4, 1, 0, 0, 1, 0]
+    let descriptor: [11] u8 = [0x2C, 0, 0, 0, 0, width, 0, height, 0, 0, 3]
+    var header = Header
+    header[6] = width
+    header[8] = height
+    let pixelCount = cast(u32, width) * height
     var bytes: #returntype
-    bytes.add(Header)
+    bytes.add(header)
     if withTransparency
     {
         bytes.add(Control)
     }
 
-    bytes.add(Descriptor)
+    bytes.add(descriptor)
 
-    for offset in PixelCount
+    for offset in pixelCount
     {
         if offset == 0
         {
@@ -406,7 +409,7 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
         }
         else if offset == 255
         {
-            bytes.add(cast(u8, (PixelCount + 1 - 255)))
+            bytes.add(cast(u8, (pixelCount + 1 - 255)))
         }
 
         // Each byte has a four-bit clear code followed by a literal.
@@ -458,6 +461,12 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
     var errorOutcome: Swag.Error
     discard catch Image.decode("wide-invalid-palette.gif", nnBytes(bytes.toSlice())) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+
+    let canvasBytes = wideGifPaletteFixture(true, true, width: 99, height: 3)
+    var reader      = expect ImageReader.decode("wide-invalid-palette.gif", nnBytes(canvasBytes.toSlice()))
+    var canvasError: Swag.Error
+    discard catch reader.read(0) as canvasError
+    Swag.require(canvasError.value() is Errors.InvalidFormatError)
 }
 
 // A literal allowed by LZW is still invalid when it has no palette entry.

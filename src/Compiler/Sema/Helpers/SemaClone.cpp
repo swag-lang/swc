@@ -1231,6 +1231,51 @@ namespace
         activeSourceRefSet.erase(sourceRef);
     }
 
+    // A method body names its receiver's fields directly as well as through 'me'. A bare name
+    // bound to an instance field reads it through the receiver, which an expansion binds to the
+    // caller's expression: spell that read out as 'me.field' so the clone reaches the same object.
+    const SemaClone::ParamBinding* findImplicitReceiverBinding(Sema& sema, const SemaClone::CloneContext& cloneContext, const Symbol* sourceSymbol)
+    {
+        if (!sourceSymbol || !sourceSymbol->isVariable() || cloneContext.nestedCallableDepth != 0)
+            return nullptr;
+
+        const auto&      field = sourceSymbol->cast<SymbolVariable>();
+        const SymbolMap* owner = field.ownerSymMap();
+        if (!owner || !owner->isStruct() || field.hasGlobalStorage())
+            return nullptr;
+
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+        {
+            if (binding.idRef == meId && binding.sourceParam && binding.exprRef.isValid())
+                return &binding;
+        }
+
+        return nullptr;
+    }
+
+    AstNodeRef cloneImplicitReceiverField(Sema& sema, const AstIdentifier& node, AstNodeRef sourceRef, const SemaClone::ParamBinding& receiver, const SemaClone::CloneContext& cloneContext)
+    {
+        auto [receiverRef, receiverPtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
+        receiverPtr->setCodeRef(node.codeRef());
+        receiverPtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+        sema.setSymbol(receiverRef, receiver.sourceParam);
+
+        const AstNodeRef leftRef = SemaClone::cloneAst(sema, receiverRef, cloneContext);
+        if (leftRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNodeRef rightRef = cloneMemberSelector(sema, sourceRef, cloneContext);
+        if (rightRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        auto [memberRef, memberPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(node.tokRef());
+        memberPtr->setCodeRef(node.codeRef());
+        memberPtr->nodeLeftRef  = leftRef;
+        memberPtr->nodeRightRef = rightRef;
+        return memberRef;
+    }
+
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
         const Ast* sourceAst = &cloneSourceAst(sema, cloneContext);
@@ -1261,6 +1306,9 @@ namespace
         const SemaInlinePayload* sourceInlinePayload = nullptr;
         if (sourceRef.isValid() && sourceAst == &sema.ast())
             sourceInlinePayload = sema.inlinePayload(sourceRef);
+
+        if (const SemaClone::ParamBinding* receiver = findImplicitReceiverBinding(sema, cloneContext, storedView ? storedView->sym : nullptr))
+            return cloneImplicitReceiverField(sema, node, sourceRef, *receiver, cloneContext);
 
         const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef, storedView ? storedView->sym : nullptr, sourceInlinePayload);
 

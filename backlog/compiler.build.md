@@ -470,6 +470,24 @@ before relying on them.
   pays for semantic analysis, specialization, inlining, and lowering. Prior delayed-body work
   showed that native and JIT preparation can need semantic completion of methods reached
   indirectly through allocation-failure reporting.
+- Semantic analysis dominates warm work. Linux Release, four workers: a one-constant `gui1`
+  edit took 7.7 s, of which 7.36 s was sema over 1,500 files and 2.04 M tokens; Micro reused
+  9,734 of 9,814 functions in 0.14 s. A PNG-decoding script took 3.9 s, of which 3.5 s was sema
+  over 1,072 files; JIT took 0.35 s. No-op `gui1` builds took 18 ms. The CPU profile is flat
+  (no symbol above 2.4%): the cost is the volume of bodies analyzed, not one hot path.
+- Only runtime bodies and generic-instance methods are analyzed on demand
+  (`canDelayFunctionBody`); every body of an imported source group is analyzed even when
+  nothing reaches it. Allowing source-dependency bodies (`sourceOwner() != 0`) to be lazy
+  failed in three ways: an unbounded `where` re-evaluation loop for methods, callers reading
+  body-derived facts (fallibility at `try`, copy ownership through `opDrop`) before demanding
+  the callee, and `sema_err_stalled_dependency` cycles because each call site completes the
+  callee body (`Sema::completeLazyFunction` in `semaCallExprCommon`), so mutually recursive
+  bodies wait on each other. Context reconstruction for on-demand bodies was also wrong for
+  nested namespaces; that part is fixed.
+- Next for the lazy route: make call sites depend on the signature only and move body demand
+  to the consumers of body facts (codegen reachability, borrow and effect summaries), with
+  cycles resolved as eager analysis resolves them. Then retry dependency bodies, free
+  functions first, and measure both workloads above.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about

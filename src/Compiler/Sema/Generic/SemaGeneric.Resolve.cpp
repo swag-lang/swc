@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/CompilerInstance.h"
 
@@ -78,14 +79,21 @@ namespace
         return next;
     }
 
-    SymbolAccess collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
+    SymbolAccess collectSymbolMapNamespacePath(const SymbolMap* symMap, const SymbolMap* moduleRoot, SmallVector<IdentifierRef>& outPath)
     {
         // Rebuilding a sema context for generic instantiation must restore the
         // namespace path as source code would see it. Impl maps are transparent and
-        // route through their owning type's namespace.
+        // route through their owning type's namespace. A source group's namespace is
+        // the lookup root of its files, so the path stops there as it does at a module.
         SymbolAccess access = SymbolAccess::Private;
         for (const SymbolMap* current = symMap; current;)
         {
+            if (current == moduleRoot)
+            {
+                access = SymbolAccess::Internal;
+                break;
+            }
+
             const SymbolMap* owner = current->ownerSymMap();
             if (current->isNamespace() && (!owner || !owner->isModule()))
                 outPath.push_back(current->idRef());
@@ -173,7 +181,7 @@ namespace SemaGeneric
         SmallVector<IdentifierRef> nsPath;
         SymbolAccess               access;
         if (startSymMap)
-            access = collectSymbolMapNamespacePath(startSymMap, nsPath);
+            access = collectSymbolMapNamespacePath(startSymMap, sema.moduleNamespace().asSymMap(), nsPath);
         else
         {
             const auto scopePath = sema.frame().nsPath();
@@ -188,7 +196,31 @@ namespace SemaGeneric
         if (impl)
             scopeFlags.add(SemaScopeFlagsE::Impl);
 
-        sema.scopes_.emplace_back(sema.scopeArena_.create(scopeFlags, nullptr));
+        // Source opens one top-level scope per enclosing namespace segment, so a body sees
+        // what each outer namespace declares. Restore those scopes, outermost first.
+        SmallVector<SymbolMap*> outerNamespaces;
+        if (startSymMap)
+        {
+            const SymbolMap* moduleRoot = sema.moduleNamespace().asSymMap();
+            for (const SymbolMap* current = namespacePathOwner(startSymMap); current && current != moduleRoot; current = namespacePathOwner(current))
+            {
+                const SymbolMap* owner = current->ownerSymMap();
+                if (current->isModule() || (owner && owner->isModule()))
+                    break;
+                if (current->isNamespace())
+                    outerNamespaces.push_back(const_cast<SymbolMap*>(current));
+            }
+        }
+
+        SemaScope* parentScope = nullptr;
+        for (size_t index = outerNamespaces.size(); index > 0; --index)
+        {
+            sema.scopes_.emplace_back(sema.scopeArena_.create(SemaScopeFlags{SemaScopeFlagsE::TopLevel}, parentScope));
+            parentScope = sema.scopes_.back().get();
+            parentScope->setSymMap(outerNamespaces[index - 1]);
+        }
+
+        sema.scopes_.emplace_back(sema.scopeArena_.create(scopeFlags, parentScope));
         sema.curScope_ = sema.scopes_.back().get();
         sema.curScope_->setSymMap(sema.startSymMap_);
 

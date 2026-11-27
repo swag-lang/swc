@@ -45,7 +45,7 @@ SWC_BEGIN_NAMESPACE();
 // address; pad it to sixteen bytes and keep the island naturally aligned.
 constexpr uint32_t K_ISLAND_ALIGNMENT      = 16;
 constexpr uint32_t K_FUNCTION_THUNK_SLOT   = 16;
-constexpr uint32_t K_FOREIGN_THUNK_SLOT    = 32;
+constexpr uint32_t K_EFFECT_THUNK_SLOT    = 32;
 constexpr uint32_t K_FUNCTION_POINTER_SLOT = sizeof(uint64_t);
 
 namespace
@@ -573,6 +573,15 @@ namespace
         return true;
     }
 
+    bool needsLocalAddressEffectGuard(TaskContext& ctx, const SymbolFunction& target)
+    {
+        if (!target.hasJitAddressObservation())
+            return false;
+        // Runtime pointer arithmetic is also used by the allocator and JIT plumbing.
+        const SourceFile* file = ctx.compiler().declaringSourceFile(target);
+        return !file || !file->isRuntime();
+    }
+
     bool needsForeignEffectGuard(TaskContext& ctx, const SymbolFunction& target)
     {
         if (ctx.cmdLine().targetOs != hostTargetOs())
@@ -956,7 +965,10 @@ namespace
             return outTargetAddress != 0 ? Result::Continue : Result::Error;
         }
 
-        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, targetFunction, ownerFunction, addressKind, outFailure, patchContext);
+        const Result result = resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, targetFunction, ownerFunction, addressKind, outFailure, patchContext);
+        if (result == Result::Continue && needsLocalAddressEffectGuard(ctx, targetFunction))
+            ctx.compiler().recordUntrackedJitEffect();
+        return result;
     }
 
     Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
@@ -976,7 +988,10 @@ namespace
         if (!tryResolveRelocationTargetFunction(targetFunction, reloc, outFailure))
             return Result::Error;
 
-        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, *targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, outFailure, patchContext);
+        const Result result = resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, *targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, outFailure, patchContext);
+        if (result == Result::Continue && reloc.form != MicroRelocation::Form::Relative32 && needsLocalAddressEffectGuard(ctx, *targetFunction))
+            ctx.compiler().recordUntrackedJitEffect();
+        return result;
     }
 
     bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
@@ -1227,11 +1242,11 @@ namespace
         return tryPatchRelative32Direct(writableCode, reloc, thunkAddress);
     }
 
-    bool patchRelative32TrackedForeign(TaskContext& ctx, std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset, const SymbolFunction& original)
+    bool patchRelative32TrackedEffect(TaskContext& ctx, std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset, const SymbolFunction& original)
     {
         static_assert(sizeof(std::atomic_bool) == 1 && std::atomic_bool::is_always_lock_free);
         auto* slot = writableCode.data() + islandSlotOffset;
-        SWC_ASSERT(static_cast<uint64_t>(islandSlotOffset) + K_FOREIGN_THUNK_SLOT <= writableCode.size_bytes());
+        SWC_ASSERT(static_cast<uint64_t>(islandSlotOffset) + K_EFFECT_THUNK_SLOT <= writableCode.size_bytes());
 
         // Swag passes an argument in R11. System V variadic calls use AL.
         // The store and tail jump preserve all argument lanes and the stack.
@@ -1476,13 +1491,13 @@ namespace
                 if (reloc.kind == MicroRelocation::Kind::LocalFunctionAddress || reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress)
                 {
                     const bool  foreign = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress;
-                    const auto* target  = foreign && reloc.targetSymbol ? reloc.targetSymbol->safeCast<SymbolFunction>() : nullptr;
-                    const bool  track   = target && needsForeignEffectGuard(ctx, *target);
-                    const bool  patched = track ? patchRelative32TrackedForeign(ctx, writableCode, reloc, targetAddress, islandOffset, *target)
+                    const auto* target  = reloc.targetSymbol ? reloc.targetSymbol->safeCast<SymbolFunction>() : nullptr;
+                    const bool  track   = target && (foreign ? needsForeignEffectGuard(ctx, *target) : needsLocalAddressEffectGuard(ctx, *target));
+                    const bool  patched = track ? patchRelative32TrackedEffect(ctx, writableCode, reloc, targetAddress, islandOffset, *target)
                                                  : patchRelative32Function(writableCode, reloc, targetAddress, islandOffset);
                     if (!patched)
                         return Result::Error;
-                    islandOffset += foreign ? K_FOREIGN_THUNK_SLOT : K_FUNCTION_THUNK_SLOT;
+                    islandOffset += K_EFFECT_THUNK_SLOT;
                     continue;
                 }
 
@@ -1512,7 +1527,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     const uint32_t codeSize       = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool     registerUnwind = !unwindInfo.empty();
 
-    // Calls reserve nearby fallback thunks for targets outside rel32 reach.
+    // Calls reserve room for an effect guard or a target outside rel32 reach.
     // Fixed-payload reads may also use nearby copies; address materializations
     // retain their canonical segment storage.
     uint32_t islandSize = 0;
@@ -1541,7 +1556,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
             continue;
 
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
-        islandSize += relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress ? K_FOREIGN_THUNK_SLOT : K_FUNCTION_THUNK_SLOT;
+        islandSize += K_EFFECT_THUNK_SLOT;
     }
 
     const uint32_t relocationIslandSize = islandSize;
@@ -2440,6 +2455,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(invoker != nullptr);
+    if (const auto* fn = ctx.state().runJitFunction; fn && needsLocalAddressEffectGuard(ctx, *fn))
+        ctx.compiler().recordUntrackedJitEffect();
 
     RuntimeSetupInvoker setupInvoker = nullptr;
     if (setupMode == JITRuntimeSetupMode::FromCompiler)

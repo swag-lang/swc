@@ -486,7 +486,11 @@ before relying on them.
   analyzed about 5,600; 32,006 and about 18,000 entries for `gui1`. CPU time fell from about
   12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
   paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
-  of 16. The prototype is not merged.
+  of 16. The prototype is not merged. A later trace found 3,094 completed pure functions
+  without native or JIT code in `gui1`, and 2,436 in PNG. A scratch experiment deferred
+  previously unreached bodies at 604 and 577 source locations, respectively. Two warm
+  pairs on each workload showed no consistent gain. Source locations also combine some
+  generic specializations, which would need distinct identities in a persistent cache.
 - A trace counted 463 queued `#run` expressions for `gui1` and 452 for the PNG script.
   CRC32 and CRC64 power and reciprocal calculations led both counts. Warm Linux Release
   builds reused 408 results in each workload before JIT preparation. The key covers current
@@ -544,7 +548,12 @@ before relying on them.
   while preserving the address. On Linux, builds that read through `fopen` and `fgetc`
   see an edited file, and an untaken foreign call still allows an unchanged artifact to
   be reused. The guard covers the sixth Swag integer argument and the System V variadic
-  argument state. Runtime host inputs outside the guarded APIs still need tracking.
+  argument state. JIT calls that convert an address to an integer now prevent publication
+  for ordinary code. Direct calls and calls through a function value both observe the
+  current process address, while an unchanged `gui1` still reuses its executable.
+  Runtime host inputs outside the guarded APIs still need tracking. Preparing an
+  untaken foreign call can load a native library and run an initializer even if the
+  foreign call itself never executes. A scratch library reproduces this missed effect.
   A prototype reused an analyzed short integer expression after a caller edit and missed
   after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
   proof, so it is not merged.

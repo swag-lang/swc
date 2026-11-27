@@ -1953,6 +1953,7 @@ namespace
 
         if (resolvedSrcType.isAnyPointer() && dstTypeRef == typeMgr.typeU64())
         {
+            codeGen.function().recordJitAddressObservation();
             MicroReg srcReg = srcPayload.reg;
             if (srcPayload.isAddress())
             {

@@ -2377,6 +2377,51 @@ const Observed = #run readSettings({})
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_JitAddressObservationsPreventStaleArtifacts)
+{
+    const LinkerTestDirectory directory("jit_address_observation");
+    SWC_RESULT(directory.write("modules/app/module.swg", ""));
+    const auto run = [&](const bool rebuild) -> Result {
+        std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                       "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (rebuild)
+            arguments.push_back("--rebuild");
+        std::string                 output;
+        uint32_t                    exitCode = 0;
+        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode ||
+            !output.contains("address=") || output.contains("module up-to-date"))
+        {
+            std::println(stderr, "[compile-time address observation] {}", output);
+            return Result::Error;
+        }
+        return Result::Continue;
+    };
+
+    for (const auto* expression : {"address()", "invoke(&address)"})
+    {
+        SWC_RESULT(directory.write("modules/app/src/main.swg", std::format(R"(
+#[Swag.NoInline]
+func address()->u64
+{{
+    var local: u64 = 42
+    return cast(u64, &local)
+}}
+
+alias Query = func()->u64
+
+#[Swag.NoInline]
+func invoke(query: Query)->u64 => query()
+
+const Observed = #run {}
+#main {{ Swag.print("address=", Observed, "\n") }}
+)", expression)));
+        SWC_RESULT(run(true));
+        SWC_RESULT(run(false));
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

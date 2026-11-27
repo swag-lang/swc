@@ -35,6 +35,18 @@ impl Scc.ICodec for ReverseSccCodec
 
 func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
 
+namespace Scc
+{
+    impl ChunkInfo
+    {
+        func withMismatchedChecksum(id, kind: Guid128, size: u64, checksum: u32)->ChunkInfo
+        {
+            return ChunkInfo{id: id, typeId: kind, storedSize: size, decodedSize: size,
+                             storedChecksum: checksum, decodedChecksum: checksum ^ 1}
+        }
+    }
+}
+
 // The header and one selected chunk are sufficient; unrelated payload corruption is lazy.
 #test
 {
@@ -92,6 +104,33 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     discard catch reader.readChunk(imageId) as damagedErrorOutcome
     let damagedError = damagedErrorOutcome.value()
     Swag.require(damagedError != null)
+}
+
+// Stored bytes can pass their own checksum while the decoded checksum is inconsistent.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_scc_stored_checksums.tmp")
+    defer discard catch File.delete(path)
+
+    const Payload = "stored content"
+    let kind     = sccTestId("c80a0567-314c-44dd-9370-20047131490e")
+    let id       = sccTestId("022eaea7-dbac-40c8-8100-399dd41bb0a2")
+    let checksum = Hash.Crc32.compute(Payload)
+    let info     = Scc.ChunkInfo.withMismatchedChecksum(id, kind, Payload.count, checksum)
+
+    var writer: Scc.Writer
+    writer.initialize(kind)
+    expect writer.addStoredChunk(Payload, &info)
+    expect writer.saveAtomic(path)
+
+    var reader: Scc.Reader
+    expect reader.initialize(path)
+    let stored = expect reader.readStoredChunk(id)
+    Swag.require(Slice.equals(stored.toSlice(), Payload))
+
+    var outcome: Swag.Error
+    discard catch reader.readChunk(id) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
 }
 
 // Predefined Deflate and a caller-provided codec both round-trip independently.

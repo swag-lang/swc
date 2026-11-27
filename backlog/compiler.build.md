@@ -470,11 +470,11 @@ before relying on them.
   pays for semantic analysis, specialization, inlining, and lowering. Prior delayed-body work
   showed that native and JIT preparation can need semantic completion of methods reached
   indirectly through allocation-failure reporting.
-- Semantic analysis dominates warm work. Linux Release, four workers: a one-constant `gui1`
-  edit took 7.7 s, of which 7.36 s was sema over 1,500 files and 2.04 M tokens; Micro reused
-  9,734 of 9,814 functions in 0.14 s. A PNG-decoding script took 3.9 s, of which 3.5 s was sema
-  over 1,072 files; JIT took 0.35 s. No-op `gui1` builds took 18 ms. The CPU profile is flat
-  (no symbol above 2.4%): the cost is the volume of bodies analyzed, not one hot path.
+- Semantic analysis dominates warm work. In three Linux Release samples with four workers,
+  the median `gui1` one-constant edit took 5.94 s, including 4.84 s of sema over 1,500 files.
+  The compiler peaked at 1,638 MiB RSS by median, with at least 9,732 of 9,814 Micro functions
+  reused in each sample. The PNG-decoding script took a median 3.48 s, including 3.12 s of
+  sema over 1,073 files, with a median peak of 1,131 MiB RSS.
 - Only runtime bodies and generic-instance methods are analyzed on demand
   (`canDelayFunctionBody`). A prototype deferred every source-dependency body, free functions
   and methods: call sites kept only the signature, native code generation analyzed reached
@@ -489,6 +489,8 @@ before relying on them.
   Reuse eligible conditions and `#ast` results across generic bindings and check the cost of
   preparing unrelated targets. Then retry deferred dependency bodies with the call-site and
   escape-check changes above, and measure CPU time as well as elapsed time.
+  Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by
+  1.8% by median across three pairs. Investigate which roots are needed for each evaluation.
 - Versioning JIT constant relocation metadata by allocation region reduced median warm time
   by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
   Release series with four workers and five paired runs each. Instrumented runs avoided about

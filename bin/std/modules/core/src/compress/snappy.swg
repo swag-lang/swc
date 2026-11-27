@@ -133,6 +133,18 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
         let kind = tag & 3
         if not kind
         {
+            // A short literal fits in one vector when both slices have room.
+            if tag < 64 and buffer.count - offset >= 16 and output.count - written >= 16
+            {
+                let length      = cast(u64, tag >> 2) + 1
+                let destination = output.buffer + written
+                let source      = buffer.buffer + offset
+                Math.Simd.store(destination, Math.Simd.load(source))
+                offset  += length
+                written += length
+                continue
+            }
+
             var length = cast(u64, tag >> 2) + 1
             if length > 60
             {

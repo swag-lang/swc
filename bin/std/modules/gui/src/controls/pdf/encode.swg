@@ -191,63 +191,70 @@ private func appendPdfMatrix(result: *String, transform: Transform2)
     appendPdfPoint(result, {-transform.m21, transform.m22}, " ")
 }
 
-private func windows1252(text: string)->Array!{u8} fail
+private func windows1252Byte(c: rune)->u8 fail
 {
-    var result: #returntype
-    Utf8.visitRunes(text)
+    if c <= 0x7F or (c >= 0xA0 and c <= 0xFF)
     {
-        if c <= 0x7F or (c >= 0xA0 and c <= 0xFF)
-        {
-            result.add(cast(u8, c))
-            continue
-        }
-
-        var found = false
-        for value in 0x80_u32 to 0x9F
-        {
-            if Text.windows1252Rune(cast(u8, value)) == c
-            {
-                result.add(cast(u8, value))
-                found = true
-                break
-            }
-        }
-
-        if not found
-        {
-            fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
-        }
+        return cast(u8, c)
     }
 
-    return result
+    for value in 0x80_u32 to 0x9F where Text.windows1252Rune(cast(u8, value)) == c
+    {
+        return cast(u8, value)
+    }
+
+    fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
 }
 
 private func appendPdfString(result: *String, text: string) fail
 {
-    let encoded = #move try windows1252(text)
     result[] += '('
-    for c in encoded
+    var first, offset: u64
+    while offset < text.count
     {
-        switch c
+        let byte = text[offset]
+        if byte < 0x80 and
+           byte != '(' and
+           byte != ')' and
+           byte != '\\' and
+           byte != '\n' and
+           byte != '\r' and
+           byte != '\t'
+        {
+            offset += 1
+            continue
+        }
+
+        result[] += text[first until offset]
+        switch byte
         {
         case '(', ')', '\\':
             result[] += '\\'
-            result[] += c
+            result[] += byte
+            offset   += 1
 
         case '\n':
             result[] += "\\n"
+            offset   += 1
 
         case '\r':
             result[] += "\\r"
+            offset   += 1
 
         case '\t':
             result[] += "\\t"
+            offset   += 1
 
         default:
-            result[] += c
+            let {c, eat} = Utf8.decodeRune(text[offset until text.count])
+            result[] += try windows1252Byte(c)
+            offset   += eat
         }
+
+        first = offset
     }
 
+    result[] += text[first until text.count]
     result[] += ')'
 }
 

@@ -1631,7 +1631,7 @@ namespace
         ByteArray bytes;
         SWC_RESULT(resolveCompilerIncludePath(sema, childRef, includePath, resolvedPath));
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
-        sema.compiler().registerCompilerInputFile(resolvedPath, bytes.span());
+        sema.compiler().registerCompilerInputFile(resolvedPath);
 
         const std::array<uint64_t, 1> dims = {bytes.size()};
 

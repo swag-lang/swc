@@ -45,7 +45,7 @@ func localRead(value: Value, target: *Value)->u64
     Swag.require(read(value) == 0)
 }
 
-// Only the DLL registers this borrow; the unchecked forwarding frame adds no record.
+// Only the imported module registers this borrow; the unchecked forwarding frame adds no record.
 #[Swag.NoInline, Swag.Safety(.ValueBorrow, false)]
 func fromUncheckedCaller(value: Value, target: *Value)->u64 => readAfterCallback(value, &localWrite, target)
 

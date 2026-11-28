@@ -1,4 +1,4 @@
-#import("runtime_scheduler_dll")
+#import("runtime_scheduler_provider")
 
 #run
 {

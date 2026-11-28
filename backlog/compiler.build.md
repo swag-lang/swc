@@ -300,30 +300,6 @@ before relying on them.
   population.
 - Related: compiler.build.120, compiler.build.119, compiler.build.121, platform.portability.080.
 
-### compiler.build.027 — A run-time loaded shared library cannot share the host's runtime
-
-- Evidence: an executable links its whole import closure in, which gives the process one copy of
-  each module and one runtime state. A shared library it loads at run time through
-  `Core.NativeLibrary.load` was built against the shared libraries instead, so it brings a second
-  `core` with it: two allocators, two runtime contexts, and memory that cannot cross between them.
-  Nothing the compiler sees says the load will happen — the library is named by a path the program
-  computes while it runs.
-- Evidence: `runtime_context_dynamic_consumer` faulted with `0xC0000005` after its `#test` passed,
-  at shutdown, once its `core` import resolved to the archive. Pinning that import with
-  `link: "shared-library"` — which the all-or-nothing rule then propagates to the whole closure —
-  makes it pass again, and is now what the module states.
-- Next: decide whether a loaded module can adopt its host's runtime instead. The
-  `__swc_rt_stage` hook already hands an imported module the host's TLS slot and context, and
-  `NativeLibrary.load` could call it the same way; that leaves the loaded module's own `core.dll`
-  allocator as the remaining split, so the question is whether the hook can also install the host's
-  allocator. Until then the rule is the pin, and it is documented on the reference's dependency
-  page.
-- Done when: either a loaded shared library provably shares the host's allocator and context in
-  a workspace test that links its dependencies in, or the backlog records why it cannot and the
-  compiler diagnoses the combination it can see.
-
----
-
 ### compiler.build.083 — Define an embeddable compiler driver boundary
 
 - Evidence: `src/main.cpp` owns process setup and cleanup: allocator configuration, the Windows

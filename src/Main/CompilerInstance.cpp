@@ -714,7 +714,7 @@ void CompilerInstance::setupRuntimeCompiler()
     // The runtime allocator's interface table is process-stable: its contents are identical for
     // every CompilerInstance (typeinfo slot + the global mimalloc-backed `req`), and a workspace
     // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
-    // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
+    // cached in process-persistent imported-module globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles, and the
     // callbacks never read the interface object, which names the instance that set it up.
@@ -835,8 +835,8 @@ void CompilerInstance::ensureProcessInfoRunArgs()
 
     // The arguments are handed to imported native modules, which parse them once, keep slices
     // into the buffer for the rest of the process, and routinely outlive this compiler instance
-    // (a workspace run builds each dependency with its own short-lived instance while core.dll
-    // and its siblings stay loaded). The storage they point into must therefore never move and
+    // (a workspace run builds each dependency with its own short-lived instance while core and
+    // its sibling modules stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
     struct StoredProcessArgs
     {

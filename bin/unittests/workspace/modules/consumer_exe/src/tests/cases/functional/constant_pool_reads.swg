@@ -1,5 +1,5 @@
 #global private
-using Swag, RuntimeCtxDll
+using Swag, RuntimeCtxBridge
 
 // The constants read inside the imported source group must carry the same values the
 // consumer sees, whatever the read compiled to there: the address fold turns

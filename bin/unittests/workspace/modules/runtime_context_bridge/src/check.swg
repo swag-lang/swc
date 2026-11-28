@@ -1,4 +1,4 @@
-// A failed check must return to the calling test across the shared-library boundary.
+// A failed check must return to the calling test through the imported module.
 #[Swag.NoInline]
 public func ctxSharedCheckedResult()->s32
 {

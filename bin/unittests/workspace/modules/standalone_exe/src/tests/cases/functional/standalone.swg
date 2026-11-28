@@ -1,5 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
-using Core, RuntimeCtxDll
+using Core, RuntimeCtxBridge
 
 // Imported code uses the executable runtime context.
 #test

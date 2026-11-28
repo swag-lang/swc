@@ -61,10 +61,9 @@ struct Worker
 
 // The process-wide pool that runs submitted work.
 //
-// Every executable and shared library of one process compiles its own copy of the runtime, so
-// the instance is published through a process anchor: whichever artifact asks first installs
-// the pool, and every other artifact resolves the same one. One process therefore has one
-// worker budget, not one per artifact.
+// If runtime code is loaded more than once in a process, publish the pool through a process anchor:
+// whichever instance asks first installs it, and every other instance resolves the same one. One
+// process therefore has one worker budget.
 #[Swag.NoDoc]
 struct Scheduler
 {

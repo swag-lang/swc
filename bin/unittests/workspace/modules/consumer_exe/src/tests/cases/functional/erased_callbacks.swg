@@ -1,6 +1,6 @@
 #global if #command == Swag.CompilerCommand.Test
 
-using RuntimeCtxDll
+using RuntimeCtxBridge
 
 // The callback is typed with this module's struct, and the call reaches the single instance
 // compiled by the provider.

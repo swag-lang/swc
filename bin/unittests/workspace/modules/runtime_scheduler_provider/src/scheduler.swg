@@ -5,11 +5,12 @@ private func sleep(milliseconds: u32)
 
 public func schedulerAddress()->u64 => cast(u64, Swag.schedulerInstance())
 
-// The entry and completion publisher belong to this DLL; the observer belongs to its importer.
+// The entry and completion publisher belong to this source dependency; the observer belongs to
+// its importing executable.
 public func submitObserved(task: *Swag.Task, started: *Swag.AtomicFlag, parked: *bool,
                            priority = Swag.TaskPriority.Normal)
 {
-    // A DLL growth request obeys the same launch ceiling as its executable.
+    // A dependency growth request obeys the same launch ceiling as its executable.
     Swag.setWorkerCount(4)
     task.submit(func|started, parked|()
     {

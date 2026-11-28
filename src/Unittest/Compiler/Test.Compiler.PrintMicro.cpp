@@ -270,25 +270,24 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
 }
 SWC_TEST_END()
 
-// A library lowers only what it exports and reaches, yet a listing asked for by the attribute or
-// by the command line names a function the user wants to see, reached or not.
-SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroListsUnreachedLibraryFunctions)
+// Executables still lower otherwise unreachable functions requested for a listing.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroListsUnreachedExecutableFunctions)
 {
     constexpr std::string_view SOURCE = R"(#global internal
 #[Swag.PrintMicro]
 func listedByAttribute()->u32 => 17
 func listedByCommandLine()->u32 => 19
 func neverListed()->u32 => 29
-public func exported()->u32 => 23
+#main {}
 )";
 
-    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_library" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_executable" / std::format("p{}", Os::currentProcessId())).lexically_normal();
     std::error_code ec;
     fs::remove_all(directory, ec);
-    const fs::path source = directory / "print_micro_library.swg";
+    const fs::path source = directory / "print_micro_executable.swg";
     SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
 
-    const std::vector<Utf8> args = {"build", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--artifact-kind", "static-library",
+    const std::vector<Utf8> args = {"build", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--artifact-kind", "executable",
                                     "--out-dir", Utf8((directory / "out").string()), "--work-dir", Utf8((directory / "work").string()),
                                     "-f", Utf8(source.string()), "--print-micro", "listedByCommandLine"};
     PrintMicroRun           run;
@@ -297,7 +296,6 @@ public func exported()->u32 => 23
     options.forwardOutput  = false;
     run.process            = Os::runProcess(run.exitCode, Os::getExeFullName(), args, directory, &options);
 
-    // A built library scopes its functions under the module name.
     const auto listings = [&](std::string_view name) {
         constexpr std::string_view HEADER = "function : ";
         const std::string_view     output = run.output;
@@ -320,7 +318,7 @@ public func exported()->u32 => 23
     if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 ||
         listings("listedByAttribute") != 1 || listings("listedByCommandLine") != 1 || listings("neverListed") != 0)
     {
-        std::println(stderr, "[print micro library] {}", run.output);
+        std::println(stderr, "[print micro executable] {}", run.output);
         result = Result::Error;
     }
 

@@ -582,7 +582,7 @@ namespace
         if (declRef.isInvalid())
             return {};
 
-        const AstNodeRef  rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
+        const AstNodeRef  rootRef = ModuleApi::findDocumentedDeclRoot(*file, declRef);
         std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
         if (!result.empty())
             return result;
@@ -666,7 +666,7 @@ namespace
         if (declRef.isInvalid())
             return false;
 
-        return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findExportDeclRoot(*file, declRef));
+        return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findDocumentedDeclRoot(*file, declRef));
     }
 
     // 'rootRef' is the outermost wrapper the declaration sits in — its access modifier, its
@@ -1037,7 +1037,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     std::vector<DocItemCandidate> candidates(symbols.size());
     const auto&                   resolvedPublicRootRefs = publicRootRefs;
     JobManager&                   jobMgr                 = ctx.global().jobMgr();
-    jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(symbols.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, const uint32_t index) {
+    jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(symbols.size()), JobKind::DocSymbols, compiler.jobClientId(), [&](TaskContext& workerCtx, const uint32_t index) {
         const Symbol* symbol = symbols[index];
         if (!symbol || hasNoDocAttribute(*symbol))
             return;
@@ -1072,7 +1072,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         if (declRef.isInvalid() || ModuleApi::isGeneratedSourceDecl(*file, declRef))
             return;
 
-        AstNodeRef rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
+        AstNodeRef rootRef = ModuleApi::findDocumentedDeclRoot(*file, declRef);
         if (!runtime)
         {
             const auto it = resolvedPublicRootRefs.find(symbol);

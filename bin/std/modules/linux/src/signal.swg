@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const SIGKILL     = 9_s32
 const SIGUSR1     = 10_s32

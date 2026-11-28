@@ -1,4 +1,4 @@
-#global export
+#global public
 #global if #os == Swag.TargetOs.Linux
 #global namespace Cups
 

@@ -91,7 +91,7 @@ namespace
     SymbolMap* topLevelCreationSymMap(Sema& sema)
     {
         const SourceFile* file = sema.file();
-        if (file && (file->isImportedApi() || file->isRuntime()))
+        if (file && file->isRuntime())
         {
             if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
                 return importRoot;

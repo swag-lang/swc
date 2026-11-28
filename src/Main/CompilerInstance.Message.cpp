@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Command/CommandLine.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.h"
@@ -7,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -46,8 +48,8 @@ namespace
 
     struct DeferredCompilerGeneratedSource
     {
-        Utf8                   text;
-        const SymbolNamespace* moduleNamespace = nullptr;
+        Utf8              text;
+        const SourceFile* origin = nullptr;
     };
 
     struct CompilerMessageBacklogEntry
@@ -78,7 +80,7 @@ namespace
     struct CompilerMessageDispatchState
     {
         const CompilerInstance*                       compiler         = nullptr;
-        const SymbolNamespace*                        moduleNamespace  = nullptr;
+        const SourceFile*                             origin           = nullptr;
         std::vector<DeferredCompilerGeneratedSource>* generatedSources = nullptr;
     };
 
@@ -93,11 +95,11 @@ namespace
 
     struct ScopedCompilerMessageDispatchState
     {
-        explicit ScopedCompilerMessageDispatchState(const CompilerInstance& compiler, const SymbolNamespace* moduleNamespace, std::vector<DeferredCompilerGeneratedSource>& generatedSources)
+        explicit ScopedCompilerMessageDispatchState(const CompilerInstance& compiler, const SourceFile& origin, std::vector<DeferredCompilerGeneratedSource>& generatedSources)
         {
             previous_               = g_CompilerMessageDispatchState;
             state_.compiler         = &compiler;
-            state_.moduleNamespace  = moduleNamespace;
+            state_.origin           = &origin;
             state_.generatedSources = &generatedSources;
 
             g_CompilerMessageDispatchState = &state_;
@@ -125,8 +127,8 @@ namespace
             return false;
 
         DeferredCompilerGeneratedSource generatedSource;
-        generatedSource.text            = generatedCode;
-        generatedSource.moduleNamespace = state->moduleNamespace;
+        generatedSource.text   = generatedCode;
+        generatedSource.origin = state->origin;
         state->generatedSources->push_back(std::move(generatedSource));
         return true;
     }
@@ -155,31 +157,31 @@ namespace
         return Result::Continue;
     }
 
-    const SymbolNamespace* firstModuleNamespace(const CompilerInstance& compiler)
+    const SourceFile* firstSourceWithNamespace(const CompilerInstance& compiler)
     {
         for (const SourceFile* file : compiler.filesSnapshot())
         {
             if (!file)
                 continue;
 
-            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
-                return moduleNamespace;
+            if (file->moduleNamespace())
+                return file;
         }
 
         return nullptr;
     }
 
-    const SymbolNamespace* currentModuleNamespace(const TaskContext& ctx)
+    const SourceFile* currentGeneratedSourceOrigin(const TaskContext& ctx)
     {
         const TaskState& state = ctx.state();
         if (state.codeRef.srcViewRef.isValid())
         {
             const SourceFile* file = ctx.compiler().sourceViewFile(state.codeRef.srcViewRef);
             if (file && file->moduleNamespace())
-                return file->moduleNamespace();
+                return file;
         }
 
-        return firstModuleNamespace(ctx.compiler());
+        return firstSourceWithNamespace(ctx.compiler());
     }
 
     bool isModuleLevelSymbol(const Symbol& symbol)
@@ -198,12 +200,9 @@ namespace
         return true;
     }
 
-    // A module-level symbol of one of the module's own sources, neither an imported API nor the
-    // runtime.
+    // Events are grouped by the source owner of each declaration.
     bool isOwnModuleLevelSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
-        if (compiler.isImportedApiSource(symbol))
-            return false;
         if (!isModuleLevelSymbol(symbol))
             return false;
 
@@ -295,13 +294,13 @@ namespace
         }
     }
 
-    void appendCompilerMessageBacklog(const CompilerInstance& compiler, uint64_t activationMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
+    void appendCompilerMessageBacklog(const CompilerInstance& compiler, uint32_t sourceOwner, uint64_t activationMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
     {
         PointerSet<const SymbolMap>              visited;
         std::vector<CompilerMessageBacklogEntry> entries;
         for (const SourceFile* file : compiler.filesSnapshot())
         {
-            if (!file)
+            if (!file || file->sourceOwner() != sourceOwner)
                 continue;
 
             if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
@@ -353,12 +352,18 @@ namespace
         return true;
     }
 
+    bool listenerAcceptsMessage(const CompilerInstance::CompilerMessageListener& listener, const CompilerInstance::CompilerMessageEvent& event)
+    {
+        return (listener.mask & compilerMessageBit(event.kind)) &&
+               (!event.sourceOwner || *event.sourceOwner == listener.sourceOwner);
+    }
+
     bool trySelectLoggedCompilerMessage(CompilerMessageDispatchStep& out, CompilerInstance::CompilerMessageListener& listener, const std::vector<CompilerInstance::CompilerMessageEvent>& log, const size_t listenerIndex)
     {
         while (listener.nextEventIndex < log.size())
         {
             const CompilerInstance::CompilerMessageEvent& event = log[listener.nextEventIndex];
-            if (!(listener.mask & compilerMessageBit(event.kind)))
+            if (!listenerAcceptsMessage(listener, event))
             {
                 listener.nextEventIndex++;
                 continue;
@@ -422,7 +427,7 @@ namespace
         }
     }
 
-    Result enqueueGeneratedSource(TaskContext& ctx, std::string_view generatedCode, const SymbolNamespace* moduleNamespace = nullptr)
+    Result enqueueGeneratedSource(TaskContext& ctx, std::string_view generatedCode, const SourceFile* origin = nullptr)
     {
         if (generatedCode.empty())
             return Result::Continue;
@@ -439,10 +444,14 @@ namespace
             return Result::Error;
         }
 
-        SourceFile&            sourceFile               = compiler.addLoadedFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, appendResult.snapshot.view());
-        const SymbolNamespace* generatedModuleNamespace = moduleNamespace ? moduleNamespace : currentModuleNamespace(ctx);
-        if (generatedModuleNamespace)
-            sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(generatedModuleNamespace));
+        SourceFile& sourceFile = compiler.addLoadedFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, appendResult.snapshot.view());
+        origin = origin ? origin : currentGeneratedSourceOrigin(ctx);
+        if (origin)
+        {
+            sourceFile.setSourceOwner(origin->sourceOwner());
+            if (const auto* ns = origin->moduleNamespace())
+                sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(ns));
+        }
 
         sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         if (parseLoadedSourceFile(ctx, sourceFile, {}) != Result::Continue)
@@ -474,6 +483,8 @@ Runtime::BuildCfg* CompilerInstance::runtimeCompilerGetBuildCfg(CompilerInstance
 void CompilerInstance::runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
 {
     SWC_ASSERT(owner != nullptr);
+    if (owner->semaBodyCache_)
+        owner->semaBodyCache_->recordInput();
     const TaskContext* currentCtx = TaskContext::current();
     if (!currentCtx || !currentCtx->hasCompiler())
         return;
@@ -630,8 +641,9 @@ Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef
 {
     Runtime::CompilerMessage& message = runtimeCompilerMessage();
     std::string_view          moduleName;
-    if (const SymbolNamespace* moduleNamespace = firstModuleNamespace(sema.ctx().compiler()))
-        moduleName = moduleNamespace->name(sema.ctx());
+    const SourceFile* file = sema.file();
+    if (file && file->moduleNamespace())
+        moduleName = file->moduleNamespace()->name(sema.ctx());
     else
     {
         const Runtime::BuildCfg& buildCfg = sema.ctx().compiler().buildCfg();
@@ -684,12 +696,14 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
         listener.function = symbol;
         listener.nodeRef  = nodeRef;
         listener.mask     = mask;
+        if (const SourceFile* file = sourceViewFile(*symbol))
+            listener.sourceOwner = file->sourceOwner();
 
         compilerMessageActiveMask_.fetch_or(mask, std::memory_order_release);
 
         const uint64_t trackedSemaMask = mask & trackedCompilerMessageSemaMask();
         if (trackedSemaMask)
-            appendCompilerMessageBacklog(*this, trackedSemaMask, listener.replayEvents);
+            appendCompilerMessageBacklog(*this, listener.sourceOwner, trackedSemaMask, listener.replayEvents);
 
         const uint64_t executedMask = compilerMessageExecutedPassMask_.load(std::memory_order_relaxed);
         appendCompilerMessageExecutedPasses(executedMask, mask, listener.replayEvents);
@@ -718,7 +732,8 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
 
 void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 {
-    ModuleApi::onSymbolSemaCompleted(threadModuleApiData(), ctx, symbol);
+    if (cmdLine().command == CommandKind::Doc)
+        ModuleApi::onSymbolSemaCompleted(threadModuleApiData(), ctx, symbol);
 
     const uint64_t activeMask = compilerMessageActiveMask_.load(std::memory_order_acquire);
     if (!activeMask)
@@ -729,8 +744,9 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
         return;
 
     const CompilerMessageEvent event{
-        .kind   = *kind,
-        .symbol = &symbol,
+        .kind        = *kind,
+        .symbol      = &symbol,
+        .sourceOwner = sourceViewFile(symbol)->sourceOwner(),
     };
 
     const SymbolFunction* preparationFunction = nullptr;
@@ -742,7 +758,7 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 
         for (const CompilerMessageListener& listener : compilerMessageListeners_)
         {
-            if (!(listener.mask & compilerMessageBit(event.kind)))
+            if (!listenerAcceptsMessage(listener, event))
                 continue;
             if (!listener.function || listener.nodeRef.isInvalid() || sourceViewFile(*listener.function) == nullptr)
                 continue;
@@ -762,6 +778,15 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
     notifyAlive();
 }
 
+void CompilerInstance::beginSourceSemanticPass(const uint32_t sourceOwner)
+{
+    // The preceding group's semantic jobs and callbacks have reached their barrier.
+    if (semaBodyCache_)
+        semaBodyCache_->beginOwner(sourceOwner);
+    semanticPassSourceOwner_ = sourceOwner;
+    compilerMessageExecutedPassMask_.fetch_and(~compilerMessageBit(Runtime::CompilerMsgKind::PassAfterSemantic), std::memory_order_release);
+}
+
 Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKind kind)
 {
     if (!hasCompilerMessageInterest(kind))
@@ -777,7 +802,10 @@ Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKin
         if (executedMask & passBit)
             return Result::Continue;
 
-        compilerMessageLog_.push_back({.kind = kind, .symbol = nullptr});
+        CompilerMessageEvent event{.kind = kind};
+        if (kind == Runtime::CompilerMsgKind::PassAfterSemantic)
+            event.sourceOwner = semanticPassSourceOwner_;
+        compilerMessageLog_.push_back(event);
         compilerMessageExecutedPassMask_.store(executedMask | passBit, std::memory_order_release);
     }
 
@@ -813,7 +841,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
                 return Result::Continue;
 
             for (const DeferredCompilerGeneratedSource& generatedSource : deferredGeneratedSources)
-                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.moduleNamespace));
+                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.origin));
             return Result::Pause;
         }
 
@@ -824,7 +852,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
         SWC_RESULT(ensureCompilerMessageTypeInfoPrepared(ctx, dispatch.function, dispatch.nodeRef, dispatch.event));
         SWC_RESULT(fillRuntimeCompilerMessage(*sema, dispatch.nodeRef, dispatch.event));
         {
-            ScopedCompilerMessageDispatchState dispatchScope(*this, listenerFile->moduleNamespace(), deferredGeneratedSources);
+            ScopedCompilerMessageDispatchState dispatchScope(*this, *listenerFile, deferredGeneratedSources);
             SWC_RESULT(SemaJIT::runStatementImmediate(*sema, *dispatch.function, dispatch.nodeRef));
         }
 
@@ -835,7 +863,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
         if (!deferredGeneratedSources.empty())
         {
             for (const DeferredCompilerGeneratedSource& generatedSource : deferredGeneratedSources)
-                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.moduleNamespace));
+                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.origin));
             deferredGeneratedSources.clear();
             return Result::Pause;
         }

@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -22,6 +23,7 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/CompilerCacheStore.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
@@ -115,19 +117,15 @@ namespace
         return owner->isNamespace() && owner->idRef().isValid();
     }
 
-    bool canRegisterNativeFunction(const CompilerInstance& compiler, const SymbolFunction& symbol, const bool requireRoot)
+    bool canRegisterNativeFunction(const SymbolFunction& symbol, const bool requireRoot)
     {
         if (!isEligibleNativeFunction(symbol))
-            return false;
-        if (compiler.isImportedApiSource(symbol))
             return false;
         return !requireRoot || isNativeRootFunction(symbol);
     }
 
-    bool canRegisterNativeGlobalVariable(const CompilerInstance& compiler, const SymbolVariable& symbol)
+    bool canRegisterNativeGlobalVariable(const SymbolVariable& symbol)
     {
-        if (compiler.isImportedApiSource(symbol))
-            return false;
         if (!symbol.hasGlobalStorage())
             return false;
         return symbol.globalStorageKind() != DataSegmentKind::Compiler;
@@ -236,8 +234,6 @@ namespace
             return FileSystem::absolutePathNoThrow(fs::path(outDir.c_str()));
         if (!compiler.cmdLine().outDir.empty())
             return FileSystem::absolutePathNoThrow(compiler.cmdLine().outDir);
-        if (!compiler.cmdLine().exportApiDir.empty())
-            return FileSystem::absolutePathNoThrow(compiler.cmdLine().exportApiDir);
 
         return workOrTemporaryDirectory(compiler);
     }
@@ -273,10 +269,8 @@ namespace
         request->address       = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
     }
 
-    // The borrow registry belongs to the program running on this thread, which the interface
-    // object does not name: imported DLL globals keep the allocator interface of whichever JIT
-    // run first filled them, and that module's CompilerInstance can be destroyed by the time
-    // another module's code reaches them. A thread with no compiler task has no registry to check.
+    // Resolve the borrow registry from the active JIT task. The allocator interface
+    // itself carries no program identity.
     // This re-enters a Swag function, whose scalar ABI follows Windows x64 on every host.
 #if defined(__linux__) && defined(__x86_64__)
     using RuntimeAllocatorBorrowGuard = void(__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
@@ -365,8 +359,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
-    if (cmdLine.rebuild && !cmdLine.rebuildModule)
-        CompilerCacheStore::invalidateAll();
     if (cmdLine.optimizerStats)
         optimizerStats_ = std::make_unique<MicroOptimizerStats>();
 
@@ -399,6 +391,13 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 CompilerInstance::~CompilerInstance()
 {
+    if (semaBodyCache_)
+    {
+        std::unordered_set<uint32_t> messageOwners;
+        for (const auto& listener : compilerMessageListeners_)
+            messageOwners.insert(listener.sourceOwner);
+        semaBodyCache_->publish(nativeCodeSegment_, messageOwners);
+    }
     CompilerCacheStore::flushAll();
     // Generated TLS cleanup reads this instance's code and globals, such as the runtime
     // allocator's thread heap. Retire its values and wait for active cleanup before unmapping
@@ -424,6 +423,20 @@ CompilerInstance::~CompilerInstance()
     globalInitSegment_.fill(std::byte{0xCD});
     compilerSegment_.fill(std::byte{0xCD});
 #endif
+}
+
+void CompilerInstance::prepareSemaBodyCache(std::span<SourceFile* const> files)
+{
+    if (!hasSourceDependencies() || isModuleSetupMode() ||
+        buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        cmdLine().semaOnly || !cmdLine().output || !cmdLine().printMicro.empty() ||
+        cmdLine().targetArch != Runtime::TargetArch::X86_64)
+        return;
+
+    const auto command = cmdLine().command;
+    if ((command == CommandKind::Build || command == CommandKind::Run || command == CommandKind::Smoke) &&
+        !compilerCacheIdentity().empty())
+        semaBodyCache_ = std::make_unique<SemaBodyCache>(*this, files);
 }
 
 size_t CompilerInstance::numPerThreadData() const noexcept
@@ -701,7 +714,7 @@ void CompilerInstance::setupRuntimeCompiler()
     // The runtime allocator's interface table is process-stable: its contents are identical for
     // every CompilerInstance (typeinfo slot + the global mimalloc-backed `req`), and a workspace
     // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
-    // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
+    // cached in process-persistent imported-module globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles, and the
     // callbacks never read the interface object, which names the instance that set it up.
@@ -822,8 +835,8 @@ void CompilerInstance::ensureProcessInfoRunArgs()
 
     // The arguments are handed to imported native modules, which parse them once, keep slices
     // into the buffer for the rest of the process, and routinely outlive this compiler instance
-    // (a workspace run builds each dependency with its own short-lived instance while core.dll
-    // and its siblings stay loaded). The storage they point into must therefore never move and
+    // (a workspace run builds each dependency with its own short-lived instance while core and
+    // its sibling modules stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
     struct StoredProcessArgs
     {
@@ -897,7 +910,7 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, true))
+    if (!canRegisterNativeFunction(*symbol, true))
         return;
 
     bool inserted = false;
@@ -914,7 +927,7 @@ void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, Symbo
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeFunction(*this, *symbol, false))
+    if (!canRegisterNativeFunction(*symbol, false))
         return;
 
     std::vector<SymbolFunction*>* bucket    = nullptr;
@@ -1021,7 +1034,7 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
-    if (!canRegisterNativeGlobalVariable(*this, *symbol))
+    if (!canRegisterNativeGlobalVariable(*symbol))
         return;
 
     const bool hasFunctionInit = symbol->globalStorageKind() == DataSegmentKind::GlobalInit && symbol->globalFunctionInit() != nullptr;
@@ -1046,8 +1059,6 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
-    if (isImportedApiSource(*symbol))
-        return;
 
     bool inserted = false;
     {
@@ -1314,7 +1325,7 @@ const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 
 const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 {
-    return sourceViewFile(symbol.srcViewRef());
+    return symbol.decl() ? sourceViewFile(symbol.srcViewRef()) : nullptr;
 }
 
 // The file whose AST holds the symbol's declaration: the owner of its source view, else the file
@@ -1324,12 +1335,6 @@ const SourceFile* CompilerInstance::declaringSourceFile(const Symbol& symbol) co
     if (const SourceFile* ownerFile = ownerSourceFile(symbol.srcViewRef()))
         return ownerFile;
     return sourceViewFile(symbol);
-}
-
-bool CompilerInstance::isImportedApiSource(const Symbol& symbol) const
-{
-    const SourceFile* sourceFile = sourceViewFile(symbol);
-    return sourceFile && sourceFile->isImportedApi();
 }
 
 const SourceFile* CompilerInstance::owningSourceFile(const SourceView& srcView) const

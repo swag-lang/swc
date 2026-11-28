@@ -1153,14 +1153,6 @@ namespace
 
     bool ElfImageLink::resolveTargets()
     {
-        if (!job_->elfRuntimeHook.empty())
-        {
-            const auto hook = globals_.find(job_->elfRuntimeHook.view());
-            if (hook == globals_.end())
-                return fail("shared module has no runtime initialization hook");
-            globals_.try_emplace(K_SHARED_RUNTIME_HOOK_SYMBOL, hook->second);
-        }
-
         // Preserve name order for COMMON storage and the emitted symbol tables.
         std::vector<GlobalSymbols::value_type*> orderedDefinitions;
         orderedDefinitions.reserve(globals_.size());

@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Windows
-#global export
+#global public
 
 using Win32
 

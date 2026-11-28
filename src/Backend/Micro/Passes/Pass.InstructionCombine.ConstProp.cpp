@@ -879,9 +879,8 @@ namespace InstructionCombine
             return false;
         const bool isGlobal = sourceReloc->kind == MicroRelocation::Kind::GlobalZeroAddress || sourceReloc->kind == MicroRelocation::Kind::GlobalInitAddress;
 
-        // Constants fold in every artifact, library images included. They were
-        // gated out of those for a year after a module DLL came back rendering
-        // black: the hazard was never the address arithmetic but the
+        // Constants fold into executable images. The fold was once gated after a generated image
+        // came back rendering black: the hazard was never the address arithmetic but the
         // relocation the fold hands to the access, which another rule could
         // then rewrite into an encoding the emitter does not bind - leaving
         // the patch site at zero, and the image writer overwriting the first

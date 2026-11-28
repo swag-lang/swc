@@ -141,11 +141,11 @@ public func(T) hash64(value: T)->u64
     }
     else if Reflection.isStruct(T) and #defined(T.IHash64)
     {
-        #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
+        return T.IHash64.compute(value)
     }
     else if Reflection.isStruct(T) and #defined(T.IHash32)
     {
-        #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
+        return T.IHash32.compute(value)
     }
     else if Reflection.hasDynamicStorage(T) or containsContentString(T)
     {

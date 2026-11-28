@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
@@ -26,6 +27,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -190,7 +192,7 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
-    bool canDelayImportedOrRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    bool canDelayRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
@@ -204,10 +206,7 @@ namespace
         if (!sym.ownerSymMap())
             return false;
 
-        // Imported methods need the receiver binding created while walking their declaration
-        // scope. Replaying only the function body cannot currently reconstruct that binding.
-        const bool delayImported = file->isImportedApi() && !sym.isMethod();
-        if (!delayImported && !file->isRuntime())
+        if (!file->isRuntime())
             return false;
         if (declImpl && declImpl->isForInterface())
             return false;
@@ -231,7 +230,19 @@ namespace
             return false;
 
         return canDelayGenericInstanceFunctionBody(sema, node, sym, declImpl) ||
-               canDelayImportedOrRuntimeFunctionBody(sema, node, sym, declImpl);
+               canDelayRuntimeFunctionBody(sema, node, sym, declImpl);
+    }
+
+    const Runtime::BuildCfg* cachedBodyBuildConfig(Sema& sema, const SymbolFunction& function, const SymbolImpl* declImpl)
+    {
+        const auto* cache = sema.compiler().semaBodyCache();
+        const auto* file  = sema.file();
+        if (!cache || !file || sema.curScope().isLocal() || declImpl != function.declImplContext() ||
+            (declImpl && (!function.isMethod() || !declImpl->isForStruct() || declImpl->symInterface())) ||
+            (function.isMethod() && !declImpl) ||
+            !SemaBodyCache::isEligible(*file, function) || isImplicitGeneratedLifecycleWrapper(sema, function))
+            return nullptr;
+        return cache->deferredBuildConfig(*file, function.tokRef());
     }
 
     struct LazyBodyRun
@@ -1850,9 +1861,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         sym.setVariadicParamFlag(sema.ctx());
 
-        // Only a generated module API leaves the module out: it is the one the API file
-        // describes. Anywhere else the declaration has nothing to bind to.
-        if (sym.isForeign() && sym.resolveForeignModuleName(sema.ctx()).empty())
+        if (sym.isForeign() && sym.foreignModuleName().empty())
             return SemaError::raise(sema, DiagnosticId::sema_err_foreign_needs_module, sema.curNodeRef(), SemaError::ReportLocation::Token);
 
         // A simd value rides a float register only in the Swag calling
@@ -1888,8 +1897,28 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
         // Publish deferred body work before Typed wakes signature-only callers,
         // or they may consume an empty borrow summary while the body is unanalysed.
-        if (!sym.isTyped() && canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
-            sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+        if (!sym.isTyped())
+        {
+            const auto* declImpl = functionDeclImplContext(sema, &sym);
+            if (canDelayFunctionBody(sema, *this, sym, declImpl))
+            {
+                sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+            }
+            else if (const auto* config = cachedBodyBuildConfig(sema, sym, declImpl))
+            {
+                // A later demand resumes analysis in the declaration's lexical scope.
+                // Restore its using directives, safety attributes and build settings.
+                const std::scoped_lock lock(sym.lazyBodyRunMutex());
+                auto&                  run = ensureLazyBodyRun(sema.ctx(), sym);
+                run.ownerCtx = &sema.ctx();
+                run.sema     = std::make_unique<Sema>(sema.ctx(), sema, sema.curNodeRef());
+                run.sema->curScope().setSymMap(sema.curScope().symMap());
+                run.sema->frame().currentAttributes() = sym.attributes();
+                run.sema->setBuildConfigOverride(*config);
+                sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+                Stats::get().numDeferredFunctionBodies.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));

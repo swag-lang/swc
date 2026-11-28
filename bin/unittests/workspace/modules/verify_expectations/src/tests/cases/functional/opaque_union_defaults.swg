@@ -80,7 +80,8 @@ var opaqueSparseUnionGlobal: StaticApi.OpaqueSparseUnion
     Swag.require(text.isDefault())
 }
 
-func rejectOpaqueUnionPointerConstant()
+#test
 {
-    const value: StaticApi.OpaquePointerUnion = {}     // swc-expected-error {{sema_err_expr_not_const}}
+    const value: StaticApi.OpaquePointerUnion = {}
+    Swag.require(value.isDefault())
 }

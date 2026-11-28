@@ -37,7 +37,7 @@ namespace
         uint32_t customFiles      = 0;
         uint32_t moduleFiles      = 0;
         uint32_t moduleSrc        = 0;
-        uint32_t importedApiFiles = 0;
+        uint32_t sourceDependencyFiles = 0;
         uint32_t runtimeFiles     = 0;
     };
 
@@ -77,10 +77,10 @@ namespace
                 outSummary.customFiles++;
             else if (file->hasFlag(FileFlagsE::Module))
                 outSummary.moduleFiles++;
+            else if (file->sourceOwner())
+                outSummary.sourceDependencyFiles++;
             else if (file->hasFlag(FileFlagsE::ModuleSrc))
                 outSummary.moduleSrc++;
-            else if (file->hasFlag(FileFlagsE::ImportedApi))
-                outSummary.importedApiFiles++;
             else if (file->hasFlag(FileFlagsE::Runtime))
                 outSummary.runtimeFiles++;
         }
@@ -207,21 +207,17 @@ namespace
         addInfoEntry(entries, "Custom source files", Utf8Helper::countWithLabel(inputSummary.customFiles, "file"));
         addInfoEntry(entries, "Module files", Utf8Helper::countWithLabel(inputSummary.moduleFiles, "file"));
         addInfoEntry(entries, "Module source files", Utf8Helper::countWithLabel(inputSummary.moduleSrc, "file"));
-        addInfoEntry(entries, "Imported API files", Utf8Helper::countWithLabel(inputSummary.importedApiFiles, "file"));
+        addInfoEntry(entries, "Dependency source files", Utf8Helper::countWithLabel(inputSummary.sourceDependencyFiles, "file"));
         addInfoEntry(entries, "Runtime files", Utf8Helper::countWithLabel(inputSummary.runtimeFiles, "file"));
 
         addInfoEntry(entries, "Workspace path", cmdLine.workspacePath);
         addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
-        addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         if (cmdLine.command == CommandKind::Doc)
             addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
 
         addSetEntries(entries, "Source directories", cmdLine.directories);
         addSetEntries(entries, "Source files", cmdLine.files);
-        addSetEntries(entries, "Import API modules", cmdLine.importApiModules);
-        addSetEntries(entries, "Import API directories", cmdLine.importApiDirs);
-        addSetEntries(entries, "Import API files", cmdLine.importApiFiles);
 
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries);
     }
@@ -274,8 +270,6 @@ namespace
             case CommandKind::Sema:
                 addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
-                if (!cmdLine.exportApiDir.empty())
-                    addPlanEntry(entries, index, "Would", std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
                 break;
 
             case CommandKind::Doc:
@@ -289,8 +283,6 @@ namespace
             case CommandKind::Smoke:
                 addPlanEntry(entries, index++, "Would", std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", "run semantic analysis, including compile-time evaluation when required");
-                if (!cmdLine.exportApiDir.empty())
-                    addPlanEntry(entries, index++, "Would", std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
 
                 if (nativePreview.enabled)
                 {
@@ -299,7 +291,6 @@ namespace
                     addPlanEntry(entries, index++, "Would", std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
 
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "May", std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
 
                     if (isRunLikeCommand(cmdLine.command) && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
@@ -323,7 +314,6 @@ namespace
                     addPlanEntry(entries, index++, "May", std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
 
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                        addPlanEntry(entries, index++, "May", std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
 
                     if (nativePreview.mayRunArtifact)
                         addPlanEntry(entries, index++, "May", std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
@@ -369,7 +359,7 @@ namespace
         std::vector<Logger::FieldEntry> entries;
 
         if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
-            addInfoEntry(entries, "Linker", nativePreview.backendKind == Runtime::BuildCfgBackendKind::StaticLibrary ? "ar @arguments.rsp" : "cc @arguments.rsp");
+            addInfoEntry(entries, "Linker", "cc @arguments.rsp");
         else
             addInfoEntry(entries, "Linker", "integrated (in-process)");
 

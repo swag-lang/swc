@@ -4,7 +4,7 @@
 //! Role: This file joins retained encoded packet ranges into a new fragmented MP4.
 //
 #global namespace Mp4
-#global export
+#global public
 
 using Core, Core.Errors
 

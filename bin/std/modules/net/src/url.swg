@@ -1,4 +1,4 @@
-#global export
+#global public
 #global namespace Url
 
 using Core

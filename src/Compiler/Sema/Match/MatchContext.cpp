@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -30,9 +32,34 @@ void MatchContext::clear()
     symMaps.clear();
     localSymbols.clear();
 
+    compiler_           = nullptr;
+    sourceSite_         = nullptr;
     symMapHint          = nullptr;
     hasCurrentPriority_ = false;
     codeRef             = SourceCodeRef::invalid();
+}
+
+void MatchContext::setSourceAccess(const CompilerInstance& compiler, const SourceFile* site)
+{
+    compiler_   = &compiler;
+    sourceSite_ = site;
+}
+
+bool MatchContext::canSeeSourceSymbol(const Symbol& symbol) const
+{
+    if (!sourceSite_)
+        return true;
+    const SymbolMap* owner = symbol.ownerSymMap();
+    if (!owner || !owner->isNamespace())
+        return true;
+
+    if (!sourceSite_->sourceOwner() && symbol.isPublic())
+        return true;
+
+    const SourceFile* declaration = compiler_->sourceViewFile(symbol);
+    if (!declaration || declaration->isRuntime() || declaration->sourceOwner() == sourceSite_->sourceOwner())
+        return true;
+    return symbol.isPublic() && compiler_->canSeeSourceOwner(sourceSite_->sourceOwner(), declaration->sourceOwner());
 }
 
 void MatchContext::resetCandidates()

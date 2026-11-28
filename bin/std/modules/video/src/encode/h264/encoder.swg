@@ -4,7 +4,7 @@
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
-#global export
+#global public
 
 using Core, Core.Errors
 

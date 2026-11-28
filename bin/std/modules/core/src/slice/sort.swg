@@ -1,4 +1,4 @@
-#global export
+#global public
 #global namespace Slice
 
 // Sorts in place with an insertion sort: quadratic, but the cheapest choice for a short range.

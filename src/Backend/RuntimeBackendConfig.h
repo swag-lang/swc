@@ -124,30 +124,12 @@ namespace Runtime
     enum class BuildCfgBackendKind
     {
         None,
-        SharedLibrary,
-        Executable,
-        StaticLibrary,
-        Export,
+        Executable = 2,
     };
-
-    constexpr bool backendKindIsLibrary(const BuildCfgBackendKind backendKind)
-    {
-        switch (backendKind)
-        {
-            case BuildCfgBackendKind::StaticLibrary:
-            case BuildCfgBackendKind::SharedLibrary:
-                return true;
-
-            default:
-                return false;
-        }
-    }
 
     constexpr bool backendKindProducesNativeArtifact(const BuildCfgBackendKind backendKind)
     {
-        return backendKind == BuildCfgBackendKind::Executable ||
-               backendKind == BuildCfgBackendKind::SharedLibrary ||
-               backendKind == BuildCfgBackendKind::StaticLibrary;
+        return backendKind == BuildCfgBackendKind::Executable;
     }
 
     enum class BuildCfgBackendSubKind

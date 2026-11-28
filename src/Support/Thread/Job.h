@@ -27,7 +27,7 @@ enum class JobKind
     NativeObj,
     NativeLinkPrepare,
     NativeLink,
-    ModuleApiExport,
+    DocSymbols,
 };
 
 enum class JobPriority : std::uint8_t

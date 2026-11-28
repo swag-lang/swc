@@ -3,6 +3,7 @@
 
 #ifdef __linux__
 #include <dlfcn.h>
+#include <link.h>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -67,6 +68,21 @@ bool Os::loadExternalModule(void*& outModuleHandle, const std::string_view modul
         }
     }
     return false;
+}
+
+bool Os::isSystemExternalModule(void* moduleHandle)
+{
+    link_map* module = nullptr;
+    if (!moduleHandle || dlinfo(moduleHandle, RTLD_DI_LINKMAP, &module) != 0 || !module || !module->l_name || !module->l_name[0])
+        return false;
+
+    std::error_code error;
+    const auto path = fs::canonical(fs::path(module->l_name), error);
+    if (error)
+        return false;
+    const auto name = path.generic_string();
+    return name.starts_with("/lib/") || name.starts_with("/lib64/") ||
+           name.starts_with("/usr/lib/") || name.starts_with("/usr/lib64/");
 }
 
 bool Os::getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, const std::string_view functionName)

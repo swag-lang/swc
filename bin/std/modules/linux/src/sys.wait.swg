@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const WNOHANG = 1_s32
 

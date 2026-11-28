@@ -240,7 +240,7 @@ private:
         Utf8     longest;
     };
 
-    static constexpr size_t               NUM_JOB_KINDS = static_cast<size_t>(JobKind::ModuleApiExport) + 1;
+    static constexpr size_t               NUM_JOB_KINDS = static_cast<size_t>(JobKind::DocSymbols) + 1;
     std::array<KindStats, NUM_JOB_KINDS>  kindStats_{};
     std::chrono::steady_clock::time_point lastAccounting_;
 

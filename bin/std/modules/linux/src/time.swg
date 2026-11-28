@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const CLOCK_REALTIME  = 0_s32
 const CLOCK_MONOTONIC = 1_s32

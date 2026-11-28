@@ -1,6 +1,6 @@
 // Several of these bit tricks come from https://graphics.stanford.edu/~seander/bithacks.html
 
-#global export
+#global public
 #global namespace Math
 
 using Swag

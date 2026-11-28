@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const IN_ACCESS      = 0x00000001_u32
 const IN_MODIFY      = 0x00000002_u32

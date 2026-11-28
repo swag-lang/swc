@@ -293,44 +293,6 @@ namespace
     }
 }
 
-SWC_TEST_BEGIN(NativeArtifact_RuntimeDependencyOrderPreservesPriorityAndCycleFallback)
-{
-    const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
-    auto&                           imports = const_cast<std::vector<CompilerInstance::NativeRuntimeImport>&>(fixture.compiler->nativeRuntimeImports());
-    imports                                 = {
-        {.moduleName = "a", .linkModuleName = "a", .transitiveImports = {"c", "c", "a", "absent"}},
-        {.moduleName = "b", .linkModuleName = "b"},
-        {.moduleName = "c", .linkModuleName = "c"},
-        {.moduleName = "d", .linkModuleName = "d", .transitiveImports = {"a", "b"}},
-        {.moduleName = "e", .linkModuleName = "e"},
-    };
-    SWC_RESULT(fixture.nativeBuilder->prepare());
-    const std::vector<uint32_t> expectedInit = {1, 2, 0, 3, 4};
-    const std::vector<uint32_t> expectedDrop = {4, 3, 0, 2, 1};
-    if (fixture.nativeBuilder->runtimeDependencyInitOrder != expectedInit || fixture.nativeBuilder->runtimeDependencyDropOrder != expectedDrop)
-        return Result::Error;
-
-    imports = {
-        {.moduleName = "a", .linkModuleName = "a", .transitiveImports = {"b"}},
-        {.moduleName = "b", .linkModuleName = "b", .transitiveImports = {"a"}},
-        {.moduleName = "c", .linkModuleName = "c", .transitiveImports = {"a"}},
-        {.moduleName = "d", .linkModuleName = "d"},
-        {.moduleName = "e", .linkModuleName = "e", .transitiveImports = {"d"}},
-        {.moduleName = "f", .linkModuleName = "f"},
-    };
-    SWC_RESULT(fixture.nativeBuilder->prepare());
-    const std::vector<uint32_t> expectedCycleInit = {3, 4, 5, 0, 1, 2};
-    const std::vector<uint32_t> expectedCycleDrop = {2, 1, 0, 5, 4, 3};
-    if (fixture.nativeBuilder->runtimeDependencyInitOrder != expectedCycleInit || fixture.nativeBuilder->runtimeDependencyDropOrder != expectedCycleDrop)
-        return Result::Error;
-
-    imports.clear();
-    SWC_RESULT(fixture.nativeBuilder->prepare());
-    if (!fixture.nativeBuilder->runtimeDependencyInitOrder.empty() || !fixture.nativeBuilder->runtimeDependencyDropOrder.empty())
-        return Result::Error;
-}
-SWC_TEST_END()
-
 SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 {
     const CommandLine cmdLine   = makeNativeArtifactCmdLine();
@@ -381,42 +343,12 @@ SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_ImportedApiKeepsLocalOutputTree)
-{
-    CommandLine                 cmdLine   = makeNativeArtifactCmdLine();
-    const fs::path              inputRoot = inputRootForTest(cmdLine);
-    CompilerInstance            compiler(ctx.global(), cmdLine);
-    NativeBackendBuilder        nativeBuilder(compiler, false);
-    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
-
-    if (inputRoot.empty())
-        return Result::Error;
-
-    cmdLine.importApiDirs.insert(inputRoot.parent_path().parent_path() / ".output");
-    CompilerInstance            compilerWithImport(ctx.global(), cmdLine);
-    NativeBackendBuilder        nativeBuilderWithImport(compilerWithImport, false);
-    const NativeArtifactBuilder artifactBuilderWithImport(nativeBuilderWithImport);
-
-    NativeArtifactPaths pathsWithoutImport;
-    artifactBuilder.queryPaths(pathsWithoutImport, 1);
-
-    NativeArtifactPaths pathsWithImport;
-    artifactBuilderWithImport.queryPaths(pathsWithImport, 1);
-
-    const fs::path expectedOutputRoot = inputRoot / ".output";
-    if (!FileSystem::pathEquals(pathsWithImport.workDir.parent_path(), expectedOutputRoot))
-        return Result::Error;
-    if (!FileSystem::pathEquals(pathsWithoutImport.workDir.parent_path(), pathsWithImport.workDir.parent_path()))
-        return Result::Error;
-}
-SWC_TEST_END()
-
 SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
 {
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Build;
     cmdLine.buildCfg    = "devmode";
-    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::None;
     cmdLine.modulePath  = fs::path("bin/std/modules/win32");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -438,7 +370,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
     CommandLine cmdLine;
     cmdLine.command         = CommandKind::Build;
     cmdLine.buildCfg        = "devmode";
-    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.backendKind     = Runtime::BuildCfgBackendKind::None;
     cmdLine.modulePath      = fs::path("bin/std/modules/win32");
     cmdLine.moduleNamespace = "WindowsSdk";
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -453,24 +385,22 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
     CommandLine cmdLine;
     cmdLine.command              = CommandKind::Build;
     cmdLine.buildCfg             = "devmode";
-    cmdLine.backendKind          = Runtime::BuildCfgBackendKind::SharedLibrary;
+    cmdLine.backendKind          = Runtime::BuildCfgBackendKind::None;
     cmdLine.artifactKindExplicit = true;
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
-        return Result::Error;
-    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
+    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::None)
         return Result::Error;
 
     cmdLine.artifactKindExplicit = false;
-    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
+    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::Executable)
         return Result::Error;
 }
 SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -502,7 +432,7 @@ SWC_TEST_END()
 // it made two builds of the same program differ.
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataFollowsReferenceOrder)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_follows_reference_order", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_follows_reference_order", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -615,7 +545,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -640,7 +570,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataRelativeReferencesAccountForTrailingImmediate)
 {
-    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("rdata_relative_trailing_immediate", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("rdata_relative_trailing_immediate", Runtime::BuildCfgBackendKind::None);
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
     DataSegment&                    segment  = fixture.compiler->cstMgr().shardDataSegment(0);
     Runtime::String*                storage  = nullptr;
@@ -650,28 +580,25 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataRelativeReferencesAccountForTraili
     addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "relative_constant");
     SWC_RESULT(fixture.artifactBuilder->build());
 
-    for (const bool split : {false, true})
+    uint64_t baseAddend = 0;
+    for (const uint32_t trailing : {0u, 1u, 2u, 4u})
     {
-        uint64_t baseAddend = 0;
-        for (const uint32_t trailing : {0u, 1u, 2u, 4u})
-        {
-            ByteArray                            bytes(24);
-            std::vector<NativeSectionRelocation> records;
-            const NativeCodeRelocationTarget     target{.bytes = &bytes, .relocations = &records, .functionOffset = 8, .splitRDataReferences = split};
-            MicroRelocation                      relocation = code.codeRelocations.front();
-            relocation.form                                 = MicroRelocation::Form::Relative32;
-            relocation.codeOffset                           = 2;
-            relocation.relativeEndOffset                    = 6 + trailing;
-            SWC_RESULT(fixture.nativeBuilder->appendCodeRelocation(target, "relative_constant", relocation));
-            if (records.size() != 1 || records.front().offset != 10 || records.front().kind != NativeRelocationKind::Rel32)
-                return Result::Error;
-            if (!trailing)
-                baseAddend = records.front().addend;
-            uint32_t patched = 0;
-            std::memcpy(&patched, bytes.data() + 10, sizeof(patched));
-            if (records.front().addend != baseAddend - trailing || patched != static_cast<uint32_t>(baseAddend - trailing))
-                return Result::Error;
-        }
+        ByteArray                            bytes(24);
+        std::vector<NativeSectionRelocation> records;
+        const NativeCodeRelocationTarget     target{.bytes = &bytes, .relocations = &records, .functionOffset = 8};
+        MicroRelocation                      relocation = code.codeRelocations.front();
+        relocation.form                                 = MicroRelocation::Form::Relative32;
+        relocation.codeOffset                           = 2;
+        relocation.relativeEndOffset                    = 6 + trailing;
+        SWC_RESULT(fixture.nativeBuilder->appendCodeRelocation(target, "relative_constant", relocation));
+        if (records.size() != 1 || records.front().offset != 10 || records.front().kind != NativeRelocationKind::Rel32)
+            return Result::Error;
+        if (!trailing)
+            baseAddend = records.front().addend;
+        uint32_t patched = 0;
+        std::memcpy(&patched, bytes.data() + 10, sizeof(patched));
+        if (records.front().addend != baseAddend - trailing || patched != static_cast<uint32_t>(baseAddend - trailing))
+            return Result::Error;
     }
 }
 SWC_TEST_END()
@@ -712,7 +639,8 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsGrowingCyclicDependencies)
 
     SWC_RESULT(collector.emitCollectedRoots());
 
-    if (fixture.nativeBuilder->rdataAllocations.size() != childCount + 1 || fixture.nativeBuilder->mergedRData.relocations.size() != childCount * 2)
+    const auto& mappings = fixture.nativeBuilder->rdataAllocationMap;
+    if (mappings[0].size() + mappings[1].size() != childCount + 1 || fixture.nativeBuilder->mergedRData.relocations.size() != childCount * 2)
         return Result::Error;
 
     uint32_t emittedRootOffset = 0;
@@ -1097,7 +1025,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
 {
     static constexpr uint32_t RELOCATION_COUNT = 0xFFFF;
 
-    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::None);
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
     const auto [globalOffset, globalStorage] = fixture.compiler->globalInitSegment().reserve<uint64_t>();
@@ -1163,7 +1091,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -1213,147 +1141,30 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     if (emittedRootOffset == emittedNestedOffset || emittedNestedOffset == emittedStringOffset)
         return Result::Error;
 
-    // A writable global can point into a read-only allocation too. Its relocation
-    // has to follow the archive split just like a code or read-only-data reference.
-    auto&          globalData          = fixture.nativeBuilder->mergedData;
-    const uint32_t globalPointerOffset = static_cast<uint32_t>(globalData.bytes.size());
-    globalData.bytes.appendLe64(0);
-    globalData.relocations.push_back({.offset = globalPointerOffset, .symbolName = fixture.nativeBuilder->scopedSymbolNames().rdataBase, .addend = emittedNestedOffset + sizeof(uint64_t)});
-
-    SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
-    SWC_RESULT(fixture.nativeBuilder->buildObjectBytes());
-
-    const auto findAllocationDescription = [&](const uint32_t sourceOffset) -> const NativeObjDescription* {
-        for (const NativeObjDescription& description : fixture.nativeBuilder->objectDescriptions)
-        {
-            if (!description.rdataAllocationCount)
-                continue;
-            const auto& allocation = fixture.nativeBuilder->rdataAllocations[description.rdataAllocationIndex];
-            if (allocation.shardIndex == 0 && allocation.sourceOffset == sourceOffset)
-                return &description;
-        }
-        return nullptr;
+    const auto& rdata = fixture.nativeBuilder->mergedRData;
+    const Utf8& base = fixture.nativeBuilder->scopedSymbolNames().rdataBase;
+    const auto hasReference = [&](uint32_t offset, uint32_t target) {
+        return std::ranges::any_of(rdata.relocations, [&](const NativeSectionRelocation& relocation) {
+            return relocation.offset == offset && relocation.symbolName == base && relocation.addend == target;
+        });
     };
-
-    const NativeObjDescription* functionDescription = nullptr;
-    for (const NativeObjDescription& description : fixture.nativeBuilder->objectDescriptions)
-    {
-        if (std::ranges::any_of(description.functions, [](const NativeFunctionInfo* info) { return info && info->debugName == "rdata_dependency"; }))
-        {
-            functionDescription = &description;
-            break;
-        }
-    }
-
-    const NativeObjDescription* rootDescription   = findAllocationDescription(rootOffset);
-    const NativeObjDescription* nestedDescription = findAllocationDescription(nestedOffset);
-    const NativeObjDescription* zeroDescription   = findAllocationDescription(zeroOffset);
-    if (!functionDescription || !rootDescription || !nestedDescription || !zeroDescription)
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is missing");
-
-    const Utf8 rootSymbol   = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedRootOffset);
-    const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedNestedOffset);
-
-    Diagnostic diag;
-    CoffObject writableObject;
-    if (!readCoffObject(writableObject, diag, fixture.nativeBuilder->objectDescriptions.front().objBytes))
-        return Result::Error;
-    const auto writableData = std::ranges::find(writableObject.sections, Utf8(".data"), &CoffInputSection::name);
-    if (writableData == writableObject.sections.end() || writableData->bytes.readLe64(globalPointerOffset) != sizeof(uint64_t) ||
-        !std::ranges::any_of(writableData->relocs, [&](const CoffInputReloc& relocation) { return relocation.offset == globalPointerOffset && relocation.symbolName == nestedSymbol; }))
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "global pointer does not reference its archive allocation");
-
-    CoffObject functionObject;
-    CoffObject rootObject;
-    CoffObject nestedObject;
-    CoffObject zeroObject;
-    if (!readCoffObject(functionObject, diag, functionDescription->objBytes) || !readCoffObject(rootObject, diag, rootDescription->objBytes) || !readCoffObject(nestedObject, diag, nestedDescription->objBytes) || !readCoffObject(zeroObject, diag, zeroDescription->objBytes))
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is invalid");
-
-    const auto functionText = std::ranges::find(functionObject.sections, Utf8(".text"), &CoffInputSection::name);
-    if (functionText == functionObject.sections.end() || !std::ranges::any_of(functionText->relocs, [&](const CoffInputReloc& relocation) { return relocation.symbolName == rootSymbol; }))
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "function does not reference its allocation symbol");
-
-    const auto rootRData = std::ranges::find(rootObject.sections, Utf8(".rdata"), &CoffInputSection::name);
-    if (rootRData == rootObject.sections.end() || rootRData->relocs.size() != 1 || rootRData->relocs.front().symbolName != nestedSymbol || rootRData->bytes.readLe64(0) != sizeof(uint64_t))
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "interior allocation dependency was not preserved");
-
-    // Adjacent allocation objects must each retain only their own relocation range.
-    const auto nestedRData  = std::ranges::find(nestedObject.sections, Utf8(".rdata"), &CoffInputSection::name);
-    const Utf8 stringSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedStringOffset);
-    if (nestedRData == nestedObject.sections.end() || nestedRData->relocs.size() != 1 || nestedRData->relocs.front().symbolName != stringSymbol || nestedRData->bytes.readLe64(0) != 0)
+    if (!hasReference(emittedRootOffset, emittedNestedOffset + sizeof(uint64_t)) ||
+        !hasReference(emittedNestedOffset, emittedStringOffset))
         return Result::Error;
 
-    const auto zeroRData = std::ranges::find(zeroObject.sections, Utf8(".rbss"), &CoffInputSection::name);
-    if (zeroRData == zeroObject.sections.end() || !zeroRData->isBss || zeroRData->bssSize != zeroAllocationSize)
-        return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "zero allocation still occupies archive file data");
-}
-SWC_TEST_END()
-
-SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ArchiveBatchesLargeConstantSets)
-{
-    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("archive_batches_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
-    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
-    auto&                           builder = *fixture.nativeBuilder;
-
-    // One more allocation than the archive's 16-bit member directory can address.
-    constexpr uint32_t allocationCount = 65536;
-    builder.mergedRData.bytes.resize(allocationCount * sizeof(uint64_t));
-    for (uint32_t i = 0; i < allocationCount; ++i)
-    {
-        NativeRDataAllocationMapEntry allocation;
-        allocation.sourceOffset  = i * sizeof(uint64_t);
-        allocation.emittedOffset = allocation.sourceOffset;
-        allocation.size          = sizeof(uint64_t);
-        allocation.align         = alignof(uint64_t);
-        allocation.zeroFilled    = true;
-        builder.rdataAllocationMap[0].push_back(allocation);
-        builder.rdataAllocations.push_back(allocation);
-    }
-    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .kind = NativeRelocationKind::Abs64});
-
-    SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
-    if (builder.objectDescriptions.size() > 65535)
-        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "constant objects exceed the archive member limit");
-
-    uint32_t nextAllocation = 0;
-    for (const auto& description : builder.objectDescriptions)
-    {
-        if (!description.rdataAllocationCount)
-            continue;
-        if (description.rdataAllocationIndex != nextAllocation || description.rdataAllocationCount != 2)
-            return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batch partition loses allocation coverage or granularity");
-        nextAllocation += description.rdataAllocationCount;
-    }
-    if (nextAllocation != allocationCount)
+    uint32_t emittedZeroOffset = 0;
+    if (!fixture.nativeBuilder->tryMapRDataSourceOffset(emittedZeroOffset, 0, zeroOffset) ||
+        emittedZeroOffset + zeroAllocationSize > rdata.bytes.size())
         return Result::Error;
-
-    const auto writer = NativeObjFileWriter::create(builder);
-    ByteArray  bytes;
-    SWC_RESULT(writer->buildObjectFile(bytes, builder.objectDescriptions[1]));
-    Diagnostic diag;
-    CoffObject object;
-    if (!readCoffObject(object, diag, bytes) || object.sections.size() != 3)
-        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched object is invalid");
-    const auto& source   = object.sections[1];
-    const auto& target   = object.sections[2];
-    const auto& mappings = builder.rdataAllocationMap[0];
-    if (source.relocs.size() != 1 || source.relocs[0].symbolName != mappings[1].symbolName || source.bytes.readLe64(0) != 0)
-        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "intra-batch relocation changed its target or addend");
-    if (!target.isBss || target.bssSize != sizeof(uint64_t) || !target.bytes.empty())
-        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched zero allocation lost its uninitialized section");
-    for (uint32_t i = 0; i < 2; ++i)
-    {
-        const auto symbol = std::ranges::find(object.definedSymbols, mappings[i].symbolName, &CoffInputSymbol::name);
-        if (symbol == object.definedSymbols.end() || symbol->sectionIndex != i + 1 || symbol->value != 0)
-            return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched allocation symbol addresses the wrong section");
-    }
+    const std::span<const std::byte> zeroBytes{rdata.bytes.data() + emittedZeroOffset, zeroAllocationSize};
+    if (!std::ranges::all_of(zeroBytes, [](std::byte value) { return value == std::byte{}; }))
+        return Result::Error;
 }
 SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -1445,7 +1256,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_GlobalAndConstantSectionsPreserveRequir
 {
     for (const uint32_t alignment : {32u, 64u, 128u})
     {
-        const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine(std::format("storage_alignment_{}", alignment), Runtime::BuildCfgBackendKind::SharedLibrary);
+        const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine(std::format("storage_alignment_{}", alignment), Runtime::BuildCfgBackendKind::None);
         const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
         NativeBackendBuilder&           builder = *fixture.nativeBuilder;
         for (const auto kind : {DataSegmentKind::GlobalInit, DataSegmentKind::GlobalZero})
@@ -1490,7 +1301,7 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("data_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("data_emits_function_relocations", Runtime::BuildCfgBackendKind::None);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -1929,97 +1740,6 @@ SWC_TEST_END()
 
 // A library lowers what it exports and what that reaches; an operator a struct is given whether or
 // not anything compares it, and a function nothing calls, are left out like in an executable.
-SWC_TEST_BEGIN(NativeArtifact_LibraryPrunesUnexportedUnreachableFunctions)
-{
-    static constexpr std::string_view SOURCE     = R"(#global public
-
-internal struct InternalHolder
-{
-    text: string = ""
-}
-
-struct ExportedHolder
-{
-    text: string = ""
-}
-
-struct(T) GenericHolder
-{
-    text: string = ""
-    value: T
-}
-
-#[Swag.NoInline]
-func equalSmall(left, right: const *GenericHolder!{s32})->bool => left[] == right[]
-
-#[Swag.NoInline]
-func equalLarge(left, right: const *GenericHolder!{u64})->bool => left[] == right[]
-
-#[Swag.NoInline]
-internal func reachedFromExport()->u32 => 11
-
-#[Swag.NoInline]
-internal func neverReached()->u32 => 13
-
-#[Swag.NoInline]
-func exported()->u32 => reachedFromExport()
-)";
-    static constexpr const char*      TEST_NAME  = "NativeArtifact_LibraryPrunesUnexportedUnreachableFunctions";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "LibraryPrunesUnexportedUnreachableFunctions");
-
-    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("library_prunes_unexported_unreachable_functions", Runtime::BuildCfgBackendKind::StaticLibrary);
-    cmdLine.targetOs    = hostTargetOs();
-    cmdLine.directories.clear();
-    cmdLine.files.insert(sourcePath);
-    CommandLineParser::refreshBuildCfg(cmdLine);
-
-    const uint64_t   errorsBefore = Stats::getNumErrors();
-    CompilerInstance compiler(ctx.global(), cmdLine);
-    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
-    Command::sema(compiler);
-    if (Stats::getNumErrors() != errorsBefore)
-        return failNativeArtifactTest(TEST_NAME, "errors after sema");
-
-    const TaskContext compilerCtx(compiler);
-    const auto        hasCompleted = [&](const std::string_view name) {
-        return std::ranges::any_of(compiler.nativeCodeSegment(), [&](const SymbolFunction* function) {
-            return function && function->getFullScopedName(compilerCtx).view().ends_with(name);
-        });
-    };
-    if (!hasCompleted("InternalHolder.opEquals") || !hasCompleted("ExportedHolder.opEquals") || !hasCompleted("neverReached"))
-        return failNativeArtifactTest(TEST_NAME, "unreachable functions are absent before library pruning");
-
-    NativeBackendBuilder nativeBuilder(compiler, false);
-    if (nativeBuilder.prepare() != Result::Continue)
-        return failNativeArtifactTest(TEST_NAME, "native builder cannot prepare the library");
-
-    const auto hasPrepared = [&](const std::string_view name) {
-        return std::ranges::any_of(nativeBuilder.functionInfos, [&](const NativeFunctionInfo& info) {
-            return info.symbol && info.symbol->getFullScopedName(compilerCtx).view().ends_with(name);
-        });
-    };
-
-    if (!hasPrepared("exported"))
-        return failNativeArtifactTest(TEST_NAME, "exported function was pruned");
-    if (!hasPrepared("reachedFromExport"))
-        return failNativeArtifactTest(TEST_NAME, "function reached from an export was pruned");
-    if (hasPrepared("neverReached"))
-        return failNativeArtifactTest(TEST_NAME, "unreachable internal function was retained");
-    if (hasPrepared("InternalHolder.opEquals"))
-        return failNativeArtifactTest(TEST_NAME, "unreachable generated equality was retained");
-    // An importer generates its own member-wise equality from the published struct.
-    if (hasPrepared("ExportedHolder.opEquals"))
-        return failNativeArtifactTest(TEST_NAME, "generated equality of a public struct was exported");
-    if (!hasPrepared("equalSmall") || !hasPrepared("equalLarge"))
-        return failNativeArtifactTest(TEST_NAME, "generic equality consumers were pruned");
-    for (const NativeFunctionInfo& info : nativeBuilder.functionInfos)
-    {
-        if (info.exported && info.symbol && info.symbol->specOpKind() == SpecOpKind::OpEquals)
-            return failNativeArtifactTest(TEST_NAME, "generated equality of a generic instance was exported");
-    }
-}
-SWC_TEST_END()
-
 SWC_TEST_BEGIN(NativeArtifact_ExecutableClosesAlternatingDependencies)
 {
     static constexpr std::string_view SOURCE     = R"(#global public
@@ -2470,8 +2190,8 @@ SWC_TEST_BEGIN(NativeArtifact_ConcurrentCompilerInputsKeepEveryDependency)
                 (void) compiler.registerModuleSetupLoad(fs::path("loads") / std::format("worker-{}-{}.swg", worker, index));
                 if (index % 64 == 0)
                 {
-                    (void) compiler.registerModuleSetupImport(std::format("shared{}", index), "", "");
-                    (void) compiler.registerModuleSetupImport(std::format("worker{}module{}", worker, index), "", "");
+                    (void) compiler.registerModuleSetupImport(std::format("shared{}", index), "");
+                    (void) compiler.registerModuleSetupImport(std::format("worker{}module{}", worker, index), "");
                 }
                 if (index % 128 == 0)
                 {
@@ -2586,69 +2306,6 @@ SWC_TEST_BEGIN(SymbolTable_ImageKeepsSourcePathsTogether)
     }
 }
 SWC_TEST_END()
-
-#if defined(__linux__) && defined(__x86_64__)
-SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ElfArchiveKeepsGlobalConstantPointers)
-{
-    CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("elf_archive_global_pointer", Runtime::BuildCfgBackendKind::StaticLibrary);
-    commandLine.targetOs    = Runtime::TargetOs::Linux;
-    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
-    NativeBackendBuilder&           builder = *fixture.nativeBuilder;
-    builder.mergedRData.name                = ".rdata";
-    builder.mergedRData.bytes.append("padpayload");
-    builder.mergedRData.bytes.pushBack(std::byte{0});
-    builder.rdataAllocations.push_back({.sourceOffset = 0, .size = 11, .align = 1, .emittedOffset = 0});
-    builder.mergedData.name            = ".data";
-    builder.mergedData.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE | PE::SCN_ALIGN_8BYTES;
-    builder.mergedData.bytes.appendLe64(0);
-    builder.mergedData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = 3});
-
-    const auto      writer = NativeObjFileWriter::create(builder);
-    std::error_code directoryError;
-    fs::create_directories(commandLine.workDir, directoryError);
-    if (directoryError)
-        return Result::Error;
-    NativeObjDescription globals;
-    globals.objPath              = commandLine.workDir / "globals.o";
-    globals.includeData          = true;
-    globals.splitRDataReferences = true;
-    SWC_RESULT(writer->writeObjectFile(globals));
-    NativeObjDescription constant;
-    constant.objPath              = commandLine.workDir / "constant.o";
-    constant.rdataAllocationIndex = 0;
-    constant.rdataAllocationCount = 1;
-    constant.splitRDataReferences = true;
-    SWC_RESULT(writer->writeObjectFile(constant));
-
-    const std::string       source = std::format("#include <cstring>\nextern const char* value asm(\"{}\");\nint main() {{ return std::strcmp(value, \"payload\") == 0 ? 0 : 1; }}\n", builder.scopedSymbolNames().dataBase);
-    FileSystem::IoErrorInfo ioError;
-    SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "consumer.cpp", source.data(), source.size(), ioError));
-    std::vector<LinkArchiveMember> members(2);
-    SWC_RESULT(FileSystem::readBinaryFile(globals.objPath, members[0].bytes, ioError));
-    SWC_RESULT(FileSystem::readBinaryFile(constant.objPath, members[1].bytes, ioError));
-    ByteArray  archive;
-    Diagnostic diagnostic;
-    if (!buildElfStaticArchive(archive, diagnostic, members))
-        return Result::Error;
-    SWC_RESULT(FileSystem::writeBinaryFile(commandLine.workDir / "library.a", archive.data(), archive.size(), ioError));
-    const std::array<std::pair<fs::path, std::vector<Utf8>>, 2> commands = {{
-        {"c++", {"-no-pie", "consumer.cpp", "library.a", "-o", "consumer"}},
-        {commandLine.workDir / "consumer", {}},
-    }};
-    for (const auto& [program, arguments] : commands)
-    {
-        std::string                 output;
-        uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        if (Os::runProcess(exitCode, program, arguments, commandLine.workDir, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
-        {
-            std::println(stderr, "[ELF archive consumer] {}: {}", Utf8(program), output);
-            return Result::Error;
-        }
-    }
-}
-SWC_TEST_END()
-#endif
 
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
 {

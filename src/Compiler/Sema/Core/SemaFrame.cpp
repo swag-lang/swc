@@ -238,7 +238,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
         // give runtime types module-dependent full names and CRC identities.
         // Lookup still uses the module namespace to resolve Swag and sibling imports.
         const SourceFile* file = sema.file();
-        if (file && (file->isImportedApi() || file->isRuntime()))
+        if (file && file->isRuntime())
         {
             if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
                 root = importRoot;

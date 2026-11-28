@@ -38,10 +38,7 @@ The script is recognized wherever it sits, so `swc` may still be given ordinary
 `run` options as long as they precede the path. `--run-arg` remains the way a
 *module* receives arguments; a script has no use for it.
 
-`setup` claims the `.swgs` extension for the current user, so a script also runs
-from a double-click, arguments and exit code included.
-
-## Import compiled dependencies
+## Import source dependencies
 
 Put module setup directives at the top level of the script. This imports the
 standard `core` module:
@@ -52,19 +49,10 @@ standard `core` module:
 using Core
 ```
 
-`swag@std` is the standard library beside the compiler that runs the script, and
-`SWAG_PATH` answers only for a compiler installed without one. A compiler and its
-library are one thing, so a second checkout on the same machine keeps its own
-rather than the one the environment happens to name. A module that library has
-but has not been built for this configuration is built there and then, rather
-than reported missing, so a script runs from a checkout that has never been
-registered or built. The compiler builds imported dependencies as native modules
-and reuses compatible output on later runs.
-
-Script dependencies are cached by content under the system temporary directory
-in `swag/dep`, so compatible scripts can share the same dependency output. Run
-`swc clean --cache` to remove these copies (and the legacy `swag/scripts` cache).
-Use `--show-config` to inspect resolved paths and tools.
+`swag@std` selects the standard library beside the compiler. An installation
+without a local copy finds the library under `SWAG_PATH`. The compiler includes
+Core and its source dependencies in the script's JIT compilation. This works
+from a fresh checkout once `swc` is built.
 
 ## Split a script across files
 
@@ -75,8 +63,8 @@ Use top-level `#load` directives for companion source files:
 #load("render/helpers.swg")
 ```
 
-`#load` adds source to the current script module. It does not create a compiled
-module dependency; use `#import` for that boundary.
+`#load` adds one file to the script's source group. Use `#import` to include
+another source group and its dependencies.
 
 `#load` nests, and every path is relative to the file that writes it, so a
 script spread over many sources names them once:

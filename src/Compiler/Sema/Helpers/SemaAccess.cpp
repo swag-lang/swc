@@ -28,9 +28,7 @@ namespace
         return sema.file();
     }
 
-    // Generated API files represent imported modules, not the current module.
-    // Their source was already valid in its own module, so the imported/local
-    // distinction is enough here.
+    // Text inserted into another file keeps the source owner of the declaration or use.
     bool inDeclaringModule(Sema& sema, const Symbol& sym, const SourceViewRef siteViewRef)
     {
         const SourceFile* declFile = sema.compiler().sourceViewFile(sym);
@@ -38,7 +36,7 @@ namespace
         if (!declFile || !siteFile)
             return true;
 
-        return declFile->isImportedApi() == siteFile->isImportedApi();
+        return declFile->isRuntime() || declFile->sourceOwner() == siteFile->sourceOwner();
     }
 
     bool inDeclaringType(Sema& sema, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)

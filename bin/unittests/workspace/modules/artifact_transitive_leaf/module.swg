@@ -1,7 +1,6 @@
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.backendKind         = .SharedLibrary
+    cfg.backendKind         = .None
     cfg.moduleNamespace     = "TransitiveLeaf"
-    cfg.publishDependencies = false
 }

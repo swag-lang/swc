@@ -19,12 +19,11 @@ using ExportApi
     value.defaultValue = 1     // swc-expected-error {{sema_err_field_internal}}
 }
 
-// A method the provider kept to itself never reaches the importer's view of the type, so the
-// importer reports a member that is not public rather than one that does not exist.
+// Private methods stay within their declaring type.
 #test
 {
     let value = makeDepDefaultAccessField(7)
-    discard value.hiddenValue()     // swc-expected-error {{sema_err_unknown_public_member}}
+    discard value.hiddenValue()     // swc-expected-error {{sema_err_method_private}}
 }
 
 // Naming a field in a literal writes it, so the rule reaches a literal too.

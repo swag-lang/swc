@@ -143,7 +143,6 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.LangSpec.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.SymbolMap.cpp"/>
-        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ModuleApiPublication.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Failure.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Messages.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.NodePayload.cpp"/>
@@ -478,12 +477,6 @@
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Decl.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Source.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Symbol.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Content.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Generate.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Roots.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Supporting.cpp"/>
-        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Validate.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\StructConfig.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
@@ -582,6 +575,7 @@
         <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaAccess.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaBodyCache.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
@@ -595,6 +589,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Symbol.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Type.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.ScalarCache.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Resolve.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
@@ -852,7 +847,6 @@
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Types.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Internal.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Source.h"/>
-        <ClInclude Include="src\Compiler\ModuleApi\ModuleApiExport.Internal.h"/>
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Main\WorkspaceLayout.h"/>
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
@@ -930,7 +924,6 @@
         <ClInclude Include="src\Backend\Debug\Records.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\SymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\Writer.PDB.h"/>
-        <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\OsPatcher.Win32.h"/>
         <ClInclude Include="src\Backend\Linker\Reader.COFF.h"/>
         <ClInclude Include="src\Backend\Linker\ObjectWriter.ELF.h"/>
@@ -974,6 +967,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaAstLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCallArgument.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaBodyCache.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.Modifier.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
@@ -987,6 +981,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaVarDeclHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.ScalarCache.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOpKind.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>

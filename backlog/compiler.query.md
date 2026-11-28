@@ -18,7 +18,7 @@ This file owns semantic queries, analyzed-snapshot comparison, and verified sour
   overload, the declaration at its original source location across modules and expansions, and
   the references inside a workspace. Report unresolved and ambiguous positions explicitly. Reuse
   the module and prelude caches for cold latency.
-- Related: compiler.build.120, compiler.build.119, compiler.build.121, compiler.query.003,
+- Related: compiler.build.119, compiler.build.121, compiler.query.003,
   compiler.command.doc.011, compiler.command.002.
 
 ### compiler.query.002 — Report semantic changes at untouched call sites

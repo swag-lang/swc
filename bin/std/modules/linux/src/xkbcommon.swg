@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // libxkbcommon 1.x and its X11 adapter. Opaque objects follow the upstream ref/unref ownership.
 // Function pointers borrow their respective dynamically loaded libraries.

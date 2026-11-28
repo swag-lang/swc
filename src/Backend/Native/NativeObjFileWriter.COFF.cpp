@@ -48,11 +48,8 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     const size_t                  knownSectionCount =
         1 +
         static_cast<size_t>(description.includeMergedRData && !builder_->mergedRData.bytes.empty()) +
-        description.rdataAllocationCount +
         static_cast<size_t>(description.includeData && !builder_->mergedData.bytes.empty()) +
         static_cast<size_t>(description.includeData && builder_->mergedBss.bss);
-    // Archive members can contain one section per read-only allocation. Reserve that
-    // partition-known prefix once; runtime and debug sections are appended below.
     sections.reserve(knownSectionCount);
     sections.push_back(std::move(textSection));
 
@@ -64,27 +61,10 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         sections.push_back(std::move(section));
     }
 
-    if (description.rdataAllocationCount)
-    {
-        SWC_ASSERT(!description.includeMergedRData);
-
-        const auto& allocations = builder_->rdataAllocations;
-        SWC_ASSERT(description.rdataAllocationIndex + description.rdataAllocationCount <= allocations.size());
-
-        for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
-        {
-            CoffSectionBuild section;
-            SWC_RESULT(buildRDataAllocationSection(section, allocations[description.rdataAllocationIndex + i]));
-            sections.push_back(std::move(section));
-        }
-    }
-
     if (description.includeData && !builder_->mergedData.bytes.empty())
     {
         CoffSectionBuild section;
         section.data = builder_->mergedData;
-        if (description.splitRDataReferences)
-            SWC_RESULT(builder_->remapRDataReferences(section.data));
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));
     }
@@ -172,28 +152,22 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
     }
 
     if (description.startup)
-        SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));
+        SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols));
     for (const NativeFunctionInfo* info : description.functions)
-        SWC_RESULT(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));
+        SWC_RESULT(appendCodeRelocations(*info, *info->machineCode, textSection, description.allowUnresolvedSymbols));
 
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeRDataAllocationMapEntry& allocation) const
-{
-    SWC_RESULT(builder_->buildRDataAllocationSection(section.data, allocation));
-    return applySectionRelocations(section);
-}
-
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, startup.debugName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
+        SWC_RESULT(appendSingleCodeRelocation(startup.textOffset, startup.debugName, relocation, textSection, allowUnresolvedSymbols));
 
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
+Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     Utf8        generatedOwnerName;
     const Utf8* ownerName = &owner.debugName;
@@ -206,20 +180,19 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& 
             ownerName          = &generatedOwnerName;
         }
 
-        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, *ownerName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
+        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, *ownerName, relocation, textSection, allowUnresolvedSymbols));
     }
 
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
+Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
     NativeCodeRelocationTarget target;
     target.bytes                  = &textSection.data.bytes;
     target.relocations            = &textSection.relocations;
     target.functionOffset         = functionOffset;
     target.allowUnresolvedSymbols = allowUnresolvedSymbols;
-    target.splitRDataReferences   = splitRDataReferences;
 
     return builder_->appendCodeRelocation(target, ownerName, relocation);
 }
@@ -316,23 +289,6 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                             .value         = extraSymbol.value,
                             .type          = extraSymbol.type,
                             .storageClass  = extraSymbol.storageClass,
-                        });
-    }
-
-    for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
-    {
-        const auto& allocation = builder_->rdataAllocations[description.rdataAllocationIndex + i];
-        const auto& section    = sections[i + 1];
-        SWC_ASSERT(section.data.name == ".rdata" || section.data.name == ".rbss");
-
-        const Utf8& rdataName = allocation.symbolName.empty() ? symbolIndex.ownedNames.emplace_back(builder_->rdataAllocationSymbol(allocation)) : allocation.symbolName;
-        addSymbolRecord(symbols, symbolIndex, rdataName.view(),
-                        {
-                            .name          = rdataName,
-                            .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                            .value         = 0,
-                            .type          = 0,
-                            .storageClass  = PE::SYM_CLASS_EXTERNAL,
                         });
     }
 

@@ -7,7 +7,6 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
-#include "Main/ExternalModuleManager.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Report/Assert.h"
@@ -43,10 +42,17 @@ namespace Command
             const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
             compiler.buildCfg().backendKind                = backendKind;
 
-            if (!Runtime::backendKindProducesNativeArtifact(backendKind))
-                return finishNonArtifactBackend(compiler);
+            if (backendKind != Runtime::BuildCfgBackendKind::Executable)
+            {
+                if (!runArtifact)
+                    return finishNonArtifactBackend(compiler);
 
-            const bool runExecutable = runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable;
+                TaskContext ctx(compiler);
+                Diagnostic::get(DiagnosticId::cmd_err_native_backend_kind_required).report(ctx);
+                return Result::Error;
+            }
+
+            const bool runExecutable = runArtifact;
 
             // Workspace pipeline: build everything but the link, then hand the prepared builder back so
             // the caller can run the linker off the main thread and finish it at a later sync point.
@@ -64,79 +70,6 @@ namespace Command
             TaskContext          nativeCtx(compiler);
             NativeBackendBuilder builder(compiler, runExecutable);
             return CommandRun::afterPauses(nativeCtx, [&] { return builder.run(); });
-        }
-
-        enum class ScriptRuntimeHookStage : uint64_t
-        {
-            Init    = 1,
-            PreMain = 2,
-            Drop    = 3,
-        };
-
-        // Generated hooks use Swag's scalar registers, including on a System V host.
-#if defined(__linux__) && defined(__x86_64__)
-        using RuntimeHookInvoker = void(__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
-#else
-        using RuntimeHookInvoker = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
-#endif
-
-        Result reportMissingRuntimeHook(TaskContext& ctx, const NativeRuntimeDependency& dependency, const Utf8& hookSymbolName)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_invalid_foreign_function_relocation);
-            diag.addArgument(Diagnostic::ARG_SYM, hookSymbolName);
-            diag.addNote(DiagnosticId::cmd_note_relocation_foreign_module_name);
-            diag.last().addArgument(Diagnostic::ARG_VALUE, dependency.linkModuleName);
-            diag.addNote(DiagnosticId::cmd_note_relocation_foreign_function_name);
-            diag.last().addArgument(Diagnostic::ARG_TARGET, hookSymbolName);
-            diag.addNote(DiagnosticId::cmd_note_relocation_foreign_lookup_failed);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        Result runRuntimeDependencyHook(TaskContext& ctx, const NativeRuntimeDependency& dependency, const ScriptRuntimeHookStage stage)
-        {
-            void* hookAddress = nullptr;
-            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, dependency.linkModuleName.view(), dependency.hookSymbolName.view()))
-                return reportMissingRuntimeHook(ctx, dependency, dependency.hookSymbolName);
-
-            // A script and every shared module it initializes are one hosted run. The DLL keeps
-            // its lifecycle state for the rest of the compiler process, so initializing it
-            // without the script's effective arguments cannot be repaired by a later importer.
-            ctx.compiler().ensureProcessInfoRunArgs();
-            const Runtime::String* processArgs  = &ctx.compiler().processInfo().args;
-            const uint64_t         tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
-            const auto             hookInvoker  = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(stage), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::Zero), processArgs);
-            return Result::Continue;
-        }
-
-        Result runRuntimeDependencyHooks(TaskContext& ctx, std::span<const NativeRuntimeDependency> dependencies, std::span<const uint32_t> order, const ScriptRuntimeHookStage stage, std::span<uint8_t> initialized)
-        {
-            SWC_ASSERT(initialized.size() == dependencies.size());
-            bool succeeded = true;
-            for (const uint32_t dependencyIndex : order)
-            {
-                SWC_ASSERT(dependencyIndex < dependencies.size());
-                if (dependencyIndex >= dependencies.size())
-                    continue;
-
-                if (stage == ScriptRuntimeHookStage::Drop && !initialized[dependencyIndex])
-                    continue;
-
-                const Result result = runRuntimeDependencyHook(ctx, dependencies[dependencyIndex], stage);
-                if (result != Result::Continue)
-                {
-                    if (stage != ScriptRuntimeHookStage::Drop)
-                        return Result::Error;
-                    succeeded = false;
-                }
-                else if (stage == ScriptRuntimeHookStage::Init)
-                {
-                    initialized[dependencyIndex] = 1;
-                }
-            }
-
-            return succeeded ? Result::Continue : Result::Error;
         }
 
         SymbolFunction* runtimeFunction(CompilerInstance& compiler, const IdentifierManager::RuntimeFunctionKind kind)
@@ -217,9 +150,6 @@ namespace Command
             std::vector<SymbolFunction*>         preMainFunctions;
             std::vector<SymbolFunction*>         mainFunctions;
             std::vector<SymbolFunction*>         dropFunctions;
-            std::vector<NativeRuntimeDependency> runtimeDependencies;
-            std::vector<uint32_t>                runtimeDependencyInitOrder;
-            std::vector<uint32_t>                runtimeDependencyDropOrder;
             {
                 NativeBackendBuilder nativeBuilder(compiler, false);
                 SWC_RESULT(nativeBuilder.prepareForJit(allFunctions));
@@ -227,46 +157,29 @@ namespace Command
                 preMainFunctions           = std::move(nativeBuilder.preMainFunctions);
                 mainFunctions              = std::move(nativeBuilder.mainFunctions);
                 dropFunctions              = std::move(nativeBuilder.dropFunctions);
-                runtimeDependencies        = std::move(nativeBuilder.runtimeDependencies);
-                runtimeDependencyInitOrder = std::move(nativeBuilder.runtimeDependencyInitOrder);
-                runtimeDependencyDropOrder = std::move(nativeBuilder.runtimeDependencyDropOrder);
             }
 
             SymbolSort::sortAndUniqueByLocation(allFunctions, compiler);
-            SymbolSort::sortAndUniqueByLocation(initFunctions, compiler);
-            SymbolSort::sortAndUniqueByLocation(preMainFunctions, compiler);
-            SymbolSort::sortAndUniqueByLocation(mainFunctions, compiler);
-            SymbolSort::sortAndUniqueByLocation(dropFunctions, compiler);
-            std::ranges::reverse(dropFunctions);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return SymbolFunction::jitBatch(ctx, allFunctions); }));
 
             SWC_RESULT(runScriptRuntimeSetup(ctx));
-            std::vector<uint8_t> initializedDependencies(runtimeDependencies.size());
-            Result               executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init, initializedDependencies);
-            const bool           moduleStarted   = executionResult == Result::Continue;
-            bool                 abandoned       = false;
-            if (moduleStarted)
-            {
-                executionResult = runJitScriptFunctions(ctx, abandoned, initFunctions);
-                if (executionResult == Result::Continue)
-                    executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::PreMain, initializedDependencies);
-                if (executionResult == Result::Continue)
-                    executionResult = runJitScriptFunctions(ctx, abandoned, preMainFunctions);
-                if (executionResult == Result::Continue)
-                    executionResult = runJitScriptFunctions(ctx, abandoned, mainFunctions);
-            }
+            bool   abandoned       = false;
+            Result executionResult = runJitScriptFunctions(ctx, abandoned, initFunctions);
+            if (executionResult == Result::Continue)
+                executionResult = runJitScriptFunctions(ctx, abandoned, preMainFunctions);
+            if (executionResult == Result::Continue)
+                executionResult = runJitScriptFunctions(ctx, abandoned, mainFunctions);
 
-            // An abandoned frame may still hold resources needed by script or dependency hooks.
+            // An abandoned frame may still hold resources needed by finalizers.
             if (abandoned)
                 return Result::Error;
 
-            const Result dropResult = moduleStarted ? runJitScriptFunctions(ctx, abandoned, dropFunctions, true) : Result::Continue;
+            const Result dropResult = runJitScriptFunctions(ctx, abandoned, dropFunctions, true);
             if (abandoned)
                 return Result::Error;
 
-            const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop, initializedDependencies);
-            if (executionResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
+            if (executionResult != Result::Continue || dropResult != Result::Continue)
                 return Result::Error;
 
             if (stage)

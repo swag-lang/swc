@@ -16,8 +16,6 @@ Result NativeObjFileWriterElf::buildObjectFile(ByteArray& outBytes, const Native
     symbols.reserve(description.functions.size());
     for (const NativeFunctionInfo* function : description.functions)
     {
-        if (function->exported && !function->exportName.empty())
-            image.exports.push_back({.name = function->exportName, .symbolName = function->symbolName});
         SymbolTable::Entry entry;
         if (SymbolTable::makeEntry(entry, builder_->ctx(), *function))
             symbols.push_back(std::move(entry));

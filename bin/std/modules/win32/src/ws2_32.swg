@@ -1,4 +1,4 @@
-#global export
+#global public
 
 #foreignlib("ws2_32")
 using Swag

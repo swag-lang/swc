@@ -36,8 +36,7 @@ These direct commands use normal workspace outputs and caches. Tests detect the 
 count; explicit compiler options retain precedence. An existing `SWAG_RUNTIME_THREADS` is preserved.
 The default `tests` pass is `functional`. It includes C++ tests with `dm`, compiler input suites,
 workspace fixtures and the ordinary tests of the standard modules, examples, applications and
-reference. It stops on failure by default and preserves the failing exit status. Dynamic-library
-fixtures use the host extension.
+reference. It stops on failure by default and preserves the failing exit status.
 WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
 the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
 
@@ -107,30 +106,24 @@ Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`
 dependency files, the precompiled header and the executable remain under the supplied build
 directory.
 DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
-Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
-executables, GNU static archives and shared modules are available, including transitive imports
-and shared runtime initialization. ELF executables, shared libraries and archives are linked
-inside `swc`: an installed compiler needs the Linux runtime libraries but no `cc`, assembler,
-`ar`, or external linker. GCC is needed to build `swc` itself, not to use it. Shared libraries are position-independent and reject dynamic
-text relocations; relocated constants become read-only after loading. Native `--debug` emits DWARF 4
-source lines, functions, basic types and recorded stack-home variables. Dedicated executable/shared
-fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
-variables and richer debug records remain unsupported. Runtime panic traces resolve function names
-and recorded source locations across executables, static archives and shared libraries without
-`--debug`; stripping `.swagdbg` removes those runtime frame names. Without `--debug`, final ELF
-executables and shared libraries omit `.symtab` and `.strtab`; dynamic symbols, unwind data and
-`.swagdbg` remain available. Finalization also removes unused file space left by merging runtime
-symbol contributions, without moving loaded bytes or virtual addresses.
-For smaller native images, `--no-runtime-symbols` omits `.swagdbg` from executable and shared-library
-outputs on Linux and Windows. Panic messages remain available, but runtime traces no longer include
-function names or source locations. The default keeps the table.
-Linux executable builds reuse eligible self-contained function objects from
-`<name>.incremental.elfcache` in the work directory. The cache
-checks compiler identity, IR/ABI fingerprints, recorded source coordinates and payload integrity;
-`--rebuild`, `--debug`, tests and compile-time native imports disable it. Publication follows a successful
-link. Executables with static dependencies also retain a checksummed `<name>.relink.elfcache`: when
-only a native dependency changes, the workspace relinks the saved objects against current libraries.
-Compiler/API/configuration changes or missing/damaged cache inputs fall back to compilation.
+Linux selects the System V C ABI. Use `--os linux` or `--os windows` to select the target.
+The compiler includes transitive source dependencies in each executable or JIT program and
+initializes one runtime for that program. `swc` links ELF executables internally and uses GNU
+archives and shared libraries as native linker inputs. GCC builds `swc` itself. The installed
+compiler uses system runtime libraries and links without invoking external tools.
+
+Native `--debug` emits DWARF 4 source lines, functions, basic types and recorded stack-home
+variables. Executable fixtures pass readelf and addr2line checks. GDB supports stepping and
+inspection of recorded variables. Runtime panic traces use `.swagdbg` for function names and
+source locations even when `--debug` is off. Without `--debug`, final ELF
+executables omit `.symtab` and `.strtab`. Dynamic symbols, unwind data and
+`.swagdbg` remain available. For smaller binaries, `--no-runtime-symbols` omits
+`.swagdbg` on Linux and Windows.
+
+Executable builds reuse eligible function objects from the cache in the work
+directory. Reuse checks compiler identity, IR and ABI fingerprints, recorded
+source coordinates and payload integrity. The compiler writes the cache after
+the executable links successfully.
 
 An externally built compiler needs `runtime` beside its executable. `SWAG_PATH` supplies the
 standard-module fallback; it does not redirect runtime lookup. From the repository root, prepare
@@ -139,17 +132,16 @@ the runtime and invoke Linux workspaces directly:
 ```sh
 mkdir -p /absolute/build/devmode/runtime
 cp -a bin/runtime/. /absolute/build/devmode/runtime/
-SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm build \
+SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm sema \
   --workspace bin/std --workspace-module pixel
 SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
   --workspace bin/std --workspace-module pixel \
-  --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
+  --no-test-jit --test-tag integration.renderer.opengl
 ```
 
-To build complete Windows applications from Linux, run a Windows compiler under Wine. Compile-time
-module functions then execute in the same Windows environment as their imported DLLs. The Linux
-compiler's `--os windows` emits PE output, but cannot execute arbitrary Windows foreign calls or load
-Windows modules for compile-time evaluation.
+To build Windows applications that make Windows foreign calls at compile time, run the Windows
+compiler under Wine. The Linux compiler can also emit PE executables with `--os windows`.
+Compile-time foreign calls need the operating system that provides the native library.
 
 `linux-build.py --target windows` builds the Release Windows compiler with LLVM-MinGW, using the
 same source manifest. It links the C++ runtime into the compiler; only Windows
@@ -202,12 +194,11 @@ python3 tools/linux-tests.py all --compiler /absolute/build/release/swc \
 JIT, safety, sanity, native, every compiler workspace fixture, and every module in std, examples,
 apps and reference. `compiler` selects only the compiler suites and workspace fixtures.
 The command builders are shared with `tool.py` and the Windows batch entry points.
-The sandbox workspace fixture runs in JIT; the dynamic-library consumer first builds its shared
-fixture and receives its absolute path. Script fixtures use assertions and the process exit status.
+The sandbox workspace fixture runs in JIT. Script fixtures use assertions and the process exit status.
 
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
 folder. It isolates caches with `TMPDIR`.
-Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
+Campaigns use caches from that snapshot. Focused selections force rebuilds.
 Each compiler invocation has a 900-second timeout (`--timeout` overrides it). Timeout cleanup stops
 the owned process tree, including native tests that create separate sessions.
 Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
@@ -224,7 +215,7 @@ configuration independently of the compiler executable. Standard/application cam
 native tests; examples, reference and the native language suite run both execution modes.
 For compatibility, a focused `std --module` runs both modes by default. `--execution` overrides
 these defaults. The focused `cpp` suite requires DevMode; add `--dev-full` for filesystem tests.
-`dynamic-library` selects just shared-library preparation and its native consumer.
+`dynamic-library` runs the Core FFI test against the system math library.
 
 The Linux `all` campaign includes ordinary, golden and stress cases. Cases tagged `integration.*`
 are opt-in. Select them with `--test-tag` and supply their external services or
@@ -296,7 +287,7 @@ These are host-test build modes, not Swag program configurations. This launcher 
 ## Workspaces
 
 ```text
-tools\std.bat [dm] [build|test] [module] [options...]
+tools\std.bat [dm] [sema|build|test] [module] [options...]
 tools\examples.bat [dm] [build|run|test|smoke] [module] [options...]
 tools\apps.bat [dm] [build|run|test|smoke] [application] [options...]
 tools\reference.bat [dm] [build|test] [options...]
@@ -311,6 +302,11 @@ tools\apps.bat test swagcapture --test-file files.swg
 tools\std.bat dm test gui --test-tag golden
 tools\scripts.bat snake
 ```
+
+The standard-library launcher defaults to `sema`. It checks every standard source group,
+including each group's dependencies. Supply a module name to check one group. `build` without a
+module selection processes the workspace's executable targets. A named source group can also
+be checked explicitly with `build`.
 
 Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
@@ -359,9 +355,8 @@ Download and generate this media outside the checkout; it is not shipped with th
 For module and application tests, `--test-file` and `--test-tag` select which tests execute; the complete
 owning module is still compiled. Module and application tests run with a twenty-minute `--run-timeout` unless one is given:
 the compiler's five-minute default suits one program, not a whole suite in one process. Standard module and application tests use native executables,
-which the compiler reuses while their inputs and dependencies are unchanged. Standard module
-tests override the library artifact kind only for the selected test module; dependencies retain
-their normal library artifacts. Add `--test-jit --no-test-native` to exercise the JIT explicitly.
+which include their source dependencies. The compiler reuses a test executable while its inputs
+are unchanged. Add `--test-jit --no-test-native` to exercise the JIT explicitly.
 Compiler JIT suites and reference tests retain their existing execution modes.
 Workspace test launchers set `SWAG_RUNTIME_THREADS` from
 `--num-cores`, or the detected processor count, unless that environment variable is already
@@ -369,8 +364,14 @@ defined. The setting is local to the launcher and its children. Application help
 inherit the same count when testing the entire application workspace.
 `--all-cfg` and `apps run --async` are not supported by the batch launchers; run each configuration
 separately.
-For a selected workspace module, `--rebuild-module` forces only that module and reuses
-current dependencies. `--rebuild` forces the module and its dependency closure.
+For a selected workspace module, `--rebuild-module` forces a build and retains eligible
+dependency setup caches. `--rebuild` bypasses the compilation caches for the selected target
+and its source dependencies. It publishes fresh entries in the shared compiler cache and leaves
+entries for other builds available.
+
+Module setup snapshots and compatible function machine code are shared by applications and scripts
+through the compiler cache shown by `swc info`. This includes standard-library and project modules.
+The `.output` and `.tmp` directories hold artifacts and intermediates for explicit builds or tests.
 
 ### Limit runtime threads
 
@@ -385,8 +386,8 @@ Remove-Item Env:SWAG_RUNTIME_THREADS
 ```
 
 The runtime reads the ceiling once when it starts the process pool. It limits the shared
-pool used by tasks and `parallel for`, including later `Swag.setWorkerCount()` requests and work
-submitted by shared libraries. The main thread, dedicated executors, and foreign-library threads
+pool used by tasks and `parallel for`, including later `Swag.setWorkerCount()` requests.
+The main thread, dedicated executors, and foreign-library threads
 are additional; this is a pool-size ceiling, not a CPU percentage or a process-wide thread limit.
 Unset, empty, or `0` keeps the automatic hardware policy. Other values must contain up to ten
 decimal digits with a value from 1 through 4294967295; malformed or overflowing values stop the
@@ -527,7 +528,7 @@ tools/std.bat dm test gui --test-file devicereset.win32.swg --test-tag integrati
 | Launcher | Purpose |
 | --- | --- |
 | `unittests.bat [dm] [suite] [options...]` | C++, lexer, parser, semantic, JIT, safety, sanity, native, and workspace input suites |
-| `build.bat [dm] [options...]` | Build the standard library, examples, applications, and reference |
+| `build.bat [dm] [options...]` | Check standard sources and build examples, applications, and reference targets |
 | `tests.bat [dm] [functional\|goldens\|smoke\|integrations] [options...]` | Run a repository test pass |
 | `integrations.bat [dm] [all\|opengl\|windows\|smoke] [options...]` | Run the integration pass or use the focused OpenGL, Windows host and smoke commands |
 | `portability.bat` | Check that no Swag script launcher remains under `tools/` |
@@ -541,8 +542,8 @@ per run.
 `unittests.bat` applies `-bc` to Swag programs only; internal C++ tests use the DevMode compiler's
 own configuration. Parallel C++ fixtures and their child compilers inherit `--num-cores`.
 Fixtures that specifically test sequential behavior keep one worker.
-The workspace suite builds its dynamically loaded DLL before running its
-consumer. Runner option routing, failure propagation, and fixture ordering are covered by
+The workspace suite compiles each fixture with its source dependencies. Runner option routing,
+failure propagation, and fixture selection are covered by
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/unittests.ps1`.
 
 ## Maintenance
@@ -555,7 +556,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
 | `setup.sh` | Configure Bash or Zsh with this checkout's Linux compiler and `SWAG_PATH` |
-| `package-linux.py` | Stage built Capture or Scope ELF, sibling libraries, desktop entry and icon in a tar archive |
+| `package-linux.py` | Package the Capture or Scope executable, desktop entry and icon in a tar archive |
 
 The golden campaign discovers `golden` tags in module case sources under `src/tests/cases/` and skips workspaces
 that declare no golden tests; quoted tags in reference prose do not select a workspace. Its argument
@@ -575,7 +576,7 @@ These shells do not execute `.swgs` files directly; run `swc file.swgs` or `swc.
 To stage a Linux GUI build without changing the host system, run
 `python3 tools/package-linux.py swagcapture --build-dir /path/to/executable/release/x86_64 --output /tmp/swagcapture-linux.tar.gz`.
 The default install prefix is `/usr/local`; `--prefix` selects another absolute prefix. The archive
-contains the ELF and any published sibling `.so` files under `libexec/swag/`, a desktop entry, and
+contains the executable under `libexec/swag/`, a desktop entry, and
 the shipped 512 px icon. Scope is also supported. A clean-target launch and dependency audit are
 still required before release.
 

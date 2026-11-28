@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // Opaque glibc x86-64 mutex storage; initialize it with pthread_mutex_init.
 #[Swag.Align(8)]

@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const XCB_CLIENT_MESSAGE     = 33_u8
 const XCB_PROPERTY_NOTIFY    = 28_u8

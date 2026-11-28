@@ -1,4 +1,4 @@
-#global export
+#global public
 
 #foreignlib("d3d11")
 

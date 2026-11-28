@@ -42,7 +42,7 @@ No CPU fallback is selected. Native Wayland contexts are not provided.
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Ogl"
-    cfg.backendKind     = .SharedLibrary
+    cfg.backendKind     = .None
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl"
 
     cfg.genDoc.kind       = .Api

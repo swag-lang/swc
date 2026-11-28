@@ -160,8 +160,8 @@ impl DesktopInput
             .app.runFrame()
         }
 
+        // Release the key before dispatch because the shortcut may enter a nested modal loop.
         .sendNativeKey(key, true)
-        .app.runFrame()
         .sendNativeKey(key, false)
         .app.runFrame()
         if modifiers & .Alt

@@ -38,14 +38,12 @@ CompilerCacheStore::CompilerCacheStore(fs::path directory) :
 {
 }
 
-CompilerCacheStore::CompilerCacheStore(const bool rebuild)
+CompilerCacheStore::CompilerCacheStore()
 {
     const auto&    compiler = compilerCacheIdentity();
     const auto     bytes    = std::as_bytes(std::span{compiler.data(), compiler.size()});
     const fs::path root     = WorkspaceLayout::machineCacheRoot();
     directory_              = root / std::format("{}", Utf8Helper::toLowerHex(sha256(bytes)).view());
-    if (rebuild)
-        invalidateOnce();
     activeStore.store(this, std::memory_order_release);
 }
 
@@ -55,30 +53,10 @@ CompilerCacheStore::~CompilerCacheStore()
     activeStore.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel);
 }
 
-CompilerCacheStore& CompilerCacheStore::get(const bool rebuild)
+CompilerCacheStore& CompilerCacheStore::get()
 {
-    static CompilerCacheStore cache(rebuild);
-    if (rebuild)
-        cache.invalidateOnce();
+    static CompilerCacheStore cache;
     return cache;
-}
-
-void CompilerCacheStore::invalidateOnce()
-{
-    std::call_once(invalidated_, [this] {
-        // Close lazy loading first so a later reader cannot bring back an invalidated segment.
-        std::call_once(loaded_, [] {});
-        {
-            const std::unique_lock lock(segmentsMutex_);
-            segments_.clear();
-        }
-        for (PendingShard& shard : pending_)
-        {
-            const std::scoped_lock lock(shard.mutex);
-            shard.entries.clear();
-        }
-        replace_.store(true, std::memory_order_release);
-    });
 }
 
 std::vector<fs::path> CompilerCacheStore::listSegments() const
@@ -153,12 +131,6 @@ void CompilerCacheStore::flushAll()
         cache->flush();
 }
 
-void CompilerCacheStore::invalidateAll()
-{
-    get(true);
-    flushAll();
-}
-
 void CompilerCacheStore::flush()
 {
     const std::scoped_lock flushLock(flushMutex_);
@@ -172,47 +144,38 @@ void CompilerCacheStore::flush()
             published.insert_or_assign(key, record);
     }
 
-    const bool replace = replace_.load(std::memory_order_acquire);
-    if (published.empty() && !replace)
+    if (published.empty())
         return;
 
     std::error_code ec;
     fs::create_directories(directory_, ec);
     if (ec)
         return;
-    const std::vector<fs::path> replaced = replace ? listSegments() : std::vector<fs::path>{};
+    // Load the existing segments before appending one so a reader's first load
+    // cannot replace the newly published segment in this process.
+    ensureLoaded();
 
-    if (!published.empty())
+    std::vector<EntryView> entries;
+    entries.reserve(published.size());
+    for (const auto& [key, record] : published)
+        entries.push_back({key.view(), record.bytes});
+    std::ranges::sort(entries, {}, &EntryView::key);
+
+    Archive        archive;
+    const fs::path path = newSegmentPath(directory_);
+    if (!publish(archive, path, entries))
+        return;
     {
-        std::vector<EntryView> entries;
-        entries.reserve(published.size());
-        for (const auto& [key, record] : published)
-            entries.push_back({key.view(), record.bytes});
-        std::ranges::sort(entries, {}, &EntryView::key);
-
-        Archive        archive;
-        const fs::path path = newSegmentPath(directory_);
-        if (!publish(archive, path, entries))
-            return;
-        {
-            const std::unique_lock lock(segmentsMutex_);
-            segments_.push_back({path, std::move(archive)});
-        }
-        for (PendingShard& shard : pending_)
-        {
-            const std::scoped_lock lock(shard.mutex);
-            std::erase_if(shard.entries, [&](const auto& entry) {
-                const auto found = published.find(entry.first);
-                return found != published.end() && found->second.owner == entry.second.owner;
-            });
-        }
+        const std::unique_lock lock(segmentsMutex_);
+        segments_.push_back({path, std::move(archive)});
     }
-
-    if (replace)
+    for (PendingShard& shard : pending_)
     {
-        for (const fs::path& path : replaced)
-            fs::remove(path, ec);
-        replace_.store(false, std::memory_order_release);
+        const std::scoped_lock lock(shard.mutex);
+        std::erase_if(shard.entries, [&](const auto& entry) {
+            const auto found = published.find(entry.first);
+            return found != published.end() && found->second.owner == entry.second.owner;
+        });
     }
 
     compact();

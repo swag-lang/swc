@@ -32,10 +32,6 @@ func onNativeEvent(a: u64, b: u64, c: u64, d: u64, value: f32)->u32
 The attribute may also decorate a struct of native vtable entries or a scope
 containing native callbacks. Ordinary Swag function values retain the Swag ABI.
 
-A generated module API is the one place where 'module' is left out: it names
-the module the API file describes, and 'function' then defaults to the
-flattened public API name instead of the declaration name.
-
 '#foreignlib' registers the corresponding import library with the native
 linker. It does not declare functions by itself.
 */

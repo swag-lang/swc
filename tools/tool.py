@@ -74,8 +74,12 @@ def runtime_workers(options):
     return str(int(value)) if value.isdecimal() and int(value) > 0 else str(os.cpu_count() or 1)
 
 
+def modules_root(workspace):
+    return workspace / 'modules'
+
+
 def module_names(workspace):
-    return sorted(path.name for path in (workspace / 'modules').iterdir() if path.is_dir())
+    return sorted(path.name for path in modules_root(workspace).iterdir() if path.is_dir())
 
 
 def cpp_stage(compiler, options, full=True):
@@ -109,43 +113,19 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
     return stages
 
 
-def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None, script=True, execution=None):
+def workspace_stages(compiler, bin_root, options, *, modules=None, script=True):
     workspace = bin_root / 'unittests/workspace'
     cfg = option_value(options, ('-bc', '--build-cfg'), 'devmode')
     workers = option_value(options, ('-j', '--num-cores'), '0')
-    extension = '.dll' if windows else '.so'
-    library = workspace / '.output/runtime_context_dynamic_dll/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dll' + extension)
-    dynamic_dependency = workspace / '.output/runtime_context_dynamic_dep/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dep' + extension)
-    build_name = 'workspace-build-dynamic-library'
-    package_name = 'workspace-package-dynamic-library-dependency'
-    build_options = ['--build-cfg', cfg, '--num-cores', workers]
-    if '--rebuild' in options:
-        build_options.append('--rebuild')
     selected = module_names(workspace) if modules is None else modules
     stages = []
-    if 'runtime_context_dynamic_consumer' in selected:
-        stages.append(Stage(build_name, [str(compiler), 'build', '--workspace', str(workspace),
-                                         '--workspace-module', 'runtime_context_dynamic_dll', *build_options]))
-        # A NativeLibrary path identifies one deployable directory. Package its workspace
-        # dependency beside it so the platform loader can resolve the library's SONAME.
-        stages.append(Stage(package_name, [sys.executable, '-c',
-                                           'import shutil, sys; shutil.copy2(sys.argv[1], sys.argv[2])',
-                                           str(dynamic_dependency), str(library.parent)], [build_name]))
     for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
-        requires = []
         if module == 'sandbox_consumer':
             command += ['--rebuild', '--no-test-native']
-        elif module == 'runtime_context_dynamic_consumer' and execution == 'jit':
-            command += ['--test-jit', '--no-test-native']
-        elif module == 'runtime_context_dynamic_consumer' and execution == 'both':
-            command.append('--test-jit')
         else:
             command.append('--no-test-jit')
-        if module == 'runtime_context_dynamic_consumer':
-            command.append('--run-arg=--dynamic-runtime-library=' + str(library))
-            requires = [package_name]
-        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '0', *options], requires))
+        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '0', *options]))
     if script:
         for name, filename in (('import-png-script', 'import_png.swgs'),
                                ('import-script', 'import_core_without_using.swgs'),
@@ -172,21 +152,19 @@ def module_stage(compiler, bin_root, workspace, action, module, options, *, chil
             command.append('--no-test-jit')
             if option_value(options, ('--run-timeout',), None) is None:
                 command += ['--run-timeout', str(WORKSPACE_TEST_TIMEOUT_SECONDS)]
-        if workspace == 'std':
-            command += ['--artifact-kind', 'executable']
     if workspace == 'apps' and action != 'build' and (not module or child_compiler):
         command += ['--run-arg=--compiler=' + str(compiler), '--run-arg=--compiler-workers=' + runtime_workers(options)]
     return Stage(workspace + ('-' + module if module else ''), [*command, '--num-cores', '0', *options])
 
 
-def compiler_stages(compiler, bin_root, suite, options, *, devmode=False, windows=False):
+def compiler_stages(compiler, bin_root, suite, options, *, devmode=False):
     stages = []
     for name in COMPILER_SUITES if suite is None else (suite,):
         if name == 'cpp':
             if devmode:
                 stages.append(cpp_stage(compiler, options))
         elif name == 'workspace':
-            stages += workspace_stages(compiler, bin_root, options, windows=windows)
+            stages += workspace_stages(compiler, bin_root, options)
         elif name in SOURCE_SUITES:
             stages += source_stages(compiler, bin_root, name, options)
         else:
@@ -199,7 +177,7 @@ def tagged_modules(bin_root, *, windows, files=()):
     foreign_os = ('#os == Swag.TargetOs.Linux', 'LINUX') if windows else ('#os == Swag.TargetOs.Windows', 'WINDOWS')
     files = tuple(part.replace('\\', '/').lower() if windows else part for part in files)
     for workspace in WORKSPACES:
-        for cases in sorted((bin_root / workspace / 'modules').glob('*/src/tests/cases')):
+        for cases in sorted(modules_root(bin_root / workspace).glob('*/src/tests/cases')):
             tags = set()
             for case in cases.rglob('*.swg'):
                 path = case.as_posix().lower() if windows else case.as_posix()
@@ -239,7 +217,7 @@ def test_pass_stages(compiler, bin_root, test_pass, options, *, devmode, windows
         raise ValueError(f'the {test_pass!r} pass selects its own test tags')
 
     if test_pass == 'functional':
-        stages = compiler_stages(compiler, bin_root, None, options, devmode=devmode, windows=windows)
+        stages = compiler_stages(compiler, bin_root, None, options, devmode=devmode)
         golden_workspaces = {workspace for workspace, _, tags in tagged_modules(bin_root, windows=windows)
                              if 'golden' in tags}
         functional_options = [*options, '--test-tag', '!golden']
@@ -400,10 +378,13 @@ def main(arguments=None):
         keep_going = keep_going or test_pass in ('goldens', 'integrations')
     elif tool == 'unittests':
         suite = arguments.pop(0) if arguments and not arguments[0].startswith('-') else None
-        stages = compiler_stages(compiler, bin_root, suite, arguments, devmode=devmode, windows=windows)
+        stages = compiler_stages(compiler, bin_root, suite, arguments, devmode=devmode)
     else:
-        action = 'test' if tool == 'reference' else 'build'
-        if arguments and arguments[0] in ('build', 'test', 'run', 'smoke'):
+        action = {'reference': 'test', 'std': 'sema'}.get(tool, 'build')
+        actions = ('build', 'test', 'run', 'smoke')
+        if tool == 'std':
+            actions += ('sema',)
+        if arguments and arguments[0] in actions:
             action = arguments.pop(0)
         if arguments and not arguments[0].startswith('-'):
             module = arguments.pop(0).strip('"')

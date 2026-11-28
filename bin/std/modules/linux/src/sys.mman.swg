@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const PROT_NONE  = 0_s32
 const PROT_READ  = 1_s32

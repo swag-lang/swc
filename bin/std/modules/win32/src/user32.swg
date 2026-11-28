@@ -1,4 +1,4 @@
-#global export
+#global public
 
 #foreignlib("user32")
 using Swag

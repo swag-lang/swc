@@ -1,7 +1,7 @@
 # Standard library
 
-The standard workspace lives under `bin/std` beside the compiler. Its modules
-are built from the same revision as `swc`, and their generated API pages link
+The standard workspace lives under `bin/std` beside the compiler. Its sources
+are compiled into each application, and the documentation links
 back to the maintained declarations and comments in
 [`bin/std/modules`](https://github.com/swag-lang/swc/tree/master/bin/std/modules).
 
@@ -15,7 +15,7 @@ Import a standard module from `module.swg` or a script setup section:
 `SWAG_PATH` answers instead for a compiler installed without one, and points to
 that library's `bin` directory.
 
-## Application libraries
+## Application namespaces
 
 | Module | Namespace | Purpose |
 |---|---|---|
@@ -45,12 +45,11 @@ native functions retain their upstream contracts.
 
 ## Platform and build model
 
-The current standard workspace targets Windows x86-64. High-level modules pull
+The standard workspace supports Windows and Linux on x86-64. High-level source groups pull
 their dependencies transitively: for example, `gui` imports `pixel`, and
 `pixel` imports `core`, `ogl`, and `truetype`. Import the module your code uses
 directly; do not depend on a transitive import remaining part of another
 module's implementation.
 
-Standard modules build as shared libraries unless their setup selects an export
-binding. Workspace output and exported APIs are grouped by backend kind, build
-configuration, and architecture under `bin/std/.output`.
+The compiler compiles each imported source group once per application. All
+groups share its build configuration and runtime.

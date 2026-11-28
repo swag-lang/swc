@@ -1,4 +1,4 @@
-#global export
+#global public
 
 // Raises a [[Swag.SystemError]] for an operation that has already reported failure.
 //

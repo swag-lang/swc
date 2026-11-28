@@ -173,7 +173,7 @@ impl ViewerWindow
         let showClose    = .hasCellFooter()
         let exploring    = .isExploring()
         let path: string = exploring ? .explorer!.requested : (.pendingFile.isEmpty() ? .currentFile : .pendingFile)
-        let name         = Path.fileName(path) orelse path
+        let name         = path.count ? (Path.fileName(path) orelse path) : ""
         let close        = .readingLine.close
         close.show(showClose)
         if showClose

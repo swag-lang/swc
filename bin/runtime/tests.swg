@@ -90,8 +90,8 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
 // caller stops the program instead.
 func __testCheckFailed(message: string?, loc: Swag.SourceCodeLocation)->bool
 {
-    // The callback belongs to the executable running the test. A shared library has its
-    // own runtime globals, so it must not decide test ownership from those local copies.
+    // The callback belongs to the executable running the test. An independently loaded runtime
+    // copy has its own globals, so it must not decide test ownership from those local copies.
     let handler = Swag.getContext().testCheck
     return handler != null and handler(message, loc)
 }

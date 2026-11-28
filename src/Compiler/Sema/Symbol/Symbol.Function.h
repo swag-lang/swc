@@ -336,11 +336,7 @@ public:
     void addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
 
     Utf8 computeName(const TaskContext& ctx) const;
-    Utf8 computePublicApiBaseSymbolName(const TaskContext& ctx) const;
-    Utf8 computePublicApiSymbolName(const TaskContext& ctx) const;
 
-    bool supportsGeneratedModuleApiExport() const noexcept;
-    bool supportsPublicApiForeignExport() const noexcept;
 
     bool     usesStructuralTypeIdentity() const noexcept;
     uint32_t typeSignatureHash() const noexcept;
@@ -381,7 +377,6 @@ public:
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
     CallConvKind     foreignCallConvKind() const noexcept { return attributes().resolvedForeignCallConvKind(); }
-    Utf8             resolveForeignModuleName(const TaskContext& ctx) const;
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
     bool usesGlobalsToDrop() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGlobalsToDrop); }
@@ -488,6 +483,8 @@ public:
     bool  isJitWaitSatisfied(TaskStateKind kind) const noexcept;
     void* jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void* jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void  recordJitAddressObservation() noexcept { jitState_.add(JitStateE::ObservesAddress, std::memory_order_relaxed); }
+    bool  hasJitAddressObservation() const noexcept { return jitState_.has(JitStateE::ObservesAddress); }
     void* jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
 
     bool ownsJitCodeAddress(const void* address) const noexcept
@@ -594,6 +591,7 @@ private:
         Zero              = 0,
         PatchJobScheduled = 1 << 0,
         Prepared          = 1 << 1,
+        ObservesAddress   = 1 << 2,
     };
 
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |

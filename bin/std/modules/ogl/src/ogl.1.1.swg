@@ -1,4 +1,4 @@
-#global export
+#global public
 
 #static if #os == Swag.TargetOs.Linux
 {

@@ -4,7 +4,7 @@
 //! Role: This file exposes compressed packets for copying and cutting without video decoding.
 //
 #global namespace Mp4
-#global export
+#global public
 
 using Core, Core.Errors
 

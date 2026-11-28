@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const EV_KEY      = 1_u32
 const EV_ABS      = 3_u32

@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // X11 window management, input grabs and cursor resources. Function pointers borrow libxcb.
 // Requests with replies allocate through libc; release replies and errors with Linux.free.

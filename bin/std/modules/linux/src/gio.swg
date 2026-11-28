@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // Creates a desktop application object from a desktop-entry filename.
 //

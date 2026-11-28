@@ -45,6 +45,7 @@ SWC_BEGIN_NAMESPACE();
 // address; pad it to sixteen bytes and keep the island naturally aligned.
 constexpr uint32_t K_ISLAND_ALIGNMENT      = 16;
 constexpr uint32_t K_FUNCTION_THUNK_SLOT   = 16;
+constexpr uint32_t K_EFFECT_THUNK_SLOT    = 32;
 constexpr uint32_t K_FUNCTION_POINTER_SLOT = sizeof(uint64_t);
 
 namespace
@@ -214,56 +215,6 @@ namespace
         return it != sortedReferencedOffsets.end() && *it < endOffset;
     }
 
-    Result synchronizeImportedRuntimeContexts(TaskContext& ctx)
-    {
-        if (!shouldUseSharedRuntimeSetup(ctx, ctx.state().runJitFunction))
-            return Result::Continue;
-
-        const auto& runtimeImports = ctx.compiler().nativeRuntimeImports();
-        if (runtimeImports.empty())
-            return Result::Continue;
-        SWC_RESULT(requireHostTarget(ctx));
-
-        ctx.compiler().markImportedNativeExecution();
-
-        // Constexpr evaluation can enter imported modules from several sema workers at once.
-        // Their hooks own process-wide DLL lifecycle state: one worker must finish Init and
-        // PreMain before another worker can observe or refresh that state.
-        static std::mutex      runtimeHookMutex;
-        const std::scoped_lock lock(runtimeHookMutex);
-
-        const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
-
-        // JIT arguments live in the compiler's ProcessInfo. Share them with imported
-        // modules so their separate slots yield the same Swag.args() values.
-        ctx.compiler().ensureProcessInfoRunArgs();
-        const Runtime::String* processArgs = &ctx.compiler().processInfo().args;
-        for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
-        {
-            if (!runtimeImport.hasSharedRuntimeHook)
-                continue;
-
-            const Utf8 hookSymbolName = runtimeHookSymbolName(runtimeImport.linkModuleName.view());
-            void*      hookAddress    = nullptr;
-            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, runtimeImport.linkModuleName.view(), hookSymbolName.view()))
-            {
-                RelocationResolveFailure failure;
-                failure.kind         = RelocationResolveFailureKind::ForeignLookupFailed;
-                failure.moduleName   = runtimeImport.linkModuleName;
-                failure.functionName = hookSymbolName;
-                return reportRelocationFailure(ctx, DiagnosticId::cmd_err_native_invalid_foreign_function_relocation, hookSymbolName.view(), failure);
-            }
-
-            // Hooks refresh TLS before their one-time lifecycle guards, keeping
-            // Swag.getContext() valid inside imported DLL code.
-            const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
-        }
-
-        return Result::Continue;
-    }
-
     struct RuntimeExceptionReport
     {
         Diagnostic      diag;
@@ -350,6 +301,12 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    [[maybe_unused]] void recordUntrackedJitEffect()
+    {
+        if (const TaskContext* ctx = TaskContext::current(); ctx && ctx->hasCompiler())
+            ctx->compiler().recordUntrackedJitEffect();
+    }
+
 #ifdef _WIN32
     // Windows can invoke FLS callbacks after their CompilerInstance is gone.
     // Track slots so the instance can release them while callback code is alive.
@@ -393,6 +350,24 @@ namespace
         return FlsFree(slot);
     }
 
+    BOOL WINAPI jitTrackedWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped)
+    {
+        recordUntrackedJitEffect();
+        return WriteFile(file, buffer, size, written, overlapped);
+    }
+
+    DWORD WINAPI jitTrackedGetEnvironmentVariableA(LPCSTR name, LPSTR buffer, DWORD size)
+    {
+        recordUntrackedJitEffect();
+        return GetEnvironmentVariableA(name, buffer, size);
+    }
+
+    DWORD WINAPI jitTrackedGetEnvironmentVariableW(LPCWSTR name, LPWSTR buffer, DWORD size)
+    {
+        recordUntrackedJitEffect();
+        return GetEnvironmentVariableW(name, buffer, size);
+    }
+
     [[noreturn]]
     void WINAPI jitBlockedExitProcess(const UINT exitCode)
     {
@@ -412,6 +387,24 @@ namespace
 #endif
 
 #ifdef __linux__
+    ssize_t jitTrackedWrite(const int descriptor, const void* buffer, const size_t size)
+    {
+        recordUntrackedJitEffect();
+        return ::write(descriptor, buffer, size);
+    }
+
+    char* jitTrackedGetenv(const char* name)
+    {
+        recordUntrackedJitEffect();
+        return std::getenv(name);
+    }
+
+    char* jitTrackedSecureGetenv(const char* name)
+    {
+        recordUntrackedJitEffect();
+        return ::secure_getenv(name);
+    }
+
     [[noreturn]] void jitBlockedExit(const int status)
     {
         raiseJitProcessTerminationException("exit", status);
@@ -446,11 +439,23 @@ namespace
                 return reinterpret_cast<void*>(&jitTrackedFlsAlloc);
             if (asciiEqualsIgnoreCase(functionName, "FlsFree"))
                 return reinterpret_cast<void*>(&jitTrackedFlsFree);
+            if (asciiEqualsIgnoreCase(functionName, "WriteFile"))
+                return reinterpret_cast<void*>(&jitTrackedWriteFile);
+            if (asciiEqualsIgnoreCase(functionName, "GetEnvironmentVariableA"))
+                return reinterpret_cast<void*>(&jitTrackedGetEnvironmentVariableA);
+            if (asciiEqualsIgnoreCase(functionName, "GetEnvironmentVariableW"))
+                return reinterpret_cast<void*>(&jitTrackedGetEnvironmentVariableW);
         }
 #elif defined(__linux__)
         SWC_UNUSED(moduleName);
-        // Compare resolved addresses so a user library's unrelated function named
-        // exit keeps its semantics, and alternate libc module spellings stay guarded.
+        // Compare resolved addresses so a user library's unrelated function with
+        // the same name keeps its semantics, and alternate libc spellings stay guarded.
+        if (functionAddress == reinterpret_cast<void*>(&::write))
+            return reinterpret_cast<void*>(&jitTrackedWrite);
+        if (functionAddress == reinterpret_cast<void*>(&std::getenv))
+            return reinterpret_cast<void*>(&jitTrackedGetenv);
+        if (functionAddress == reinterpret_cast<void*>(&::secure_getenv))
+            return reinterpret_cast<void*>(&jitTrackedSecureGetenv);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_create))
             return reinterpret_cast<void*>(&JITThreadStorage::create);
         if (functionAddress == reinterpret_cast<void*>(&pthread_key_delete))
@@ -519,11 +524,7 @@ namespace
             }
         }
 
-        // The foreign module names the artifact to load ('ucrtbase' for system foreigns,
-        // the origin module for imported interfaces); an imported module maps to the link
-        // artifact dependency resolution selected for it.
-        const Utf8             originModule = targetFunction.resolveForeignModuleName(ctx);
-        const std::string_view moduleName   = ctx.compiler().runtimeImportLinkName(originModule.view());
+        const std::string_view moduleName = targetFunction.foreignModuleName();
         if (moduleName.empty())
         {
             if (outFailure)
@@ -562,6 +563,10 @@ namespace
             return false;
         }
 
+        // Relocation can run a library initializer before a foreign call executes.
+        if (ctx.compiler().externalModuleMgr().hadUntrackedLibraryLoad())
+            ctx.compiler().recordUntrackedJitEffect();
+
         outFunctionAddress = guardedForeignFunctionAddress(moduleName, functionName, functionAddress);
         if (!outFunctionAddress)
             return false;
@@ -570,6 +575,24 @@ namespace
             patchContext->resolvedFunctionAddresses.set(&targetFunction, outFunctionAddress);
 
         return true;
+    }
+
+    bool needsLocalAddressEffectGuard(TaskContext& ctx, const SymbolFunction& target)
+    {
+        if (!target.hasJitAddressObservation())
+            return false;
+        // Runtime pointer arithmetic is also used by the allocator and JIT plumbing.
+        const SourceFile* file = ctx.compiler().declaringSourceFile(target);
+        return !file || !file->isRuntime();
+    }
+
+    bool needsForeignEffectGuard(TaskContext& ctx, const SymbolFunction& target)
+    {
+        if (ctx.cmdLine().targetOs != hostTargetOs())
+            return false;
+        // Runtime plumbing has its own guards for host output and environment reads.
+        const SourceFile* source = ctx.compiler().declaringSourceFile(target);
+        return !source || !source->isRuntime();
     }
 
     bool resolveForeignRelocationAddress(TaskContext& ctx, void*& outFunctionAddress, SymbolFunction& targetFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
@@ -938,11 +961,18 @@ namespace
             if (!resolveForeignRelocationAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
                 return Result::Error;
 
+            // Preserve the address for function values stored in data. The
+            // eventual indirect invocation may be outside the patched code.
+            if (needsForeignEffectGuard(ctx, targetFunction))
+                ctx.compiler().recordUntrackedJitEffect();
             outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
             return outTargetAddress != 0 ? Result::Continue : Result::Error;
         }
 
-        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, targetFunction, ownerFunction, addressKind, outFailure, patchContext);
+        const Result result = resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, targetFunction, ownerFunction, addressKind, outFailure, patchContext);
+        if (result == Result::Continue && needsLocalAddressEffectGuard(ctx, targetFunction))
+            ctx.compiler().recordUntrackedJitEffect();
+        return result;
     }
 
     Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
@@ -962,7 +992,10 @@ namespace
         if (!tryResolveRelocationTargetFunction(targetFunction, reloc, outFailure))
             return Result::Error;
 
-        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, *targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, outFailure, patchContext);
+        const Result result = resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, *targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, outFailure, patchContext);
+        if (result == Result::Continue && reloc.form != MicroRelocation::Form::Relative32 && needsLocalAddressEffectGuard(ctx, *targetFunction))
+            ctx.compiler().recordUntrackedJitEffect();
+        return result;
     }
 
     bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
@@ -978,6 +1011,8 @@ namespace
         if (!resolveForeignRelocationAddress(ctx, functionAddress, *targetFunction, outFailure, patchContext))
             return false;
 
+        if (reloc.form != MicroRelocation::Form::Relative32 && needsForeignEffectGuard(ctx, *targetFunction))
+            ctx.compiler().recordUntrackedJitEffect();
         outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
         return outTargetAddress != 0;
     }
@@ -1211,6 +1246,28 @@ namespace
         return tryPatchRelative32Direct(writableCode, reloc, thunkAddress);
     }
 
+    bool patchRelative32TrackedEffect(TaskContext& ctx, std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress, uint32_t islandSlotOffset, const SymbolFunction& original)
+    {
+        static_assert(sizeof(std::atomic_bool) == 1 && std::atomic_bool::is_always_lock_free);
+        auto* slot = writableCode.data() + islandSlotOffset;
+        SWC_ASSERT(static_cast<uint64_t>(islandSlotOffset) + K_EFFECT_THUNK_SLOT <= writableCode.size_bytes());
+
+        // Swag passes an argument in R11. System V variadic calls use AL.
+        // The store and tail jump preserve all argument lanes and the stack.
+        const bool useRax = CallConv::get(original.callConvKind()).isIntArgReg(MicroReg::intReg(11));
+        const std::array<uint8_t, 2> loadFlag = {static_cast<uint8_t>(useRax ? 0x48 : 0x49), static_cast<uint8_t>(useRax ? 0xB8 : 0xBB)};
+        const std::array<uint8_t, 10> markAndJump = {
+            static_cast<uint8_t>(useRax ? 0x40 : 0x41), 0xC6, static_cast<uint8_t>(useRax ? 0x00 : 0x03), 0x01,
+            0xFF, 0x25, 0, 0, 0, 0, // jmp qword ptr [rip]
+        };
+        const auto flagAddress = reinterpret_cast<uint64_t>(ctx.compiler().jitUntrackedEffectAddress());
+        std::memcpy(slot, loadFlag.data(), loadFlag.size());
+        std::memcpy(slot + loadFlag.size(), &flagAddress, sizeof(flagAddress));
+        std::memcpy(slot + loadFlag.size() + sizeof(flagAddress), markAndJump.data(), markAndJump.size());
+        std::memcpy(slot + loadFlag.size() + sizeof(flagAddress) + markAndJump.size(), &targetAddress, sizeof(targetAddress));
+        return tryPatchRelative32Direct(writableCode, reloc, reinterpret_cast<uint64_t>(slot));
+    }
+
     bool isOptionalFunctionRelocationReady(const SymbolFunction& targetFunction)
     {
         if (targetFunction.isForeign())
@@ -1437,10 +1494,14 @@ namespace
 
                 if (reloc.kind == MicroRelocation::Kind::LocalFunctionAddress || reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress)
                 {
-                    if (!patchRelative32Function(writableCode, reloc, targetAddress, islandOffset))
+                    const bool  foreign = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress;
+                    const auto* target  = reloc.targetSymbol ? reloc.targetSymbol->safeCast<SymbolFunction>() : nullptr;
+                    const bool  track   = target && (foreign ? needsForeignEffectGuard(ctx, *target) : needsLocalAddressEffectGuard(ctx, *target));
+                    const bool  patched = track ? patchRelative32TrackedEffect(ctx, writableCode, reloc, targetAddress, islandOffset, *target)
+                                                 : patchRelative32Function(writableCode, reloc, targetAddress, islandOffset);
+                    if (!patched)
                         return Result::Error;
-
-                    islandOffset += K_FUNCTION_THUNK_SLOT;
+                    islandOffset += K_EFFECT_THUNK_SLOT;
                     continue;
                 }
 
@@ -1470,7 +1531,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     const uint32_t codeSize       = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool     registerUnwind = !unwindInfo.empty();
 
-    // Calls reserve nearby fallback thunks for targets outside rel32 reach.
+    // Calls reserve room for an effect guard or a target outside rel32 reach.
     // Fixed-payload reads may also use nearby copies; address materializations
     // retain their canonical segment storage.
     uint32_t islandSize = 0;
@@ -1499,7 +1560,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
             continue;
 
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
-        islandSize += K_FUNCTION_THUNK_SLOT;
+        islandSize += K_EFFECT_THUNK_SLOT;
     }
 
     const uint32_t relocationIslandSize = islandSize;
@@ -1663,7 +1724,11 @@ Result JIT::emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMem
 bool JIT::resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction)
 {
     const TaskScopedContext scopedContext(ctx);
-    return tryResolveForeignFunctionAddress(ctx, outFunctionAddress, targetFunction, nullptr);
+    if (!tryResolveForeignFunctionAddress(ctx, outFunctionAddress, targetFunction, nullptr))
+        return false;
+    if (needsForeignEffectGuard(ctx, targetFunction))
+        ctx.compiler().recordUntrackedJitEffect();
+    return true;
 }
 
 void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uint32_t numArgs)
@@ -2394,6 +2459,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(invoker != nullptr);
+    if (const auto* fn = ctx.state().runJitFunction; fn && needsLocalAddressEffectGuard(ctx, *fn))
+        ctx.compiler().recordUntrackedJitEffect();
 
     RuntimeSetupInvoker setupInvoker = nullptr;
     if (setupMode == JITRuntimeSetupMode::FromCompiler)
@@ -2420,7 +2487,6 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         if (setupInvoker)
             setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
-        callResult = setupMode == JITRuntimeSetupMode::FromCompiler ? synchronizeImportedRuntimeContexts(ctx) : Result::Continue;
         if (callResult == Result::Continue)
         {
             if (arg0)

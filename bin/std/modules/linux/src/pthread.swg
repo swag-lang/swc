@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // The glibc x86-64 pthread identity; it remains valid until a successful join.
 alias pthread_t = u64

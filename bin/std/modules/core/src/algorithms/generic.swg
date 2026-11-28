@@ -1,4 +1,4 @@
-#global export
+#global public
 
 // Swaps the values that `x` and `y` point to.
 //

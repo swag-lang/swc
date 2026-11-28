@@ -23,7 +23,7 @@ error model, and metaprogramming tools.
 <div class="feature-grid">
     <section class="feature-item">
         <h3>Native output</h3>
-        <p>Build executables, shared libraries, and static libraries with a direct x86-64 backend. Release builds can emit Windows debug information alongside the artifact.</p>
+        <p>Build executables with a direct x86-64 backend and source dependencies. Release builds can emit Windows debug information alongside the artifact.</p>
     </section>
     <section class="feature-item">
         <h3>Compile-time execution</h3>
@@ -73,7 +73,7 @@ const LowByteMask = #run buildMask(8)
     <a class="doc-card" href="swag-as-script.html">
         <span class="doc-card-label">Automate</span>
         <strong>Run Swag as a script</strong>
-        <span>Use a <code>.swgs</code> file, load companion sources, and import compiled dependencies.</span>
+        <span>Use a <code>.swgs</code> file, load companion sources, and import source dependencies.</span>
     </a>
     <a class="doc-card" href="how-to-build-swag.html">
         <span class="doc-card-label">Contribute</span>

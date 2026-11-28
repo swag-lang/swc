@@ -131,6 +131,38 @@ using Core, Pixel
 
     Swag.require(surface.rc.width == cast(s32, width) and surface.rc.height == cast(s32, height))
     Swag.require(expect Testing.verifyNativePresentation(surface))
+
+    // Resize from X11 without dispatching ConfigureNotify to the application yet.
+    let resizedWidth        = cast(u16, width - 20)
+    let resizedHeight       = cast(u16, height - 20)
+    let sizeValues: [2] u32 = [resizedWidth, resizedHeight]
+    let resize              = context.xcb_configure_window_checked(connection, drawable.window, (1 << 2) | (1 << 3), sizeValues)
+    expect LinuxDesktop.check(context, resize)
+    let deadline = Time.monotonicMilliseconds() + 3000
+    while true
+    {
+        let geometryRequest = context.xcb_get_geometry(connection, drawable.window)
+        let geometry        = context.xcb_get_geometry_reply(connection, geometryRequest, null)
+        Swag.require(geometry != null)
+        defer Linux.free(geometry)
+        if geometry.width == resizedWidth and geometry.height == resizedHeight
+        {
+            break
+        }
+
+        Swag.require(Time.monotonicMilliseconds() < deadline, "X11 did not resize the window")
+        Threading.Thread.sleep(1_ms)
+    }
+
+    Swag.require(surface.presentedFrame)
+    Swag.require(not (expect Testing.verifyNativePresentation(surface)))
+    for 8
+    {
+        app.runFrame()
+    }
+
+    Swag.require(surface.rc.width == resizedWidth and surface.rc.height == resizedHeight)
+    Swag.require(expect Testing.verifyNativePresentation(surface))
     var point = Math.Point{20, 30}
     surface.surfaceToScreen(&point)
     surface.screenToSurface(&point)

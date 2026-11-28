@@ -169,8 +169,8 @@ public:
     AstNodeRef tryFindNodeRef(const AstNode* node) const;
     AstNodeRef reachableNodeRef(const AstNode* node) const;
     bool       collectReachableNodePath(SmallVector<AstNodeRef>& outPath, AstNodeRef targetRef) const;
-    // The module api export is the one pass that asks thousands of reachable-node questions
-    // per file. Once it has run the index only holds memory; a later caller rebuilds it.
+    // Documentation visits many declarations per file. Release the index once
+    // collection is complete.
     void releaseReachableNodeIndex() const;
 
     enum class VisitResult
@@ -210,7 +210,7 @@ private:
     };
 
     // One traversal answers the thousands of per-symbol lookups and root-to-declaration path
-    // queries the module api export and documentation collector make against the same file. The
+    // queries the documentation collector makes against the same file. The
     // watermarks record each shard's allocation size at build time, so an index built before
     // later nodes were parsed into this Ast is rebuilt instead of answering for a stale tree.
     struct ReachableNodeIndex

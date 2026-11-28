@@ -37,40 +37,6 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   module's wall time at 16 workers, without a measurable loss in WebP decoding speed.
 - Related: compiler.build.069
 
-### compiler.codegen.003 — Build shared libraries to identical bytes
-
-- Evidence: executables and static libraries rebuild identically with six workers; `core.dll`, `pixel.dll` and `gui.dll` still differ. Two sources remain. The set of
-  generic instances varies: one build of `core.dll` emits one more `Core.Math.max` instance than
-  the next, and a shared library emits every instance its analysis created. And `.rdata` holds a
-  duplicated 16-byte string constant in some builds only: `Core.Env.showInFileExplorer` reaches
-  three such constants in one build and two in the next. The machine-code cache keys ignore
-  both string copies and global placement; the varying instance set alone still adds one or two
-  records per six-worker `core` build.
-- The generated GUI API also varies: `Lens.View.create(owner: *Wnd)->*View` exports a
-  `BorrowSummary` return mask of zero in one frozen-input control and one in other captures,
-  including captures without the allocator experiment. This is semantic metadata, not an image
-  timestamp. Retain it in reproducibility comparisons.
-- Linux DevMode control with three workers and frozen `std` sources: the native location sort
-  assigned the same key to distinct generic struct and constant-function instances. Including
-  both sets of arguments removed those collisions; only cloned local `isLowerUtf8` and
-  `isUpperUtf8` functions retained equal keys in `core`. A second source of variation was the
-  completion order of interface implementations in reflection: `Core.Hash.IHash32` and
-  `Core.StrConv.IConvert` swapped table slots and relocations between builds. Sorting the
-  reflection copy by full interface name removed that swap. A third source was the order of
-  static candidates for `Swag.makeInterface`: two generated checks in `StrConv.convertStruct`
-  exchanged their typeinfo pointers and CRCs. Candidates now sort by full type name before
-  code generation. Five subsequent `core.so` builds matched, but an earlier three-build control
-  with this candidate sort still produced two hashes. `truetype.so` and all generated API files
-  matched in a full two-build control; `ogl.so`, `pixel.so` and `gui.so` still differed.
-- Next: trace when `Lens.View.create` acquires its return-borrow mask and whether export observes
-  completed callee effects. Log which call sites create `Core.Math.max` instances in two builds and find the
-  speculative instantiation; then trace the `showInFileExplorer` string constants back to
-  `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
-  lets one value materialize twice. Compare the remaining Linux `ogl`, `pixel` and `gui`
-  section deltas before assuming they share the Windows causes.
-- Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
-  shared libraries apart from the image timestamp.
-
 ### compiler.codegen.004 — A null-valued string enum case aborts code generation
 
 - Evidence: with `enum State: string? { Absent = null, Ready = "ready" }`, a runtime
@@ -264,18 +230,17 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   serialization, dynamic dispatch, lifecycle callbacks, rebased loading, and native/JIT behavior.
   Measure compiler CPU time and memory as well as image size.
 
-### compiler.codegen.018 — Measure the runtime-symbol opt-out on Windows images
+### compiler.codegen.018 — Measure the runtime-symbol opt-out on Windows executables
 
 - Evidence: `--no-runtime-symbols` omits the `.swagdbg` runtime stack table independently of native
-  debugger information. ELF executable and shared-library checks cover clean and incremental
-  switches, file sizes, panic output and static-library frames. A Release PE size comparison remains
-  unmeasured; a Linux cross-target attempt stopped at unresolved `TlsSetValue` without Windows API
-  link inputs.
-- Next: build the same Release executable and shared library with and without the flag on a Windows
-  link host, compare file and `.swagdbg` sizes, then check default stack frames and static-library
-  consumers after incremental switches in both directions.
+  debugger information. ELF executable checks cover clean and incremental switches, file sizes
+  and panic output. A Release PE size comparison remains unmeasured; a Linux cross-target attempt
+  stopped at unresolved `TlsSetValue` without Windows API link inputs.
+- Next: build the same Release executable with and without the flag on a Windows link host, compare
+  file and `.swagdbg` sizes, then check default stack frames after incremental switches in both
+  directions.
 - Done when: the opt-out is measured on a Release PE as well as ELF, while the default retains runtime
-  frames and static-library consumers keep composing them.
+  frames.
 
 ### compiler.codegen.019 — 256-bit vectors are not expressible
 

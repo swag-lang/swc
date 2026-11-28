@@ -1,4 +1,4 @@
-using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
+using ExportApi, StaticApi, RuntimeCtxBridge, RuntimeCtxBase
 
 #assert(#sizeof(CtxAbiPair) == 8)
 #assert(#alignof(CtxAbiPair) == 4)
@@ -245,7 +245,7 @@ func verifyExportAndStaticModules()
     Swag.assert(calc.sub(2) == 3)
 }
 
-func verifyDllAbiCalls()
+func verifyImportedModuleCalls()
 {
     Swag.assert(ctxSharedPassString("abi-string") == "abi-string")
     Swag.assert(ctxSharedPassString("abi-string-2") == "abi-string-2")
@@ -403,10 +403,8 @@ func verifyRuntimeContext()
     let expectedContext = Swag.getContext().user2
     Swag.assert(ctxBaseReadContext() == 42)
     Swag.assert(ctxSharedReadContext() == 42)
-    Swag.assert(ctxDirectReadContext() == 42)
     Swag.assert(ctxBaseContextMarker() == expectedContext)
     Swag.assert(ctxSharedContextMarker() == expectedContext)
-    Swag.assert(ctxDirectContextMarker() == expectedContext)
     Swag.assert(ctxBaseInitCount() == 2)
     Swag.assert(ctxBasePreMainCount() == 2)
 }
@@ -414,18 +412,16 @@ func verifyRuntimeContext()
 #init
 {
     Swag.assert((Swag.getContext().user1 & CTX_SHARED_INIT_FLAG) != 0)
-    Swag.assert((Swag.getContext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
 }
 
 #premain
 {
     Swag.assert((Swag.getContext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
-    Swag.assert((Swag.getContext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
 }
 
 #drop
 {
-    // Same lifetime rule as `verifyRuntimeContext`: the DLL's `#drop` runs after this one and
+    // Same lifetime rule as `verifyRuntimeContext`: the dependency's `#drop` runs after this one and
     // reads `user0` through the installed pointer, so the patched copy must not be a local.
     gPatchedContext       = Swag.getContext()[]
     gPatchedContext.user0 = 43
@@ -494,9 +490,9 @@ func verifyImportedPropagate()
     Swag.assert(inlineFailure is DepPropagateError)
 }
 
-func verifyCrossDllTypeIdentity()
+func verifyCrossModuleTypeIdentity()
 {
-    // The DLL-produced typeinfo for an imported type must compare equal to the
+    // The dependency-produced typeinfo for an imported type must compare equal to the
     // consumer's view (stable cross-module `crc`/runtimeHash), and distinct types
     // must stay distinct.
     Swag.assert(depTypeOfResizeEvt() == #typeof(DepResizeEvt))
@@ -505,9 +501,9 @@ func verifyCrossDllTypeIdentity()
     Swag.assert(depTypeOfResizeEvt() != depTypeOfDestroyEvt())
 }
 
-func verifyRuntimeTypeCrossDllIdentity()
+func verifyRuntimeTypeCrossModuleIdentity()
 {
-    // Runtime `Swag.*` types are compiled into every module; the DLL's descriptors and this
+    // Runtime `Swag.*` types are compiled into every module; the dependency's descriptors and this
     // executable's must still describe one type on both sides of the boundary (F-084).
     Swag.assert(ctxSharedTypeOfBaseError() == Swag.BaseError)
     Swag.assert(ctxSharedTypeOfSystemError() == Swag.SystemError)
@@ -532,7 +528,7 @@ func verifyRuntimeTypeCrossDllIdentity()
     let none = noneOutcome.value()
     Swag.assert(none == null)
 
-    // An error raised in the DLL carries the DLL's descriptor; classifying, walking and casting
+    // An error raised in the dependency carries its descriptor; classifying, walking and casting
     // it here uses this executable's.
     var raisedOutcome: Swag.Error
     catch ctxSharedRaiseSystemError() as raisedOutcome
@@ -562,13 +558,13 @@ func verifyRuntimeTypeCrossDllIdentity()
     verifyImportedInterfaceTablePreparation()
     verifyImportedGenericRootMethodSema()
     verifyImportedClosureCallbacks()
-    verifyDllAbiCalls()
+    verifyImportedModuleCalls()
     verifyRuntimeContext()
     verifyEmptyDerivedInterfaceIs()
     verifyImportedDiscardable()
     verifyImportedPropagate()
-    verifyCrossDllTypeIdentity()
-    verifyRuntimeTypeCrossDllIdentity()
+    verifyCrossModuleTypeIdentity()
+    verifyRuntimeTypeCrossModuleIdentity()
     verifyImportedBorrowSummaries()
 
     // The workspace suite checks this marker after a test build to prove that run restored

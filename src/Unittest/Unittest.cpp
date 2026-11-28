@@ -89,12 +89,8 @@ namespace Unittest
             result.tags.clear();
             result.directories.clear();
             result.files.clear();
-            result.importApiModules.clear();
-            result.importApiDirs.clear();
-            result.importApiFiles.clear();
             result.configFile.clear();
             result.modulePath.clear();
-            result.exportApiDir.clear();
             result.outDir.clear();
             result.workDir.clear();
             result.outDirStorage.clear();

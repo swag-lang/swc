@@ -3,7 +3,7 @@
 //! Role: This file buffers capture input into AAC access units with sample-clock metadata.
 //
 #global namespace Aac
-#global export
+#global public
 
 using Core, Core.Errors
 

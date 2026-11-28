@@ -175,7 +175,7 @@ frames, and file access errors use Swag's normal `fail` mechanism.
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Video"
-    cfg.backendKind     = .SharedLibrary
+    cfg.backendKind     = .None
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/video"
 
     cfg.genDoc.kind         = .Api

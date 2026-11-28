@@ -104,7 +104,7 @@ certificates, but the module does not yet expose a reusable TLS stream.
     cfg.moduleRevision    = #swcrevision
     cfg.moduleBuildNum    = #swcbuildnum
     cfg.moduleNamespace   = "Net"
-    cfg.backendKind       = .SharedLibrary
+    cfg.backendKind       = .None
     cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/net"
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.net"

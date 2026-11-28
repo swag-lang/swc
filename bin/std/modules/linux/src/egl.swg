@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 // EGL 1.4 and EXT_platform_base/XCB entry points follow the Khronos EGL registry.
 //

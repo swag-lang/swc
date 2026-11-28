@@ -1181,7 +1181,7 @@ namespace
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, const SymbolMap* owner = nullptr, TypeRef ownerTypeRef = TypeRef::invalid())
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
-        auto                diag = SemaError::report(sema, SemaError::unknownMemberDiagnosticId(sema, owner), codeRef);
+        auto                diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
         if (owner)
         {
@@ -1311,6 +1311,12 @@ namespace
             if (sema.compiler().pendingImplRegistrations(enumSym.idRef()) != 0)
                 return sema.waitImplRegistrations(enumSym.idRef(), codeRef);
 
+            // The final impl may have attached after the lookup took its snapshot.
+            SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        }
+
+        if (lookUpCxt.empty())
+        {
             bool handled = false;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)
@@ -1440,6 +1446,14 @@ namespace
             if (handled)
                 return Result::SkipChildren;
             SWC_RESULT(symStruct.waitPendingImplMembers(sema, codeRef));
+
+            // Completion may have raced the first lookup without requiring a pause.
+            SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        }
+
+        if (lookUpCxt.empty())
+        {
+            bool handled = false;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)
                 return Result::SkipChildren;

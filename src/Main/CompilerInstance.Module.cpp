@@ -8,6 +8,7 @@
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
+#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
@@ -18,6 +19,8 @@
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerCache.h"
+#include "Main/CompilerCacheStore.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -51,11 +54,6 @@ namespace
         value.ptr    = owned->data();
         value.length = owned->size();
         ownedStrings.push_back(std::move(owned));
-    }
-
-    size_t pathNativeLength(const fs::path& path)
-    {
-        return path.native().size();
     }
 
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
@@ -101,8 +99,8 @@ namespace
 
     // Every string a build configuration carries, in one place: ownership, the setup cache
     // writer and its reader all walk the same list, so a field added here reaches all three.
-    template<typename Visit>
-    void visitBuildCfgStrings(Runtime::BuildCfg& buildCfg, Visit&& visit)
+    template<typename Config, typename Visit>
+    void visitBuildCfgStrings(Config& buildCfg, Visit&& visit)
     {
         visit(buildCfg.moduleNamespace);
 
@@ -155,14 +153,9 @@ namespace
         ownedStrings.swap(newOwnedStrings);
     }
 
-    fs::path workspaceModulesDirectory(const fs::path& workspacePath)
-    {
-        return (workspacePath / "modules").lexically_normal();
-    }
-
     fs::path workspaceModuleDirectory(const fs::path& workspacePath, std::string_view moduleName)
     {
-        return (workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
+        return (WorkspaceLayout::workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
     }
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
@@ -178,11 +171,6 @@ namespace
         result /= fs::path(artifactConfigurationName(cmdLine).c_str());
         result /= fs::path(targetArchName(cmdLine.targetArch).c_str());
         return result.lexically_normal();
-    }
-
-    fs::path dependencyModuleDirectory(const fs::path& dependencyRoot, std::string_view moduleName)
-    {
-        return (dependencyRoot / fs::path(std::string(moduleName))).lexically_normal();
     }
 
     // Answers where the standard library workspace lives.
@@ -205,634 +193,6 @@ namespace
         return Result::Continue;
     }
 
-    Result resolveSwagStdOutputRoot(fs::path& outRoot, TaskContext& ctx)
-    {
-        SWC_RESULT(resolveSwagStdWorkspaceRoot(outRoot, ctx));
-        outRoot = (outRoot / ".output").lexically_normal();
-        return Result::Continue;
-    }
-
-    Result reportWorkspaceDependencySyncFailure(TaskContext& ctx, const fs::path& path, const Utf8& because)
-    {
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_dependency_sync_failed, path, FileSystem::appendFileUsers(because, path));
-    }
-
-    bool pathIsCurrentOrParentDirectory(const fs::path& path)
-    {
-        return path == "." || path == "..";
-    }
-
-    Utf8 describeStatAnswer(const std::string_view what, const std::error_code& ec)
-    {
-        return std::format("{} answered '{}' (code {})", what, FileSystem::normalizeSystemMessage(ec).c_str(), ec.value());
-    }
-
-    // Answers whether the mirror at `dstPath` has to be refreshed from `srcPath`, and fills
-    // `outReason` with the check that asked for the copy. The reason is kept because a copy can
-    // later prove needless — the replace in copyWorkspaceDependencyFile loses its race while the
-    // destination matches the source anyway — and by then these stats cannot be replayed.
-    bool shouldCopyWorkspaceDependencyFile(Utf8& outReason, const fs::path& srcPath, const fs::path& dstPath)
-    {
-        outReason.clear();
-
-        std::error_code ec;
-        const bool      dstExists = fs::exists(dstPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("testing the destination presence", ec);
-            return true;
-        }
-
-        if (!dstExists)
-        {
-            outReason = "the destination does not exist";
-            return true;
-        }
-
-        ec.clear();
-        const bool dstRegular = fs::is_regular_file(dstPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("testing the destination kind", ec);
-            return true;
-        }
-
-        if (!dstRegular)
-        {
-            outReason = "the destination is not a regular file";
-            return true;
-        }
-
-        ec.clear();
-        const uintmax_t srcSize = fs::file_size(srcPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("reading the source size", ec);
-            return true;
-        }
-
-        ec.clear();
-        const uintmax_t dstSize = fs::file_size(dstPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("reading the destination size", ec);
-            return true;
-        }
-
-        if (srcSize != dstSize)
-        {
-            outReason = std::format("sizes differ (source {}, destination {})", srcSize, dstSize);
-            return true;
-        }
-
-        ec.clear();
-        const auto srcTime = fs::last_write_time(srcPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("reading the source time", ec);
-            return true;
-        }
-
-        ec.clear();
-        const auto dstTime = fs::last_write_time(dstPath, ec);
-        if (ec)
-        {
-            outReason = describeStatAnswer("reading the destination time", ec);
-            return true;
-        }
-
-        // Matching size and modification time is a strong, cheap signal that the file is unchanged
-        // (the sync copies preserve the source mtime, so an unchanged dependency reproduces it
-        // exactly). Reading both files in full just to byte-compare them on every run defeats the
-        // purpose of the timestamp check and dominated script-mode setup time, so trust it here.
-        if (srcTime == dstTime)
-            return false;
-
-        outReason = std::format("modification times differ (source {}, destination {})", srcTime.time_since_epoch().count(), dstTime.time_since_epoch().count());
-        return true;
-    }
-
-    Result ensureWorkspaceDependencyDirectory(TaskContext& ctx, std::unordered_set<fs::path>& ensuredDirs, const fs::path& dir)
-    {
-        if (dir.empty())
-            return Result::Continue;
-
-        const fs::path normalizedDir = dir.lexically_normal();
-        if (!ensuredDirs.insert(normalizedDir).second)
-            return Result::Continue;
-
-        std::error_code ec;
-        fs::create_directories(normalizedDir, ec);
-        if (ec)
-            return reportWorkspaceDependencySyncFailure(ctx, normalizedDir, FileSystem::normalizeSystemMessage(ec));
-
-        return Result::Continue;
-    }
-
-    bool tryFindDependencyArtifactStem(Utf8& outStem, const fs::path& dir, std::string_view preferredStem, std::string_view extension, const bool caseSensitive)
-    {
-        outStem.clear();
-        if (dir.empty())
-            return false;
-
-        Utf8 preferredStemKey = preferredStem;
-        if (!caseSensitive)
-            preferredStemKey.make_lower();
-
-        std::vector<Utf8> candidates;
-        std::error_code   ec;
-        for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return false;
-
-            ec.clear();
-            if (!it->is_regular_file(ec) || ec)
-                continue;
-            if (it->path().extension() != extension)
-                continue;
-
-            Utf8 candidate = it->path().stem().string();
-            if (candidate.empty())
-                continue;
-
-            Utf8 candidateKey = candidate;
-            if (!caseSensitive)
-                candidateKey.make_lower();
-            if (candidateKey == preferredStemKey)
-            {
-                outStem = std::move(candidate);
-                return true;
-            }
-
-            candidates.push_back(std::move(candidate));
-        }
-
-        if (candidates.size() != 1)
-            return false;
-
-        outStem = std::move(candidates.front());
-        return true;
-    }
-
-    // Whether this build could take its dependencies' code in at all, from the artifact it produces
-    // alone. It is the cheap half of the question — the closure still has to allow it — and it is
-    // what keeps a script from mirroring archives it will never link: a script has no artifact of
-    // its own, it runs through the compiler, which calls into the shared libraries.
-    bool mayLinkDependenciesIn(const CompilerInstance& compiler)
-    {
-        return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.cmdLine().scriptMode;
-    }
-
-    // Two import requests share one dependency binding when they name the same module the same way.
-    bool isSameImportRequest(const CompilerInstance::ModuleSetupImport& lhs, const CompilerInstance::ModuleSetupImport& rhs)
-    {
-        return lhs.moduleName == rhs.moduleName &&
-               lhs.location == rhs.location &&
-               lhs.version == rhs.version &&
-               FileSystem::pathEquals(lhs.baseDir, rhs.baseDir) &&
-               lhs.linkBackendKind == rhs.linkBackendKind;
-    }
-
-    Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem, const Runtime::TargetOs targetOs)
-    {
-        Utf8       result;
-        const bool linuxTarget = targetOs == Runtime::TargetOs::Linux;
-        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, linuxTarget ? ".a" : ".lib", linuxTarget))
-            return result;
-        if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, linuxTarget ? ".so" : ".dll", linuxTarget))
-            return result;
-        return Utf8{fallbackStem};
-    }
-
-    // Extension of a dependency copy still being written. It belongs to the process whose id it
-    // carries, so every other process leaves it alone: pruning one would break the rename it is
-    // waiting for. One survives only a compiler killed mid-copy, and '--rebuild' or `swc clean`
-    // takes it from there.
-    constexpr std::string_view K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION = ".swctmp";
-
-    bool isWorkspaceDependencyTempPath(const fs::path& path)
-    {
-        return path.extension() == K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION;
-    }
-
-    // Copies one dependency file so that the destination path never names a partial one.
-    //
-    // Two compilers can mirror the same dependency at the same time — two scripts sharing a set of
-    // imports share their mirror — and a reader of a half-written file has no way to tell. So the
-    // copy lands beside its destination under a name only this process uses, takes the source
-    // modification time there (it is what the next run compares), and is moved into place by a
-    // rename, which either happened or did not.
-    Result copyWorkspaceDependencyFile(TaskContext& ctx, const fs::path& srcPath, const fs::path& dstPath, const Utf8& copyReason)
-    {
-        fs::path tempPath = dstPath;
-        tempPath += std::format(".{}{}", Os::currentProcessId(), K_WORKSPACE_DEPENDENCY_TEMP_EXTENSION);
-
-        std::error_code ec;
-        fs::copy_file(srcPath, tempPath, fs::copy_options::overwrite_existing, ec);
-        if (ec)
-            return reportWorkspaceDependencySyncFailure(ctx, tempPath, FileSystem::normalizeSystemMessage(ec));
-
-        ec.clear();
-        const auto srcTime = fs::last_write_time(srcPath, ec);
-        if (!ec)
-        {
-            ec.clear();
-            fs::last_write_time(tempPath, srcTime, ec);
-        }
-
-        FileSystem::IoErrorInfo renameError;
-        if (!ec && FileSystem::renameOverFile(tempPath, dstPath, renameError) != Result::Continue)
-            ec = std::make_error_code(std::errc::permission_denied);
-
-        if (ec)
-        {
-            std::error_code removeEc;
-            fs::remove(tempPath, removeEc);
-
-            // The replace can lose a race it did not need to win. This process maps the previous
-            // copy for JIT execution while a background link still reads beside it, and the copy
-            // being installed may carry the very bytes the destination already holds. A mirror
-            // whose destination matches the source is correct however the rename fared, so only
-            // a real difference is worth an error.
-            Utf8 recheckReason;
-            if (!shouldCopyWorkspaceDependencyFile(recheckReason, srcPath, dstPath))
-            {
-                // The needless copy is harmless, but it is also the whole mystery: the compare
-                // had matched this very pair moments before it asked for the copy, and neither
-                // answer can be replayed post-mortem. So the trace is written now, where the
-                // race actually happened.
-                Logger::print(ctx, std::format("[sync] '{}' was mirrored while it already matched its source; the copy fired because {}; the replace answered '{}'\n", Utf8(dstPath).c_str(), copyReason.c_str(), FileSystem::normalizeSystemMessage(ec).c_str()));
-                return Result::Continue;
-            }
-
-            return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
-        }
-
-        return Result::Continue;
-    }
-
-    Result syncWorkspaceDependencyDirectory(TaskContext& ctx, const fs::path& srcDir, const fs::path& dstDir, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-    {
-        if (srcDir.empty() || dstDir.empty())
-            return Result::Continue;
-
-        const fs::path normalizedSrcDir = FileSystem::normalizePath(srcDir);
-        const fs::path normalizedDstDir = FileSystem::normalizePath(dstDir);
-        if (FileSystem::pathEquals(normalizedSrcDir, normalizedDstDir))
-            return Result::Continue;
-
-        Utf8     because;
-        fs::path resolvedSrcDir = normalizedSrcDir;
-        if (FileSystem::resolveExistingFolder(resolvedSrcDir, because) != Result::Continue)
-            return reportWorkspaceDependencySyncFailure(ctx, resolvedSrcDir, because);
-
-        std::error_code              ec;
-        std::unordered_set<fs::path> ensuredDirs;
-        SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, normalizedDstDir));
-
-        for (fs::recursive_directory_iterator it(resolvedSrcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, resolvedSrcDir, FileSystem::normalizeSystemMessage(ec));
-
-            const fs::path relativePath = it->path().lexically_relative(resolvedSrcDir);
-            if (relativePath.empty())
-                continue;
-            if (apiSnapshot && (ModuleApi::isPublishedFile(relativePath) || relativePath == ".swc-api-incomplete"))
-                continue;
-            if (isWorkspaceDependencyTempPath(it->path()) || FileSystem::isMovedAsidePath(it->path()))
-                continue;
-
-            fs::path dstPath = (normalizedDstDir / relativePath).lexically_normal();
-            ec.clear();
-            if (it->is_directory(ec))
-            {
-                SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstPath));
-                continue;
-            }
-
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
-
-            ec.clear();
-            if (!it->is_regular_file(ec))
-            {
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
-                continue;
-            }
-
-            Utf8 copyReason;
-            if (!shouldCopyWorkspaceDependencyFile(copyReason, it->path(), dstPath))
-                continue;
-
-            const fs::path dstParent = dstPath.parent_path();
-            if (!dstParent.empty())
-                SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstParent));
-
-            SWC_RESULT(copyWorkspaceDependencyFile(ctx, it->path(), dstPath, copyReason));
-        }
-
-        std::vector<fs::path> stalePaths;
-        for (fs::recursive_directory_iterator it(normalizedDstDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, normalizedDstDir, FileSystem::normalizeSystemMessage(ec));
-
-            const fs::path relativePath = it->path().lexically_relative(normalizedDstDir);
-            if (relativePath.empty() || pathIsCurrentOrParentDirectory(relativePath))
-                continue;
-            if (isWorkspaceDependencyTempPath(it->path()))
-                continue;
-            if (FileSystem::isMovedAsidePath(it->path()))
-            {
-                // Removable once the compiler that mapped it has ended; left alone otherwise.
-                std::error_code removeEc;
-                fs::remove(it->path(), removeEc);
-                continue;
-            }
-            // The API publisher owns this marker until every copy and stale-file removal
-            // succeeds. Removing it here would make an interrupted mirror look complete.
-            if (relativePath == ".swc-api-incomplete")
-                continue;
-            if (apiSnapshot && ModuleApi::isPublishedFile(relativePath))
-                continue;
-
-            const fs::path srcPath = (resolvedSrcDir / relativePath).lexically_normal();
-            ec.clear();
-            if (!fs::exists(srcPath, ec))
-            {
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, srcPath, FileSystem::normalizeSystemMessage(ec));
-                stalePaths.push_back(it->path());
-            }
-        }
-
-        std::ranges::sort(stalePaths, std::ranges::greater{}, pathNativeLength);
-        stalePaths.erase(std::ranges::unique(stalePaths).begin(), stalePaths.end());
-        for (const fs::path& stalePath : stalePaths)
-        {
-            ec.clear();
-            fs::remove_all(stalePath, ec);
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, stalePath, FileSystem::normalizeSystemMessage(ec));
-        }
-
-        if (apiSnapshot)
-            SWC_RESULT(ModuleApi::writeSnapshot(ctx, *apiSnapshot, normalizedSrcDir, normalizedDstDir));
-        return Result::Continue;
-    }
-
-    Utf8 dependencyConfigurationLabel(const CommandLine& cmdLine)
-    {
-        const std::string_view debugInfo = cmdLine.debugInfo ? " with debug information" : "";
-        return std::format("build-cfg '{}'{} and arch '{}'", cmdLine.buildCfg.c_str(), debugInfo, targetArchName(cmdLine.targetArch).c_str());
-    }
-
-    struct DependencyConfigCandidate
-    {
-        fs::path                     path;
-        Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
-    };
-
-    Runtime::BuildCfgBackendKind dependencyBackendKindFromFolderName(const std::string_view name)
-    {
-        if (name == backendKindName(Runtime::BuildCfgBackendKind::Executable).view())
-            return Runtime::BuildCfgBackendKind::Executable;
-        if (name == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view())
-            return Runtime::BuildCfgBackendKind::SharedLibrary;
-        if (name == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view())
-            return Runtime::BuildCfgBackendKind::StaticLibrary;
-        if (name == backendKindName(Runtime::BuildCfgBackendKind::Export).view())
-            return Runtime::BuildCfgBackendKind::Export;
-        return Runtime::BuildCfgBackendKind::None;
-    }
-
-    Utf8 joinDependencyPaths(const std::vector<fs::path>& paths)
-    {
-        Utf8 result;
-        for (const fs::path& path : paths)
-        {
-            if (!result.empty())
-                result += ", ";
-            result += Utf8(path);
-        }
-
-        return result;
-    }
-
-    bool selectUniqueDependencyConfigMatch(fs::path& outPath, Runtime::BuildCfgBackendKind& outBackendKind, std::span<const DependencyConfigCandidate> matches, Runtime::BuildCfgBackendKind backendKind)
-    {
-        outPath.clear();
-        outBackendKind = Runtime::BuildCfgBackendKind::None;
-
-        for (const DependencyConfigCandidate& match : matches)
-        {
-            if (match.backendKind != backendKind)
-                continue;
-
-            if (outPath.empty())
-            {
-                outPath        = match.path;
-                outBackendKind = match.backendKind;
-                continue;
-            }
-
-            outPath.clear();
-            outBackendKind = Runtime::BuildCfgBackendKind::None;
-            return false;
-        }
-
-        return !outPath.empty();
-    }
-
-    Result collectDependencyConfigurationMatches(std::vector<DependencyConfigCandidate>& outMatches, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
-    {
-        outMatches.clear();
-        outBecause.clear();
-
-        const fs::path moduleDir         = dependencyModuleDirectory(dependencyRoot, moduleName);
-        fs::path       resolvedModuleDir = moduleDir;
-        if (FileSystem::resolveExistingFolder(resolvedModuleDir, outBecause) != Result::Continue)
-            return Result::Error;
-
-        const auto      buildCfgDir = fs::path(artifactConfigurationName(cmdLine).c_str());
-        const auto      archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
-        std::error_code ec;
-        for (fs::directory_iterator it(resolvedModuleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-            {
-                outBecause = FileSystem::normalizeSystemMessage(ec);
-                return Result::Error;
-            }
-
-            ec.clear();
-            if (!it->is_directory(ec) || ec)
-                continue;
-
-            fs::path candidate = (it->path() / buildCfgDir / archDir).lexically_normal();
-            ec.clear();
-            if (!fs::is_directory(candidate, ec) || ec)
-                continue;
-
-            outMatches.push_back({.path        = FileSystem::normalizePath(candidate),
-                                  .backendKind = dependencyBackendKindFromFolderName(it->path().filename().string())});
-        }
-
-        if (outMatches.empty())
-        {
-            outBecause = std::format("no configuration folder matches {}", dependencyConfigurationLabel(cmdLine).c_str());
-            return Result::Error;
-        }
-
-        std::ranges::sort(outMatches, {}, &DependencyConfigCandidate::path);
-        outMatches.erase(std::ranges::unique(outMatches, {}, &DependencyConfigCandidate::path).begin(), outMatches.end());
-        return Result::Continue;
-    }
-
-    Result findDependencyConfigurationDirectory(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine, Runtime::BuildCfgBackendKind* outBackendKind = nullptr)
-    {
-        outDir.clear();
-        if (outBackendKind)
-            *outBackendKind = Runtime::BuildCfgBackendKind::None;
-
-        std::vector<DependencyConfigCandidate> matches;
-        SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
-        fs::path selectedPath;
-        auto     selectedBackendKind = Runtime::BuildCfgBackendKind::None;
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::SharedLibrary))
-        {
-            if (outBackendKind)
-                *outBackendKind = selectedBackendKind;
-            outDir = std::move(selectedPath);
-            return Result::Continue;
-        }
-
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::Export))
-        {
-            if (outBackendKind)
-                *outBackendKind = selectedBackendKind;
-            outDir = std::move(selectedPath);
-            return Result::Continue;
-        }
-
-        if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, Runtime::BuildCfgBackendKind::StaticLibrary))
-        {
-            if (outBackendKind)
-                *outBackendKind = selectedBackendKind;
-            outDir = std::move(selectedPath);
-            return Result::Continue;
-        }
-
-        if (matches.size() != 1)
-        {
-            std::vector<fs::path> paths;
-            paths.reserve(matches.size());
-            for (const DependencyConfigCandidate& match : matches)
-                paths.push_back(match.path);
-
-            outBecause = std::format("multiple configuration folders match {} ({})", dependencyConfigurationLabel(cmdLine).c_str(), joinDependencyPaths(paths).c_str());
-            return Result::Error;
-        }
-
-        if (matches.front().backendKind == Runtime::BuildCfgBackendKind::Executable)
-        {
-            outBecause = std::format("no importable dependency backend matches {} (found executable output only)", dependencyConfigurationLabel(cmdLine).c_str());
-            return Result::Error;
-        }
-
-        outDir = matches.front().path;
-        if (outBackendKind)
-            *outBackendKind = matches.front().backendKind;
-        return Result::Continue;
-    }
-
-    const fs::path* findDependencyBackendDirectory(const std::span<const DependencyConfigCandidate> matches, const Runtime::BuildCfgBackendKind backendKind)
-    {
-        const auto it = std::ranges::find(matches, backendKind, &DependencyConfigCandidate::backendKind);
-        return it == matches.end() ? nullptr : &it->path;
-    }
-
-    fs::path dependencyRootFromConfigurationDir(const fs::path& configDir)
-    {
-        fs::path result = configDir;
-        for (uint32_t i = 0; i < 4 && result.has_parent_path(); ++i)
-            result = result.parent_path();
-        return result.lexically_normal();
-    }
-
-    // The caller holds DirectoryAccess until both these bytes and .swc-deps are captured.
-    Result captureModuleApiSources(TaskContext& ctx, std::vector<ModuleApi::SourceSnapshot>& outFiles, const fs::path& directory)
-    {
-        std::vector<fs::directory_entry> entries;
-
-        // An unreadable entry cannot be skipped: that would publish an incomplete snapshot
-        // as a complete API even though the exporter itself finished successfully.
-        std::error_code ec;
-        for (fs::recursive_directory_iterator it(directory, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
-
-            const bool regular = it->is_regular_file(ec);
-            if (ec)
-                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
-            if (!regular)
-                continue;
-
-            if (ModuleApi::isPublishedFile(it->path()))
-                entries.push_back(*it);
-        }
-
-        if (ec)
-            return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
-
-        std::ranges::sort(entries, {}, &fs::directory_entry::path);
-        outFiles.reserve(entries.size());
-
-        for (const fs::directory_entry& entry : entries)
-        {
-            ModuleApi::SourceSnapshot source;
-            source.path      = entry.path();
-            source.writeTime = entry.last_write_time(ec);
-            if (ec)
-                return FileSystem::reportInvalidFolder(ctx, source.path, FileSystem::normalizeSystemMessage(ec));
-
-            FileSystem::IoErrorInfo ioError;
-            std::vector<char8_t>    bytes;
-            if (FileSystem::readBinaryFile(source.path, bytes, ioError, SourceContent::TRAILING_0) != Result::Continue)
-                return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
-
-            source.content = std::make_shared<const SourceContent>(std::move(bytes));
-            outFiles.push_back(std::move(source));
-        }
-
-        return Result::Continue;
-    }
-
-    // Without a snapshot handed over, captures the API sources of 'sourceDir' into 'outCaptured'
-    // and points 'ioSnapshot' at them.
-    Result captureMissingApiSnapshot(TaskContext& ctx, const std::vector<ModuleApi::SourceSnapshot>*& ioSnapshot, std::vector<ModuleApi::SourceSnapshot>& outCaptured, const fs::path& sourceDir)
-    {
-        if (ioSnapshot)
-            return Result::Continue;
-
-        ModuleApi::DirectoryAccess access;
-        Utf8                       because;
-        if (access.openRead(because, sourceDir) != Result::Continue)
-            return reportWorkspaceDependencySyncFailure(ctx, sourceDir, because);
-        SWC_RESULT(captureModuleApiSources(ctx, outCaptured, sourceDir));
-        ioSnapshot = &outCaptured;
-        return Result::Continue;
-    }
-
-    fs::path dependencyImportMetadataPath(const fs::path& apiDir)
-    {
-        return (apiDir / ".swc-deps").lexically_normal();
-    }
-
     bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
     {
         std::error_code ec;
@@ -843,15 +203,9 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
-    Utf8 formatWorkspaceStageStat(const TaskContext& ctx, const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
+    Utf8 formatWorkspaceStageStat(const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
     {
         std::vector<Utf8> parts;
-        if (ctx.cmdLine().workspaceDependencyBuild && workspaceLogState.builtModules == workspaceLogState.activeModules)
-        {
-            if (workspaceLogState.compiledModules)
-                parts.push_back(ScopedTimedLog::formatStatCount(workspaceLogState.compiledModules, "module"));
-            return ScopedTimedLog::joinStatItems(parts);
-        }
 
         if (workspaceLogState.activeModules)
         {
@@ -928,23 +282,22 @@ namespace
         }
     }
 
-    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_FILE = ".swc-artifacts";
+    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_FILE    = ".swc-artifacts";
+    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_VERSION = "version=11";
 
     struct WorkspaceArtifactManifest
     {
-        std::vector<fs::path>                  apiInputs;
-        std::map<fs::path, fs::file_time_type> nativeReadTimes;
         std::vector<fs::path>                  inputs;
-        std::vector<fs::path>                  dependencyDirs;
         std::vector<fs::path>                  artifacts;
-        std::vector<fs::path>                  linkObjects;
-        std::vector<Utf8>                      linkLibraries;
-        fs::file_time_type                     inputsReadTime{};
-        fs::file_time_type                     dependenciesReadTime{};
-        std::map<fs::path, fs::file_time_type> apiReadTimes;
+        Os::FileChangeTime                      inputsReadTime{};
         Utf8                                   configuration;
         Utf8                                   tagsFingerprint;
     };
+
+    Utf8 workspaceFingerprint(const std::string_view contents)
+    {
+        return Utf8Helper::toLowerHex(sha256(std::as_bytes(std::span{contents})));
+    }
 
     Utf8 workspaceTagsFingerprint(const std::span<const Utf8> tags)
     {
@@ -956,8 +309,7 @@ namespace
             identity += std::format("{}:", tag.size());
             identity += tag;
         }
-        const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()});
-        return Utf8Helper::toLowerHex(digest);
+        return workspaceFingerprint(identity.view());
     }
 
     // What a command line changes in a module's code without changing where its artifacts go.
@@ -966,21 +318,19 @@ namespace
     Utf8 workspaceArtifactConfiguration(const CompilerInstance& compiler)
     {
         const Runtime::BuildCfgBackend& backend = compiler.buildCfg().backend;
-        return std::format("debug-info:{};no-runtime-symbols:{};optim-level:{};cpu:{}", backend.debugInfo ? 1 : 0, compiler.cmdLine().noRuntimeSymbols ? 1 : 0, static_cast<int>(backend.optimLevel), compiler.cmdLine().targetCpu.view());
-    }
-
-    // A shared library whose public API did not change can be replaced without rebuilding an
-    // executable that imports it dynamically. Keep only the native generations whose code was
-    // incorporated into the artifact. Compile-time execution remains stricter: its result may
-    // depend on any imported native implementation, whether linked statically or loaded dynamically.
-    const std::map<fs::path, fs::file_time_type>& workspaceNativeReadTimes(const CompilerInstance&                       compiler,
-                                                                           const std::map<fs::path, fs::file_time_type>& allReadTimes,
-                                                                           const std::map<fs::path, fs::file_time_type>& staticReadTimes)
-    {
-        if (compiler.importedNativeExecuted())
-            return allReadTimes;
-
-        return staticReadTimes;
+        const CommandLine& cmdLine = compiler.cmdLine();
+        Utf8 configuration = std::format("os:{};debug-info:{};no-runtime-symbols:{};optim-level:{};cpu:{}",
+                                         static_cast<int>(cmdLine.targetOs), backend.debugInfo, cmdLine.noRuntimeSymbols,
+                                         static_cast<int>(backend.optimLevel), cmdLine.targetCpu.view());
+        const auto appendValues = [&configuration](std::string_view label, const auto& values) {
+            for (const Utf8& value : values)
+                configuration += std::format(";{}={}:{}", label, value.size(), value.view());
+        };
+        appendValues("file-filter", cmdLine.fileFilter);
+        appendValues("warn-as-error", cmdLine.warnAsErrors);
+        appendValues("warn-as-warning", cmdLine.warnAsWarnings);
+        appendValues("warn-disable", cmdLine.warnDisabled);
+        return configuration;
     }
 
     // Each build mode keeps its own manifest, so alternating `test` and `run` does
@@ -995,15 +345,6 @@ namespace
         return path.filename().string().starts_with(K_WORKSPACE_ARTIFACT_MANIFEST_FILE);
     }
 
-    void normalizeWorkspacePaths(std::vector<fs::path>& paths)
-    {
-        for (fs::path& path : paths)
-            path = FileSystem::normalizePath(path);
-
-        std::ranges::sort(paths, {}, &fs::path::native);
-        paths.erase(std::ranges::unique(paths).begin(), paths.end());
-    }
-
     void normalizeWorkspacePathsLexically(std::vector<fs::path>& paths)
     {
         for (fs::path& path : paths)
@@ -1013,105 +354,26 @@ namespace
         paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
-    bool sameWorkspacePathList(std::span<const fs::path> lhs, std::span<const fs::path> rhs)
-    {
-        return lhs.size() == rhs.size() && std::ranges::equal(lhs, rhs);
-    }
-
     bool workspacePathListContainsAll(std::span<const fs::path> paths, std::span<const fs::path> expectedPaths)
     {
         return std::ranges::includes(paths, expectedPaths, {}, &fs::path::native, &fs::path::native);
     }
 
-    bool tryGetWorkspacePathWriteTime(fs::file_time_type& outTime, const fs::path& path)
+    bool tryCollectLatestWorkspaceTreeChangeTime(Os::FileChangeTime& outTime, const fs::path& root)
     {
-        std::error_code ec;
-        outTime = fs::last_write_time(path, ec);
-        return !ec;
-    }
-
-    bool tryCollectLatestWorkspaceTreeWriteTime(fs::file_time_type& outTime, const fs::path& root)
-    {
-        if (!tryGetWorkspacePathWriteTime(outTime, root))
+        if (!Os::tryGetFileChangeTime(outTime, root))
             return false;
 
         std::error_code ec;
-        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::none, ec), end; !ec && it != end; it.increment(ec))
         {
-            if (ec)
-                return false;
-
-            const auto entryTime = it->last_write_time(ec);
-            if (ec)
+            Os::FileChangeTime entryTime;
+            if (!Os::tryGetFileChangeTime(entryTime, it->path()))
                 return false;
             if (entryTime > outTime)
                 outTime = entryTime;
         }
 
-        return true;
-    }
-
-    bool tryGetWorkspaceDependencyBuildTime(fs::file_time_type& outTime, const fs::path& dependencyDir, const fs::path& consumerManifestPath)
-    {
-        // A dependency output directory can hold normal and test artifacts side by side. Use the
-        // manifest for the consuming mode so rebuilding one mode does not invalidate the other.
-        const fs::path dependencyManifestPath = dependencyDir / consumerManifestPath.filename();
-        if (tryGetWorkspacePathWriteTime(outTime, dependencyManifestPath))
-            return true;
-
-        // A native test imports normal dependency artifacts. Its own manifest suffix need not
-        // exist beside those artifacts, even though their normal build manifest is available.
-        if (tryGetWorkspacePathWriteTime(outTime, dependencyDir / K_WORKSPACE_ARTIFACT_MANIFEST_FILE))
-            return true;
-
-        // Mirroring creates and removes publication markers even when every input is unchanged.
-        // Directory timestamps therefore date the reader's bookkeeping, not a dependency build.
-        outTime = {};
-        std::error_code ec;
-        for (fs::recursive_directory_iterator it(dependencyDir, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return false;
-            const bool regular = it->is_regular_file(ec);
-            if (ec)
-                return false;
-            if (!regular || isWorkspaceDependencyTempPath(it->path()) || FileSystem::isMovedAsidePath(it->path()) || it->path().filename() == ".swc-api-incomplete")
-                continue;
-            const auto writeTime = it->last_write_time(ec);
-            if (ec)
-                return false;
-            outTime = std::max(outTime, writeTime);
-        }
-        return !ec;
-    }
-
-    bool workspaceApiInputsAreUpToDate(std::vector<fs::path>& outInputs, const fs::path& directory, const fs::file_time_type readTime)
-    {
-        ModuleApi::DirectoryAccess access;
-        Utf8                       because;
-        if (access.openRead(because, directory) != Result::Continue)
-            return false;
-
-        // API bytes and import metadata are captured before native artifacts are consumed.
-        // A later link or artifact manifest in the same directory does not date those bytes.
-        std::error_code ec;
-        for (fs::recursive_directory_iterator it(directory, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return false;
-            const bool regular = it->is_regular_file(ec);
-            if (ec)
-                return false;
-            if (!regular)
-                continue;
-            const fs::path path = it->path();
-            if (!ModuleApi::isPublishedFile(path))
-                continue;
-            outInputs.push_back(path.lexically_normal());
-            const auto writeTime = it->last_write_time(ec);
-            if (ec || writeTime > readTime)
-                return false;
-        }
         return !ec;
     }
 
@@ -1119,13 +381,13 @@ namespace
     //
     // The embedded runtime sources (<resource root>/runtime/*.swg) are compiled into every
     // module, so a change there must invalidate a build exactly like a new compiler binary.
-    bool tryGetCompilerBuildTime(fs::file_time_type& outTime, const fs::path& compilerPath)
+    bool tryGetCompilerBuildTime(Os::FileChangeTime& outTime, const fs::path& compilerPath)
     {
-        if (!tryGetWorkspacePathWriteTime(outTime, compilerPath))
+        if (!Os::tryGetFileChangeTime(outTime, compilerPath))
             return false;
 
-        fs::file_time_type runtimeTime{};
-        if (!tryCollectLatestWorkspaceTreeWriteTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
+        Os::FileChangeTime runtimeTime{};
+        if (!tryCollectLatestWorkspaceTreeChangeTime(runtimeTime, FileSystem::compilerResourceRoot(compilerPath) / "runtime"))
             return false;
 
         outTime = std::max(outTime, runtimeTime);
@@ -1135,42 +397,27 @@ namespace
     // ------------------------------------------------------------------ module setup cache
     //
     // Running a module's setup means parsing and sema'ing its module.swg on top of the whole
-    // runtime prelude, and running its build-configuration block on the JIT. Measured at about
-    // 120 ms per module on this machine, for a result that only changes when module.swg, a file
-    // it loads, the command line or the compiler changes. So the result is kept in the module's
-    // work directory, keyed on exactly those, and a command whose modules are all up to date no
-    // longer pays the prelude once per module.
+    // runtime prelude, and running its build-configuration block on the JIT. Compatible
+    // commands reuse this snapshot from the shared compiler cache.
     //
     // The snapshot is a byte image: the build configuration is copied as it lies, and every
     // string it carries is written after it, in the order visitBuildCfgStrings walks them. The
     // reader restores each string into storage the snapshot owns, exactly as ownBuildCfgStrings
     // does after a live setup. A compiler of another build never reads it, because the compiler's
     // identity is part of the fingerprint.
-    constexpr std::string_view K_MODULE_SETUP_CACHE_FILE  = ".swc-setup";
-    constexpr uint32_t         K_MODULE_SETUP_CACHE_MAGIC = 0x50555357; // 'WSUP'
+    constexpr uint32_t K_MODULE_SETUP_CACHE_MAGIC = 0x52555357; // Source setup format with input checksums
+    constexpr size_t   K_MODULE_SETUP_CHECKSUM_SIZE = 32;
 
     struct ModuleSetupCacheWriter
     {
-        std::vector<char> bytes;
+        ByteArray bytes;
 
-        template<typename T>
-        void integer(const T value)
-        {
-            const size_t offset = bytes.size();
-            bytes.resize(offset + sizeof(value));
-            std::memcpy(bytes.data() + offset, &value, sizeof(value));
-        }
-
-        void u32(const uint32_t value) { integer(value); }
-        void u64(const uint64_t value) { integer(value); }
+        void u32(const uint32_t value) { bytes.appendLe32(value); }
 
         void blob(const void* data, const size_t size)
         {
             u32(static_cast<uint32_t>(size));
-            const size_t offset = bytes.size();
-            bytes.resize(offset + size);
-            if (size)
-                std::memcpy(bytes.data() + offset, data, size);
+            bytes.append(std::span(static_cast<const std::byte*>(data), size));
         }
 
         void str(const std::string_view value)
@@ -1186,7 +433,7 @@ namespace
 
     struct ModuleSetupCacheReader
     {
-        std::span<const char> bytes;
+        ByteView              bytes;
         size_t                offset = 0;
         bool                  failed = false;
 
@@ -1197,27 +444,21 @@ namespace
             return !failed;
         }
 
-        template<typename T>
-        T integer()
+        uint32_t u32()
         {
-            T value = 0;
-            if (has(sizeof(value)))
-            {
-                std::memcpy(&value, bytes.data() + offset, sizeof(value));
-                offset += sizeof(value);
-            }
+            if (!has(sizeof(uint32_t)))
+                return 0;
+            const uint32_t value = bytes.readLe32(offset);
+            offset += sizeof(value);
             return value;
         }
-
-        uint32_t u32() { return integer<uint32_t>(); }
-        uint64_t u64() { return integer<uint64_t>(); }
 
         std::string_view str()
         {
             const uint32_t size = u32();
             if (!has(size))
                 return {};
-            const std::string_view value(bytes.data() + offset, size);
+            const std::string_view value(reinterpret_cast<const char*>(bytes.data() + offset), size);
             offset += size;
             return value;
         }
@@ -1228,161 +469,142 @@ namespace
         }
     };
 
-    // One input of a setup, dated the way the artifact manifest dates its inputs: by write time,
-    // plus the size so a rewrite that lands on the same tick still misses.
-    bool stampModuleSetupInput(ModuleSetupCacheWriter& writer, const fs::path& path, const fs::file_time_type inputsReadTime)
-    {
-        std::error_code    ec;
-        fs::file_time_type writeTime = fs::last_write_time(path, ec);
-        if (ec || writeTime > inputsReadTime)
-            return false;
-        const uintmax_t size = fs::file_size(path, ec);
-        if (ec)
-            return false;
-
-        writer.path(path);
-        writer.u64(static_cast<uint64_t>(writeTime.time_since_epoch().count()));
-        writer.u64(static_cast<uint64_t>(size));
-        return true;
-    }
-
     bool moduleSetupInputMatches(ModuleSetupCacheReader& reader, fs::path& outPath)
     {
-        outPath                   = reader.path();
-        const uint64_t writeCount = reader.u64();
-        const uint64_t storedSize = reader.u64();
-        if (reader.failed)
+        outPath                         = reader.path();
+        const std::string_view checksum = reader.str();
+        if (reader.failed || checksum.size() != K_MODULE_SETUP_CHECKSUM_SIZE)
             return false;
 
-        std::error_code          ec;
-        const fs::file_time_type writeTime = fs::last_write_time(outPath, ec);
-        if (ec || static_cast<uint64_t>(writeTime.time_since_epoch().count()) != writeCount)
+        ByteArray               contents;
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::readBinaryFile(outPath, contents, ioError) != Result::Continue)
             return false;
-        const uintmax_t size = fs::file_size(outPath, ec);
-        return !ec && static_cast<uint64_t>(size) == storedSize;
-    }
 
-    // Where a module keeps what the compiler cached about it between runs. A workspace gives every
-    // module a directory of its own under the workspace's work directory; a module built on its own
-    // keeps one under its own root, since it has no workspace to share. Both are what `swc clean`
-    // empties, so a cache never outlives the artifacts it was written beside.
-    fs::path moduleWorkDirectory(const CommandLine& cmdLine, const Utf8& moduleName)
-    {
-        if (cmdLine.workspacePath.empty())
-            return WorkspaceLayout::workspaceWorkDirectory(cmdLine.modulePath);
-        return (WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath) / fs::path(moduleName.c_str())).lexically_normal();
-    }
-
-    fs::path moduleSetupCachePath(const CommandLine& cmdLine, const Utf8& moduleName)
-    {
-        fs::path result = moduleWorkDirectory(cmdLine, moduleName);
-        result /= fs::path(std::format("{}-{}{}", K_MODULE_SETUP_CACHE_FILE, artifactConfigurationName(cmdLine), artifactModeSuffix(cmdLine)));
-        return result.lexically_normal();
+        const auto current = sha256(contents.span());
+        return std::memcmp(current.data(), checksum.data(), current.size()) == 0;
     }
 
     // Everything a setup can observe that is not a file: the compiler that runs it, and the
     // command line as the build-configuration block sees it through the compiler API. Anything
-    // not listed here cannot invalidate a cached setup, so the list errs on the side of naming
-    // an option the setup could read rather than one it probably does not.
-    Utf8 moduleSetupFingerprint(const CommandLine& cmdLine, const fs::path& compilerPath)
+    // else influencing a setup must be registered as a compiler input.
+    Utf8 moduleSetupCacheKey(const CommandLine& cmdLine, const fs::path& moduleFile, const fs::path& compilerPath)
     {
-        fs::file_time_type compilerTime{};
-        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
+        // The prelude can change independently of the installed compiler. Every setup
+        // in this process uses that same runtime tree.
+        static const Utf8 preludeIdentity = [&] -> Utf8 {
+            const fs::path runtime = FileSystem::compilerResourceRoot(compilerPath) / "runtime";
+            Os::FileChangeTime time{};
+            if (!tryCollectLatestWorkspaceTreeChangeTime(time, runtime))
+                return {};
+            return std::format("{}:{}", Utf8Helper::normalizePathForCompare(runtime).view(), time.time_since_epoch().count());
+        }();
+        if (compilerCacheIdentity().empty() || preludeIdentity.empty())
             return {};
 
-        Utf8 result;
-        result += std::format("swc={}.{}.{} compiler={} command={} os={} arch={} cpu={} kind={} cfg={} optim={}{} debug={} script={} sourceTest={}",
-                              SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM,
-                              compilerTime.time_since_epoch().count(),
-                              commandName(cmdLine.command),
-                              static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), cmdLine.targetCpu.view(),
-                              static_cast<int>(cmdLine.backendKind), cmdLine.buildCfg.view(),
-                              static_cast<int>(cmdLine.optimLevel), cmdLine.optimLevelExplicit ? "!" : "",
-                              cmdLine.debugInfo, cmdLine.scriptMode, cmdLine.sourceDrivenTest);
-        result += std::format(" explicit={}{}{}{}{}{}{} name={} namespace={} outDir={} workDir={} docOutput={} docCss={}",
-                              cmdLine.buildCfgExplicit, cmdLine.artifactKindExplicit, cmdLine.artifactNameExplicit,
-                              cmdLine.moduleNamespaceExplicit, cmdLine.outDirExplicit, cmdLine.workDirExplicit, cmdLine.output,
-                              cmdLine.name.view(), cmdLine.moduleNamespace.view(), cmdLine.outDirStorage.view(), cmdLine.workDirStorage.view(),
-                              Utf8(cmdLine.docOutputDir).view(), cmdLine.docCss.view());
-        result += std::format(" tags={}", workspaceTagsFingerprint(cmdLine.tags).view());
-        for (const Utf8& warning : cmdLine.warnAsErrors)
-            result += std::format(" we={}", warning.view());
-        for (const Utf8& warning : cmdLine.warnAsWarnings)
-            result += std::format(" ww={}", warning.view());
-        for (const Utf8& warning : cmdLine.warnDisabled)
-            result += std::format(" wo={}", warning.view());
-        return result;
+        ModuleSetupCacheWriter identity;
+        identity.str("module setup");
+        identity.u32(K_MODULE_SETUP_CACHE_MAGIC);
+        identity.str(preludeIdentity.view());
+        identity.str(Utf8Helper::normalizePathForCompare(moduleFile).view());
+        identity.u32(static_cast<uint32_t>(cmdLine.command));
+        identity.u32(static_cast<uint32_t>(cmdLine.targetOs));
+        identity.u32(static_cast<uint32_t>(cmdLine.targetArch));
+        identity.u32(static_cast<uint32_t>(cmdLine.backendKind));
+        identity.u32(static_cast<uint32_t>(cmdLine.optimLevel));
+        for (const bool flag : {cmdLine.optimLevelExplicit, cmdLine.debugInfo, cmdLine.scriptMode, cmdLine.sourceDrivenTest,
+                                cmdLine.buildCfgExplicit, cmdLine.artifactKindExplicit, cmdLine.artifactNameExplicit,
+                                cmdLine.moduleNamespaceExplicit, cmdLine.outDirExplicit, cmdLine.workDirExplicit, cmdLine.output})
+            identity.u32(flag);
+        for (const auto* value : {&cmdLine.targetCpu, &cmdLine.buildCfg, &cmdLine.name, &cmdLine.moduleNamespace,
+                                  &cmdLine.outDirStorage, &cmdLine.workDirStorage, &cmdLine.docCss})
+            identity.str(value->view());
+        identity.path(cmdLine.docOutputDir);
+        identity.str(workspaceTagsFingerprint(cmdLine.tags).view());
+        for (const auto* warnings : {&cmdLine.warnAsErrors, &cmdLine.warnAsWarnings, &cmdLine.warnDisabled})
+        {
+            identity.u32(static_cast<uint32_t>(warnings->size()));
+            for (const Utf8& warning : *warnings)
+                identity.str(warning.view());
+        }
+        return Utf8Helper::toLowerHex(sha256(identity.bytes.span()));
     }
 
-    void writeModuleSetupCache(const fs::path& cachePath, const Utf8& fingerprint, const fs::path& moduleFile, Runtime::BuildCfg& buildCfg, const std::vector<CompilerInstance::ModuleSetupImport>& imports, const std::set<fs::path>& loadedFiles, const std::set<fs::path>& compilerInputFiles, const fs::file_time_type inputsReadTime)
+    void writeModuleSetupCache(const Utf8& key, const fs::path& moduleFile, const auto& snapshot)
     {
         static_assert(std::is_trivially_copyable_v<Runtime::BuildCfg>);
 
         ModuleSetupCacheWriter writer;
         writer.u32(K_MODULE_SETUP_CACHE_MAGIC);
-        writer.str(fingerprint.view());
 
-        // The inputs the next command must find unchanged: module.swg, and every file the setup
-        // pulled in through '#load' or registered as a compiler input. An input changed after
-        // setup began cannot certify the snapshot captured from its earlier contents.
-        writer.u32(static_cast<uint32_t>(1 + loadedFiles.size() + compilerInputFiles.size()));
-        if (!stampModuleSetupInput(writer, moduleFile, inputsReadTime))
+        // Publish the checksums of the bytes the setup used. Reading the files at publication
+        // could cache the old build configuration under an edit that arrived during setup.
+        const auto& checksums = snapshot.inputChecksums;
+        const auto  module    = checksums.find(FileSystem::normalizePath(moduleFile));
+        if (module == checksums.end())
             return;
-        for (const fs::path& path : loadedFiles)
+        const auto hasChecksum = [&checksums](const fs::path& path) { return checksums.contains(FileSystem::normalizePath(path)); };
+        if (!std::ranges::all_of(snapshot.loadedFiles, hasChecksum) || !std::ranges::all_of(snapshot.compilerInputFiles, hasChecksum))
+            return;
+
+        writer.u32(static_cast<uint32_t>(checksums.size()));
+        writer.path(module->first);
+        writer.blob(module->second.data(), module->second.size());
+        for (const auto& [path, checksum] : checksums)
         {
-            if (!stampModuleSetupInput(writer, path, inputsReadTime))
-                return;
-        }
-        for (const fs::path& path : compilerInputFiles)
-        {
-            if (!stampModuleSetupInput(writer, path, inputsReadTime))
-                return;
+            if (path == module->first)
+                continue;
+            writer.path(path);
+            writer.blob(checksum.data(), checksum.size());
         }
 
-        writer.u32(static_cast<uint32_t>(imports.size()));
-        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+        writer.u32(static_cast<uint32_t>(snapshot.imports.size()));
+        for (const CompilerInstance::ModuleSetupImport& importRequest : snapshot.imports)
         {
             writer.str(importRequest.moduleName.view());
             writer.str(importRequest.location.view());
-            writer.str(importRequest.version.view());
             writer.path(importRequest.baseDir);
-            writer.u32(static_cast<uint32_t>(importRequest.linkBackendKind));
         }
 
-        writer.u32(static_cast<uint32_t>(loadedFiles.size()));
-        for (const fs::path& path : loadedFiles)
+        writer.u32(static_cast<uint32_t>(snapshot.loadedFiles.size()));
+        for (const fs::path& path : snapshot.loadedFiles)
             writer.path(path);
-        writer.u32(static_cast<uint32_t>(compilerInputFiles.size()));
-        for (const fs::path& path : compilerInputFiles)
+        writer.u32(static_cast<uint32_t>(snapshot.compilerInputFiles.size()));
+        for (const fs::path& path : snapshot.compilerInputFiles)
             writer.path(path);
 
-        writer.blob(&buildCfg, sizeof(buildCfg));
+        Runtime::BuildCfg image = snapshot.buildCfg;
+        visitBuildCfgStrings(image, [](Runtime::String& value) { value = {}; });
+        writer.blob(&image, sizeof(image));
+        Runtime::BuildCfg buildCfg = snapshot.buildCfg;
         visitBuildCfgStrings(buildCfg, [&writer](const Runtime::String& value) {
             writer.str(value.ptr && value.length ? std::string_view(value.ptr, value.length) : std::string_view{});
         });
 
-        // A cache that cannot be written is a cache that is not there: the next command runs
-        // the setup again, exactly as it does today.
-        std::error_code ec;
-        fs::create_directories(cachePath.parent_path(), ec);
-        if (ec)
-            return;
-        FileSystem::IoErrorInfo ioError;
-        FileSystem::writeBinaryFile(cachePath, writer.bytes.data(), writer.bytes.size(), ioError);
+        const auto checksum = sha256Parts({writer.bytes.span(), std::as_bytes(std::span(key.data(), key.size()))});
+        writer.bytes.append(std::as_bytes(std::span(checksum)));
+        CompilerCacheStore::get().write(key, std::move(writer.bytes));
     }
 
-    bool readModuleSetupCache(const fs::path& cachePath, const Utf8& fingerprint, const fs::path& moduleFile, Runtime::BuildCfg& outBuildCfg, std::vector<std::unique_ptr<Utf8>>& outOwnedStrings, std::vector<CompilerInstance::ModuleSetupImport>& outImports, std::set<fs::path>& outLoadedFiles, std::set<fs::path>& outCompilerInputFiles)
+    bool readModuleSetupCache(auto& out, const Utf8& key, const fs::path& moduleFile)
     {
-        FileSystem::IoErrorInfo ioError;
-        std::vector<char>       bytes;
-        if (FileSystem::readBinaryFile(cachePath, bytes, ioError) != Result::Continue)
+        const auto record = CompilerCacheStore::get().read(key);
+        constexpr size_t checksumSize = K_MODULE_SETUP_CHECKSUM_SIZE;
+        if (!record || record.bytes.size() <= checksumSize)
             return false;
 
-        ModuleSetupCacheReader reader{.bytes = bytes};
-        if (reader.u32() != K_MODULE_SETUP_CACHE_MAGIC || reader.str() != fingerprint.view())
+        const auto payload  = record.bytes.span().first(record.bytes.size() - checksumSize);
+        const auto checksum = sha256Parts({payload, std::as_bytes(std::span(key.data(), key.size()))});
+        if (std::memcmp(checksum.data(), record.bytes.data() + payload.size(), checksumSize))
+            return false;
+
+        ModuleSetupCacheReader reader{.bytes = ByteView(payload)};
+        if (reader.u32() != K_MODULE_SETUP_CACHE_MAGIC)
             return false;
 
         const uint32_t inputCount = reader.u32();
+        if (!inputCount)
+            return false;
         for (uint32_t i = 0; i < inputCount; ++i)
         {
             fs::path inputPath;
@@ -1393,37 +615,33 @@ namespace
         }
 
         const uint32_t importCount = reader.u32();
-        if (reader.failed)
+        if (reader.failed || importCount > (payload.size() - reader.offset) / (3 * sizeof(uint32_t)))
             return false;
-        outImports.clear();
-        outImports.reserve(importCount);
+        out.imports.reserve(importCount);
         for (uint32_t i = 0; i < importCount; ++i)
         {
             CompilerInstance::ModuleSetupImport importRequest;
             importRequest.moduleName      = Utf8(reader.str());
             importRequest.location        = Utf8(reader.str());
-            importRequest.version         = Utf8(reader.str());
             importRequest.baseDir         = reader.path();
-            importRequest.linkBackendKind = static_cast<Runtime::BuildCfgBackendKind>(reader.u32());
-            outImports.push_back(std::move(importRequest));
+            if (reader.failed)
+                return false;
+            out.imports.push_back(std::move(importRequest));
         }
 
-        outLoadedFiles.clear();
         const uint32_t loadedCount = reader.u32();
         for (uint32_t i = 0; i < loadedCount && !reader.failed; ++i)
-            outLoadedFiles.insert(reader.path());
-        outCompilerInputFiles.clear();
+            out.loadedFiles.insert(reader.path());
         const uint32_t compilerInputCount = reader.u32();
         for (uint32_t i = 0; i < compilerInputCount && !reader.failed; ++i)
-            outCompilerInputFiles.insert(reader.path());
+            out.compilerInputFiles.insert(reader.path());
 
         const std::string_view image = reader.str();
         if (reader.failed || image.size() != sizeof(Runtime::BuildCfg))
             return false;
-        std::memcpy(&outBuildCfg, image.data(), sizeof(Runtime::BuildCfg));
+        std::memcpy(&out.buildCfg, image.data(), sizeof(Runtime::BuildCfg));
 
-        std::vector<std::unique_ptr<Utf8>> ownedStrings;
-        visitBuildCfgStrings(outBuildCfg, [&reader, &ownedStrings](Runtime::String& value) {
+        visitBuildCfgStrings(out.buildCfg, [&reader, &out](Runtime::String& value) {
             value                         = {};
             const std::string_view stored = reader.str();
             if (stored.empty())
@@ -1431,13 +649,9 @@ namespace
             auto owned   = std::make_unique<Utf8>(stored);
             value.ptr    = owned->data();
             value.length = owned->size();
-            ownedStrings.push_back(std::move(owned));
+            out.ownedStrings.push_back(std::move(owned));
         });
-        if (reader.failed || reader.offset != bytes.size())
-            return false;
-
-        outOwnedStrings.swap(ownedStrings);
-        return true;
+        return !reader.failed && reader.offset == payload.size();
     }
 
     void appendWorkspaceInputFiles(std::vector<fs::path>& outInputs, const std::set<fs::path>& inputFiles)
@@ -1527,7 +741,7 @@ namespace
 
             // Other manifests and a competing publisher's staging files are not artifacts:
             // replacing or removing them must not invalidate this completed build.
-            if (workspacePathIsArtifactManifest(normalizedPath) || isWorkspaceDependencyTempPath(normalizedPath) || normalizedPath.filename() == ".swc-api-incomplete")
+            if (workspacePathIsArtifactManifest(normalizedPath) || FileSystem::isMovedAsidePath(normalizedPath))
                 continue;
 
             fs::path relativePath = normalizedPath.lexically_relative(outDir);
@@ -1539,268 +753,65 @@ namespace
         normalizeWorkspacePathsLexically(outArtifacts);
     }
 
-    bool readWorkspaceArtifactManifest(WorkspaceArtifactManifest& outManifest, const fs::path& manifestPath)
+    bool readWorkspaceArtifactManifest(WorkspaceArtifactManifest& out, const fs::path& path)
     {
-        outManifest = {};
-
-        FileSystem::IoErrorInfo ioError;
-        std::vector<char>       bytes;
-        if (FileSystem::readBinaryFile(manifestPath, bytes, ioError) != Result::Continue || bytes.empty())
+        std::ifstream file(path, std::ios::binary);
+        std::string   line;
+        std::string   fingerprint;
+        if (!std::getline(file, line) || line != K_WORKSPACE_ARTIFACT_MANIFEST_VERSION || !std::getline(file, fingerprint))
             return false;
-        const std::string_view content(bytes.data(), bytes.size());
 
-        enum class Section : uint8_t
+        // A damaged list can still parse after losing a dynamically discovered input.
+        std::string contents{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+        if (workspaceFingerprint(contents) != fingerprint)
+            return false;
+
+        std::istringstream in(std::move(contents));
+        if (!std::getline(in, static_cast<std::string&>(out.configuration)) || !std::getline(in, static_cast<std::string&>(out.tagsFingerprint)) || !std::getline(in, line))
+            return false;
+
+        Os::FileChangeTime::duration::rep ticks{};
+        const auto [end, ec] = std::from_chars(line.data(), line.data() + line.size(), ticks);
+        if (ec != std::errc{} || end != line.data() + line.size() || !std::getline(in, line) || line != "[inputs]")
+            return false;
+        out.inputsReadTime = Os::FileChangeTime{Os::FileChangeTime::duration{ticks}};
+
+        bool readingInputs = true;
+        while (std::getline(in, line))
         {
-            None,
-            Inputs,
-            ApiInputs,
-            Dependencies,
-            ApiReadTimes,
-            NativeReadTimes,
-            Artifacts,
-            LinkObjects,
-            LinkLibraries,
-        };
-
-        auto   currentSection          = Section::None;
-        bool   validVersion            = false;
-        bool   hasConfiguration        = false;
-        bool   hasTags                 = false;
-        bool   hasInputsReadTime       = false;
-        bool   hasDependenciesReadTime = false;
-        size_t start                   = 0;
-        while (start <= content.size())
-        {
-            size_t end = content.find('\n', start);
-            if (end == std::string_view::npos)
-                end = content.size();
-
-            std::string_view line(content.data() + start, end - start);
-            if (!line.empty() && line.back() == '\r')
-                line.remove_suffix(1);
-
-            if (line.empty())
+            if (readingInputs && line == "[artifacts]")
             {
-                if (end == content.size())
-                    break;
-                start = end + 1;
+                readingInputs = false;
                 continue;
             }
-
-            if (line == "version=9")
-            {
-                validVersion = true;
-                if (end == content.size())
-                    break;
-                start = end + 1;
-                continue;
-            }
-
-            if (line.starts_with("configuration="))
-            {
-                outManifest.configuration = line.substr(14);
-                hasConfiguration          = true;
-                if (end == content.size())
-                    break;
-                start = end + 1;
-                continue;
-            }
-
-            if (line.starts_with("tags=") && line.size() == 69)
-            {
-                outManifest.tagsFingerprint = line.substr(5);
-                hasTags                     = true;
-                if (end == content.size())
-                    break;
-                start = end + 1;
-                continue;
-            }
-
-            if (line.starts_with("inputs-read-at=") || line.starts_with("dependencies-read-at="))
-            {
-                const bool                        isInputs = line.starts_with("inputs-read-at=");
-                const std::string_view            value    = line.substr(isInputs ? 15 : 21);
-                fs::file_time_type::duration::rep ticks{};
-                const auto [last, error] = std::from_chars(value.data(), value.data() + value.size(), ticks);
-                if (error != std::errc{} || last != value.data() + value.size())
-                    return false;
-                const fs::file_time_type readTime{fs::file_time_type::duration{ticks}};
-                if (isInputs)
-                {
-                    outManifest.inputsReadTime = readTime;
-                    hasInputsReadTime          = true;
-                }
-                else
-                {
-                    outManifest.dependenciesReadTime = readTime;
-                    hasDependenciesReadTime          = true;
-                }
-                if (end == content.size())
-                    break;
-                start = end + 1;
-                continue;
-            }
-
-            if (line == "[inputs]")
-                currentSection = Section::Inputs;
-            else if (line == "[api-inputs]")
-                currentSection = Section::ApiInputs;
-            else if (line == "[dependencies]")
-                currentSection = Section::Dependencies;
-            else if (line == "[api-read-times]")
-                currentSection = Section::ApiReadTimes;
-            else if (line == "[native-read-times]")
-                currentSection = Section::NativeReadTimes;
-            else if (line == "[artifacts]")
-                currentSection = Section::Artifacts;
-            else if (line == "[link-objects]")
-                currentSection = Section::LinkObjects;
-            else if (line == "[link-libraries]")
-                currentSection = Section::LinkLibraries;
-            else
-            {
-                if (currentSection == Section::None)
-                    return false;
-
-                switch (currentSection)
-                {
-                    case Section::Inputs:
-                        outManifest.inputs.emplace_back(line);
-                        break;
-                    case Section::ApiInputs:
-                        outManifest.apiInputs.emplace_back(line);
-                        break;
-                    case Section::Dependencies:
-                        outManifest.dependencyDirs.emplace_back(line);
-                        break;
-
-                    case Section::ApiReadTimes:
-                    case Section::NativeReadTimes:
-                    {
-                        const size_t separator = line.find('\t');
-                        if (separator == std::string_view::npos || separator + 1 == line.size())
-                            return false;
-
-                        fs::file_time_type::duration::rep ticks{};
-                        const auto [last, error] = std::from_chars(line.data(), line.data() + separator, ticks);
-                        if (error != std::errc{} || last != line.data() + separator)
-                            return false;
-
-                        fs::path directory{line.substr(separator + 1)};
-                        if (!directory.is_absolute())
-                            return false;
-
-                        auto& readTimes           = currentSection == Section::ApiReadTimes ? outManifest.apiReadTimes : outManifest.nativeReadTimes;
-                        const auto [it, inserted] = readTimes.emplace(directory.lexically_normal(), fs::file_time_type{fs::file_time_type::duration{ticks}});
-                        SWC_UNUSED(it);
-                        if (!inserted)
-                            return false;
-
-                        break;
-                    }
-
-                    case Section::Artifacts:
-                        outManifest.artifacts.emplace_back(line);
-                        break;
-
-                    case Section::LinkObjects:
-                    {
-                        fs::path path{line};
-                        if (!path.is_absolute())
-                            return false;
-
-                        outManifest.linkObjects.push_back(std::move(path));
-                        break;
-                    }
-
-                    case Section::LinkLibraries:
-                        outManifest.linkLibraries.emplace_back(line);
-                        break;
-
-                    case Section::None:
-                        break;
-                }
-            }
-
-            if (end == content.size())
-                break;
-
-            start = end + 1;
+            fs::path entry(line);
+            if (entry.empty() || readingInputs != entry.is_absolute())
+                return false;
+            if (!readingInputs && std::ranges::find(entry, fs::path("..")) != entry.end())
+                return false;
+            (readingInputs ? out.inputs : out.artifacts).push_back(std::move(entry));
         }
-
-        // Written canonical by the build that produced it, so read as it is.
-        normalizeWorkspacePathsLexically(outManifest.inputs);
-        normalizeWorkspacePathsLexically(outManifest.apiInputs);
-        normalizeWorkspacePathsLexically(outManifest.dependencyDirs);
-        normalizeWorkspacePathsLexically(outManifest.artifacts);
-        normalizeWorkspacePathsLexically(outManifest.linkObjects);
-        std::ranges::sort(outManifest.linkLibraries);
-        outManifest.linkLibraries.erase(std::ranges::unique(outManifest.linkLibraries).begin(), outManifest.linkLibraries.end());
-        return validVersion && hasConfiguration && hasTags && hasInputsReadTime && hasDependenciesReadTime;
+        normalizeWorkspacePathsLexically(out.inputs);
+        normalizeWorkspacePathsLexically(out.artifacts);
+        return in.eof() && !readingInputs && !out.artifacts.empty();
     }
 
-    Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
+    Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& path)
     {
-        Utf8 content = std::format("version=9\nconfiguration={}\ntags={}\ninputs-read-at={}\ndependencies-read-at={}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count(), manifest.dependenciesReadTime.time_since_epoch().count());
-        for (const fs::path& path : manifest.inputs)
-        {
-            content += Utf8(path);
-            content += '\n';
-        }
-
-        content += "[dependencies]\n";
-        for (const fs::path& path : manifest.dependencyDirs)
-        {
-            content += Utf8(path);
-            content += '\n';
-        }
-
-        content += "[api-inputs]\n";
-        for (const fs::path& path : manifest.apiInputs)
-        {
-            content += Utf8(path);
-            content += '\n';
-        }
-
-        content += "[api-read-times]\n";
-        for (const auto& [directory, readTime] : manifest.apiReadTimes)
-            content += std::format("{}\t{}\n", readTime.time_since_epoch().count(), Utf8(directory).view());
-
-        content += "[native-read-times]\n";
-        for (const auto& [directory, readTime] : manifest.nativeReadTimes)
-            content += std::format("{}\t{}\n", readTime.time_since_epoch().count(), Utf8(directory).view());
-
+        Utf8 content = std::format("{}\n{}\n{}\n[inputs]\n", manifest.configuration.view(), manifest.tagsFingerprint.view(), manifest.inputsReadTime.time_since_epoch().count());
+        for (const fs::path& entry : manifest.inputs)
+            content += std::format("{}\n", Utf8(entry).view());
         content += "[artifacts]\n";
-        for (const fs::path& path : manifest.artifacts)
-        {
-            content += Utf8(path);
-            content += '\n';
-        }
+        for (const fs::path& entry : manifest.artifacts)
+            content += std::format("{}\n", Utf8(entry).view());
 
-        content += "[link-objects]\n";
-        for (const fs::path& path : manifest.linkObjects)
-        {
-            content += Utf8(path);
-            content += '\n';
-        }
+        const Utf8 fingerprint = workspaceFingerprint(content.view());
+        content.insert(0, std::format("{}\n{}\n", K_WORKSPACE_ARTIFACT_MANIFEST_VERSION, fingerprint.view()));
 
-        content += "[link-libraries]\n";
-        for (const Utf8& library : manifest.linkLibraries)
-        {
-            content += library;
-            content += '\n';
-        }
-
-        std::error_code ec;
-        fs::create_directories(manifestPath.parent_path(), ec);
-        if (ec)
-            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, manifestPath, FileSystem::normalizeSystemMessage(ec));
-
-        FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFileAtomic(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
-            return Result::Continue;
-
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, manifestPath, FileSystem::describeIoFailure(ioError));
+        FileSystem::IoErrorInfo error;
+        if (FileSystem::writeBinaryFileAtomic(path, content.data(), content.size(), error) != Result::Continue)
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_manifest_write_failed, path, FileSystem::describeIoFailure(error));
+        return Result::Continue;
     }
 
     bool workspaceManifestContainsArtifact(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& artifactPath)
@@ -1819,121 +830,61 @@ namespace
     {
         Stale,
         UpToDate,
-        Relink,
     };
 
-    bool workspaceIncrementalObjectsAreUsable(const WorkspaceArtifactManifest& manifest, const fs::file_time_type buildTime)
-    {
-        if (manifest.linkObjects.empty())
-            return false;
-
-        for (const fs::path& path : manifest.linkObjects)
-        {
-            fs::file_time_type writeTime;
-            if (!tryGetWorkspacePathWriteTime(writeTime, path) || writeTime > buildTime)
-                return false;
-
-            std::error_code ec;
-            if (!fs::is_regular_file(path, ec) || ec || fs::file_size(path, ec) == 0 || ec)
-                return false;
-        }
-
-        return true;
-    }
-
+    // Treat changes in the same clock tick as the start of the build as stale as well.
     bool workspaceInputsAreCurrent(const WorkspaceArtifactManifest& manifest, const fs::path& compilerPath, const std::span<const fs::path> currentInputs)
     {
         if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
             return false;
 
-        fs::file_time_type compilerTime;
-        if (!tryGetCompilerBuildTime(compilerTime, compilerPath) || manifest.inputsReadTime < compilerTime)
+        Os::FileChangeTime compilerTime;
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath) || manifest.inputsReadTime <= compilerTime)
             return false;
         for (const fs::path& path : manifest.inputs)
         {
-            fs::file_time_type pathTime;
-            if (!tryGetWorkspacePathWriteTime(pathTime, path) || manifest.inputsReadTime < pathTime)
+            Os::FileChangeTime pathTime;
+            if (!Os::tryGetFileChangeTime(pathTime, path) || manifest.inputsReadTime <= pathTime)
                 return false;
         }
         return true;
     }
 
-    WorkspaceArtifactState workspaceArtifactState(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const Utf8& configuration, const std::span<const Utf8> tags)
+    WorkspaceArtifactState workspaceArtifactState(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, std::span<const fs::path> inputs, std::span<const fs::path> requiredArtifacts, std::string_view configuration, std::span<const Utf8> tags)
     {
-        if (manifest.configuration != configuration || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
-            return WorkspaceArtifactState::Stale;
-        if (!workspaceInputsAreCurrent(manifest, compilerPath, currentInputs))
-            return WorkspaceArtifactState::Stale;
-        if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
+        if (manifest.configuration != configuration || manifest.tagsFingerprint != workspaceTagsFingerprint(tags) ||
+            !workspaceInputsAreCurrent(manifest, compilerPath, inputs))
             return WorkspaceArtifactState::Stale;
 
-        // Every recorded artifact must still exist, but we deliberately do not use the
-        // earliest artifact mtime as the build timestamp. Some artifacts (notably the
-        // linker-generated import library) are preserved as-is across rebuilds when their
-        // contents are unchanged, so their mtime lags far behind the actual build. Using
-        // that lagging mtime would make the module appear permanently stale.
-        for (const fs::path& relativeArtifactPath : manifest.artifacts)
-        {
-            fs::file_time_type artifactTime;
-            if (!tryGetWorkspacePathWriteTime(artifactTime, (outDir / relativeArtifactPath).lexically_normal()))
-                return WorkspaceArtifactState::Stale;
-        }
-
-        // The manifest is rewritten at the end of every successful build, so its write time
-        // reliably reflects when this module was last produced by the compiler.
-        fs::file_time_type buildTime{};
-        if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
+        Os::FileChangeTime manifestTime;
+        if (!Os::tryGetFileChangeTime(manifestTime, manifestPath) || manifest.inputsReadTime > manifestTime)
             return WorkspaceArtifactState::Stale;
-        if (manifest.inputsReadTime > buildTime || manifest.dependenciesReadTime > buildTime)
-            return WorkspaceArtifactState::Stale;
-        std::vector<fs::path> currentApiInputs;
-        for (const auto& [directory, readTime] : manifest.apiReadTimes)
-        {
-            if (readTime > buildTime || !workspaceApiInputsAreUpToDate(currentApiInputs, directory, readTime))
-                return WorkspaceArtifactState::Stale;
-        }
-        normalizeWorkspacePathsLexically(currentApiInputs);
-        if (!sameWorkspacePathList(manifest.apiInputs, currentApiInputs))
-            return WorkspaceArtifactState::Stale;
-        bool nativeDependencyChanged = false;
-        for (const auto& [directory, readTime] : manifest.nativeReadTimes)
-        {
-            fs::file_time_type dependencyTime;
-            if (readTime > buildTime || !tryGetWorkspaceDependencyBuildTime(dependencyTime, directory, manifestPath))
-                return WorkspaceArtifactState::Stale;
-            if (dependencyTime > readTime)
-                nativeDependencyChanged = true;
-        }
 
-        // Backstop for an artifact replaced behind the compiler's back. Build modes no
-        // longer share an artifact name, so this no longer covers test-versus-run.
-        for (const fs::path& artifactPath : requiredArtifacts)
+        std::error_code error;
+        for (const fs::path& artifact : manifest.artifacts)
         {
-            fs::file_time_type artifactTime;
-            if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath) || artifactTime > buildTime)
+            if (!std::filesystem::is_regular_file(outDir / artifact, error))
                 return WorkspaceArtifactState::Stale;
         }
-
-        // API and native read boundaries own dependency freshness at the granularity
-        // this module consumed; an unrelated artifact generation does not date it.
-        if (!nativeDependencyChanged)
-            return WorkspaceArtifactState::UpToDate;
-        return workspaceIncrementalObjectsAreUsable(manifest, buildTime) ? WorkspaceArtifactState::Relink : WorkspaceArtifactState::Stale;
+        for (const fs::path& artifact : requiredArtifacts)
+        {
+            if (!workspaceManifestContainsArtifact(manifest, outDir, artifact))
+                return WorkspaceArtifactState::Stale;
+        }
+        return WorkspaceArtifactState::UpToDate;
     }
 
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind)
     {
+        if (effectiveBackendKind(cmdLine, backendKind) != Runtime::BuildCfgBackendKind::Executable)
+            return false;
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
         if (cmdLine.command == CommandKind::Test)
-        {
-            if (effectiveBackendKind(cmdLine, backendKind) != Runtime::BuildCfgBackendKind::Executable)
-                return false;
             return !cmdLine.testJit && cmdLine.testNative && cmdLine.output;
-        }
 
-        return cmdLine.command != CommandKind::Doc;
+        return cmdLine.command == CommandKind::Build || isRunLikeCommand(cmdLine.command);
     }
 
     bool hasWorkspaceVerifyDirectives(const CompilerInstance& compiler)
@@ -1950,64 +901,16 @@ namespace
     bool shouldWriteWorkspaceArtifactManifest(const CompilerInstance& compiler)
     {
         const CommandLine& cmdLine = compiler.cmdLine();
-        if (cmdLine.dryRun || cmdLine.showConfig || cmdLine.command == CommandKind::Doc)
+        if (cmdLine.dryRun || cmdLine.showConfig || compiler.jitHasUntrackedEffects() || compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
             return false;
         if (cmdLine.command != CommandKind::Test)
-            return true;
+            return cmdLine.command == CommandKind::Build || isRunLikeCommand(cmdLine.command);
 
         // A cached test has no AST against which source-driven expectations can be checked.
         // Keep compiling those inputs so every Verify directive is evaluated on every run.
-        return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
-               cmdLine.testNative && cmdLine.output && !hasWorkspaceVerifyDirectives(compiler);
+        return compiler.nativeArtifactBuilt() && !hasWorkspaceVerifyDirectives(compiler);
     }
 
-    bool isLegacyWorkspaceTestArtifact(const fs::path& path, const bool focusedOnly)
-    {
-        const std::string name = path.filename().string();
-        if (!focusedOnly && name == ".swc-artifacts.test")
-            return true;
-
-        const fs::path extension = path.extension();
-        if (extension != ".dll" && extension != ".exe" && extension != ".lib" && extension != ".pdb")
-            return false;
-        return focusedOnly ? name.contains(".test.focused.") : name.contains(".test.");
-    }
-
-    Result removeLegacyWorkspaceTestArtifacts(TaskContext& ctx, const fs::path& directory, const bool focusedOnly)
-    {
-        std::error_code ec;
-        fs::path        failedPath = directory;
-        const bool      exists     = fs::exists(directory, ec);
-        if (ec)
-            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_clean_remove_failed, directory, FileSystem::normalizeSystemMessage(ec));
-        if (!exists)
-            return Result::Continue;
-
-        for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                break;
-
-            ec.clear();
-            const bool isRegularFile = it->is_regular_file(ec);
-            if (ec)
-                break;
-            if (!isRegularFile || !isLegacyWorkspaceTestArtifact(it->path(), focusedOnly))
-                continue;
-
-            failedPath = it->path();
-            fs::remove(it->path(), ec);
-            if (ec)
-                break;
-        }
-
-        if (!ec)
-            return Result::Continue;
-
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_clean_remove_failed, failedPath, FileSystem::normalizeSystemMessage(ec));
-    }
-
-    // An empty state adds nothing: the stage line already says a module is up to date.
     Utf8 formatWorkspaceArtifactStat(const CompilerInstance& compiler, const std::string_view state = {})
     {
         std::vector<Utf8> parts;
@@ -2017,772 +920,8 @@ namespace
         return ScopedTimedLog::joinStatItems(parts);
     }
 
-    // Where a dependency directory sits inside the root it was found through. A copy keeps that
-    // shape — '<module>/<backend>/<build-cfg>/<arch>' — so a path in a diagnostic still says which
-    // module and which configuration the compiler was reading.
-    Result resolveDependencyMirrorRelativePath(fs::path& outRelativePath, TaskContext& ctx, const fs::path& normalizedSourceDir, const fs::path& normalizedSourceRoot)
-    {
-        if (!FileSystem::pathStartsWith(normalizedSourceDir, normalizedSourceRoot))
-        {
-            const Utf8 because = std::format("dependency folder '{}' is not under root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
-            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
-        }
-
-        outRelativePath = normalizedSourceDir.lexically_relative(normalizedSourceRoot);
-        if (outRelativePath.empty() || pathIsCurrentOrParentDirectory(outRelativePath))
-        {
-            const Utf8 because = std::format("cannot mirror dependency folder '{}' from root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
-            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
-        }
-
-        return Result::Continue;
-    }
-
-    // Native artifacts retain their size-and-time identity. Imported API bytes are already
-    // captured under publication access: include their digest so a restored timestamp cannot
-    // select an entry holding a different source generation.
-    bool tryCollectDependencyCacheSignature(Utf8& outSignature, const fs::path& srcDir, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-    {
-        std::vector<Utf8> entries;
-        std::error_code   ec;
-        for (fs::recursive_directory_iterator it(srcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return false;
-            if (apiSnapshot && (ModuleApi::isPublishedFile(it->path()) || it->path().filename() == ".swc-api-incomplete"))
-                continue;
-
-            ec.clear();
-            if (!it->is_regular_file(ec) || ec)
-                continue;
-
-            ec.clear();
-            const uintmax_t fileSize = it->file_size(ec);
-            if (ec)
-                return false;
-
-            ec.clear();
-            const auto writeTime = it->last_write_time(ec);
-            if (ec)
-                return false;
-
-            entries.emplace_back(std::format("{}\t{}\t{}", Utf8(it->path().lexically_relative(srcDir)).c_str(), fileSize, writeTime.time_since_epoch().count()));
-        }
-
-        if (apiSnapshot)
-        {
-            for (const ModuleApi::SourceSnapshot& file : *apiSnapshot)
-            {
-                const std::string_view content = file.content->view();
-                const auto             digest  = sha256(std::span{reinterpret_cast<const std::byte*>(content.data()), content.size()});
-                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), content.size(), file.writeTime.time_since_epoch().count(), Utf8Helper::toLowerHex(digest).c_str()));
-            }
-        }
-
-        // The order a directory is walked in is not part of what it holds.
-        std::ranges::sort(entries);
-        outSignature = Utf8Helper::join(entries, "\n");
-        return true;
-    }
-
-    fs::path dependencyCacheEntryDirectory(const fs::path& srcDir, const Utf8& signature)
-    {
-        // The source path belongs in the name: two dependencies can hold the same bytes and still
-        // be different answers to where a module comes from, which is what a diagnostic naming the
-        // copy has to stay able to say.
-        Utf8 identity = "version=1\nsource=";
-        identity += Utf8(srcDir);
-        identity += '\n';
-        identity += signature;
-
-        const std::string_view identityView = identity.view();
-        const auto             digest       = sha256(std::span{reinterpret_cast<const std::byte*>(identityView.data()), identityView.size()});
-        return (WorkspaceLayout::dependencyCacheRoot() / fs::path(Utf8Helper::toLowerHex(digest).c_str())).lexically_normal();
-    }
-
-    // Re-dates the entry, so that a trim can tell what is still in use from what nothing has asked
-    // for in weeks. It is the one thing ever written to a published entry, it says nothing about
-    // the copy, and a cache that fails to record it still answers every question correctly.
-    void touchDependencyCacheEntry(const fs::path& entryDir)
-    {
-        std::error_code ec;
-        fs::last_write_time(WorkspaceLayout::dependencyCacheUsedMarkerPath(entryDir), fs::file_time_type::clock::now(), ec);
-    }
-
-    Result writeDependencyCacheUsedMarker(TaskContext& ctx, const fs::path& entryDir, const fs::path& srcDir)
-    {
-        const fs::path          markerPath = WorkspaceLayout::dependencyCacheUsedMarkerPath(entryDir);
-        const Utf8              content    = std::format("{}\n", Utf8(srcDir).c_str());
-        FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(markerPath, content.data(), content.size(), ioError) == Result::Continue)
-            return Result::Continue;
-
-        return reportWorkspaceDependencySyncFailure(ctx, markerPath, FileSystem::describeIoFailure(ioError));
-    }
-
-    // Days a copy may go unused before a newly published one takes it. Long enough that a
-    // configuration returned to after a weekend is still there, short enough that a week of
-    // rebuilding the library does not keep every intermediate state of it.
-    constexpr uint32_t K_DEPENDENCY_CACHE_UNUSED_DAYS = 7;
-
-    // Removes what nothing has used in a while, and only right after a new entry is published:
-    // that is exactly when the cache grew, and it is rare enough for one directory scan to cost
-    // nothing. Everything here is a cache operation, so a failure is not reported — it only means
-    // the disk is given back later, by the next publication or by `swc clean --cache`.
-    //
-    // An entry is renamed out of the way before it is removed, because a copy in use cannot be
-    // renamed — Windows holds the directory of a library it has loaded — while a removal that
-    // failed halfway would leave a gutted entry that still looks complete to the next run.
-    void trimUnusedDependencyCacheEntries(const fs::path& publishedEntryDir)
-    {
-        std::vector<fs::path> unusedEntryDirs;
-        const bool            scanned = WorkspaceLayout::visitUnusedDependencyCacheEntries(K_DEPENDENCY_CACHE_UNUSED_DAYS, [&](const fs::path& entryDir) {
-            if (!FileSystem::pathEquals(entryDir, publishedEntryDir))
-                unusedEntryDirs.push_back(entryDir);
-        });
-        if (!scanned)
-            return;
-
-        std::error_code ec;
-        for (const fs::path& entryDir : unusedEntryDirs)
-        {
-            const Utf8     retiredName = std::format("{}.retired.{}", entryDir.filename().string(), Os::currentProcessId());
-            const fs::path retiredDir  = (WorkspaceLayout::dependencyCacheStagingRoot() / fs::path(retiredName.c_str())).lexically_normal();
-
-            ec.clear();
-            fs::rename(entryDir, retiredDir, ec);
-            if (ec)
-                continue;
-
-            ec.clear();
-            fs::remove_all(retiredDir, ec);
-        }
-    }
-
-    Result copyDependencyCacheTree(TaskContext& ctx, const fs::path& srcDir, const fs::path& dstDir, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-    {
-        std::error_code ec;
-        for (fs::recursive_directory_iterator it(srcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, srcDir, FileSystem::normalizeSystemMessage(ec));
-
-            const fs::path relativePath = it->path().lexically_relative(srcDir);
-            if (relativePath.empty())
-                continue;
-            if (apiSnapshot && (ModuleApi::isPublishedFile(relativePath) || relativePath == ".swc-api-incomplete"))
-                continue;
-
-            const fs::path dstPath = (dstDir / relativePath).lexically_normal();
-            ec.clear();
-            if (it->is_directory(ec))
-            {
-                ec.clear();
-                fs::create_directories(dstPath, ec);
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
-                continue;
-            }
-
-            ec.clear();
-            if (!it->is_regular_file(ec) || ec)
-                continue;
-
-            ec.clear();
-            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
-
-            // The copy keeps the date of its source, so what an entry holds stays recognizable as
-            // what it was made from.
-            ec.clear();
-            const auto srcTime = fs::last_write_time(it->path(), ec);
-            if (!ec)
-            {
-                ec.clear();
-                fs::last_write_time(dstPath, srcTime, ec);
-            }
-        }
-
-        if (apiSnapshot)
-            SWC_RESULT(ModuleApi::writeSnapshot(ctx, *apiSnapshot, srcDir, dstDir));
-        return Result::Continue;
-    }
-
-    // Fills an entry, and makes it exist for everyone else in one step.
-    //
-    // The copy is assembled under a name only this process uses and moved into place by a single
-    // rename, so no other compiler can find a directory that is still being written. Losing that
-    // rename is the ordinary outcome of two scripts starting at once rather than a failure: the
-    // entry the other one published holds the same bytes, and this copy is dropped.
-    Result publishDependencyCacheEntry(TaskContext& ctx, const fs::path& entryDir, const fs::path& srcDir, const fs::path& relativePath, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-    {
-        const Utf8     stagingName = std::format("{}.{}", entryDir.filename().string(), Os::currentProcessId());
-        const fs::path stagingDir  = (WorkspaceLayout::dependencyCacheStagingRoot() / fs::path(stagingName.c_str())).lexically_normal();
-
-        std::error_code ec;
-        fs::remove_all(stagingDir, ec);
-
-        ec.clear();
-        fs::create_directories(stagingDir / relativePath, ec);
-        if (ec)
-            return reportWorkspaceDependencySyncFailure(ctx, stagingDir, FileSystem::normalizeSystemMessage(ec));
-
-        Result result = copyDependencyCacheTree(ctx, srcDir, (stagingDir / relativePath).lexically_normal(), apiSnapshot);
-        if (result == Result::Continue)
-            result = writeDependencyCacheUsedMarker(ctx, stagingDir, srcDir);
-
-        if (result == Result::Continue)
-        {
-            ec.clear();
-            fs::create_directories(entryDir.parent_path(), ec);
-            ec.clear();
-            fs::rename(stagingDir, entryDir, ec);
-            if (ec && !fs::is_directory(entryDir))
-                result = reportWorkspaceDependencySyncFailure(ctx, entryDir, FileSystem::normalizeSystemMessage(ec));
-        }
-
-        ec.clear();
-        fs::remove_all(stagingDir, ec);
-
-        if (result == Result::Continue)
-            trimUnusedDependencyCacheEntries(entryDir);
-        return result;
-    }
-
-    // Answers with a directory holding the same files as `srcDir`, that nothing will rewrite.
-    //
-    // A tool consumes its dependencies from a copy rather than from where they were built,
-    // because the compiler loads their shared libraries into its own process: pointed at the build
-    // output, `tools/std.bat` — a launcher that rebuilds the library it uses — would be
-    // asked to replace a DLL Windows has locked. Naming the copy after what it holds is what makes
-    // the copy affordable: every tool importing the same build shares one, and a rebuilt
-    // dependency lands in a new entry beside the one a running compiler is still reading.
-    Result resolveDependencyCacheEntry(fs::path& outMirroredDir, TaskContext& ctx, const fs::path& srcDir, const fs::path& relativePath, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-    {
-        Utf8 signature;
-        if (!tryCollectDependencyCacheSignature(signature, srcDir, apiSnapshot))
-            return reportWorkspaceDependencySyncFailure(ctx, srcDir, "cannot read what the dependency holds");
-
-        const fs::path  entryDir = dependencyCacheEntryDirectory(srcDir, signature);
-        std::error_code ec;
-        if (!fs::is_directory(entryDir, ec))
-            SWC_RESULT(publishDependencyCacheEntry(ctx, entryDir, srcDir, relativePath, apiSnapshot));
-
-        touchDependencyCacheEntry(entryDir);
-        outMirroredDir = (entryDir / relativePath).lexically_normal();
-        return Result::Continue;
-    }
-
 }
 
-struct DependencyPlanBuilder
-{
-    explicit DependencyPlanBuilder(CompilerInstance& compilerInstance, TaskContext& taskContext);
-
-    Result build(CompilerInstance::DependencyPlan& outPlan, std::span<const CompilerInstance::ModuleSetupImport> imports);
-    Result resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    bool   mirrorsDependencies() const;
-    Result mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot = nullptr);
-    Result mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot);
-    Result mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot);
-    bool   tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const;
-    Result resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
-    Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
-    // Parsing and checking dependency metadata is expensive, and several roots can reach the same
-    // file. Cache its import list so the global resolution visits it once.
-    Result      captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    Result      resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
-    static void collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex);
-
-    CompilerInstance& instance() const
-    {
-        SWC_ASSERT(compiler);
-        return *compiler;
-    }
-
-    TaskContext& taskCtx() const
-    {
-        SWC_ASSERT(ctx);
-        return *ctx;
-    }
-
-    CompilerInstance*                                                          compiler = nullptr;
-    TaskContext*                                                               ctx      = nullptr;
-    fs::path                                                                   workspaceOutputRoot;
-    fs::path                                                                   workspaceDependencyRoot;
-    std::unordered_set<Utf8>                                                   mirroredDependencyDirs;
-    std::unordered_map<Utf8, fs::path>                                         scriptDependencyEntries;
-    std::unordered_map<Utf8, size_t>                                           nodeIndices;
-    std::unordered_map<Utf8, std::vector<CompilerInstance::ModuleSetupImport>> dependencyImportsCache;
-};
-
-struct ModuleSetupInputApplier
-{
-    explicit ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext);
-
-    // One resolved import: which plan owns it, and which binding inside that plan. A workspace-wide
-    // plan is shared by every module it builds, so the link kind is decided against the module
-    // being built and never written back into the plan.
-    struct ResolvedImport
-    {
-        const CompilerInstance::ModuleSetupImport*         request = nullptr;
-        const CompilerInstance::DependencyPlan*            plan    = nullptr;
-        const CompilerInstance::ResolvedDependencyBinding* binding = nullptr;
-    };
-
-    Result apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan);
-    bool   shouldLinkDependenciesIn(std::span<const ResolvedImport> resolvedImports) const;
-
-    CompilerInstance& instance() const
-    {
-        SWC_ASSERT(compiler);
-        return *compiler;
-    }
-
-    TaskContext& taskCtx() const
-    {
-        SWC_ASSERT(ctx);
-        return *ctx;
-    }
-
-    CompilerInstance* compiler = nullptr;
-    TaskContext*      ctx      = nullptr;
-};
-
-DependencyPlanBuilder::DependencyPlanBuilder(CompilerInstance& compilerInstance, TaskContext& taskContext)
-{
-    compiler = &compilerInstance;
-    ctx      = &taskContext;
-    if (!instance().cmdLine().workspacePath.empty())
-    {
-        workspaceOutputRoot     = FileSystem::normalizePath(WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath));
-        workspaceDependencyRoot = FileSystem::normalizePath(WorkspaceLayout::workspaceDependencyDirectory(instance().cmdLine().workspacePath));
-    }
-}
-
-ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
-{
-    compiler = &compilerInstance;
-    ctx      = &taskContext;
-}
-
-// Whether this module takes its dependencies' code in rather than importing it, for the whole
-// import closure at once.
-//
-// Only an executable does: a library keeps importing, so that everything loading it shares one copy
-// of a module's code and of the runtime state that comes with it. And the answer covers the closure
-// or nothing, because an executable that links one module in while loading another built against
-// that same module's DLL runs two copies of it — two allocators, two runtime contexts, and memory
-// that cannot cross between them. A module pinned with `link:` states its own kind, which settles
-// the question for every other.
-bool ModuleSetupInputApplier::shouldLinkDependenciesIn(const std::span<const ModuleSetupInputApplier::ResolvedImport> resolvedImports) const
-{
-    if (!mayLinkDependenciesIn(instance()))
-        return false;
-
-    for (const ResolvedImport& resolvedImport : resolvedImports)
-    {
-        // The request is read as well as the node it resolved to: one node answers for every import
-        // naming the same module, and keeps the kind of the import that created it.
-        if (resolvedImport.request->linkBackendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
-            return false;
-
-        for (const size_t nodeIndex : resolvedImport.binding->closure)
-        {
-            const CompilerInstance::ResolvedDependencyNode& node = resolvedImport.plan->nodes[nodeIndex];
-
-            // Only a module asked for as a shared library settles the question, and it settles it
-            // against linking anything in: it puts a DLL in the process whatever we do here. One
-            // asked for as a static library already answers the way we would.
-            if (node.linkBackendKind == Runtime::BuildCfgBackendKind::SharedLibrary)
-                return false;
-
-            // A module publishing a shared library but no archive of its own code cannot be linked
-            // in. One publishing neither ('export') contributes no code at all and takes part in
-            // either answer.
-            if (!node.paths.sharedDir.empty() && node.paths.staticDir.empty())
-                return false;
-        }
-    }
-
-    return true;
-}
-
-Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot, const CompilerInstance::DependencyPlan& dependencyPlan)
-{
-    instance().moduleSetupImports_ = setupSnapshot.imports;
-    instance().nativeRuntimeImports_.clear();
-    instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
-    instance().moduleApiReadTimes_.clear();
-    instance().moduleNativeReadTimes_.clear();
-    instance().moduleStaticLinkReadTimes_.clear();
-    instance().moduleApiInputs_.clear();
-
-    std::vector<std::unique_ptr<CompilerInstance::DependencyPlan>> localPlans;
-    std::vector<ResolvedImport>                                    resolvedImports;
-    resolvedImports.reserve(setupSnapshot.imports.size());
-
-    for (const CompilerInstance::ModuleSetupImport& importRequest : setupSnapshot.imports)
-    {
-        const CompilerInstance::ResolvedDependencyBinding* binding = nullptr;
-        for (const CompilerInstance::ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
-        {
-            if (isSameImportRequest(candidate.request, importRequest))
-            {
-                binding = &candidate;
-                break;
-            }
-        }
-
-        // Workspace-local imports become resolvable in build order, after their producer has
-        // published its artifacts. External imports are always present in the command-wide plan.
-        const CompilerInstance::DependencyPlan* bindingPlan = &dependencyPlan;
-        if (!binding)
-        {
-            auto                  localPlan = std::make_unique<CompilerInstance::DependencyPlan>();
-            DependencyPlanBuilder builder(instance(), taskCtx());
-            SWC_RESULT(builder.build(*localPlan, std::span{&importRequest, 1}));
-            SWC_ASSERT(localPlan->bindings.size() == 1);
-            binding     = &localPlan->bindings.front();
-            bindingPlan = localPlan.get();
-            localPlans.push_back(std::move(localPlan));
-        }
-
-        resolvedImports.push_back({.request = &importRequest, .plan = bindingPlan, .binding = binding});
-    }
-
-    const bool linkDependenciesIn = shouldLinkDependenciesIn(resolvedImports);
-
-    for (const ResolvedImport& resolvedImport : resolvedImports)
-    {
-        for (const size_t nodeIndex : resolvedImport.binding->closure)
-        {
-            const CompilerInstance::ResolvedDependencyNode& node = resolvedImport.plan->nodes[nodeIndex];
-            instance().appendImportedApiSnapshot(node.apiFiles, node.moduleName.view());
-            for (const ModuleApi::SourceSnapshot& source : node.apiFiles)
-                instance().moduleApiInputs_.push_back((node.apiSourceDir / source.path.lexically_relative(node.paths.apiDir)).lexically_normal());
-            auto [readTime, inserted] = instance().moduleApiReadTimes_.emplace(node.apiSourceDir, node.apiReadTime);
-            if (!inserted)
-                readTime->second = std::min(readTime->second, node.apiReadTime);
-            const fs::path& linkSourceDir = linkDependenciesIn && !node.paths.staticDir.empty() ? node.sourcePaths.staticDir : node.sourcePaths.linkDir;
-            if (!node.sourcePaths.staticDir.empty() && FileSystem::pathEquals(linkSourceDir, node.sourcePaths.staticDir))
-            {
-                auto [staticReadTime, staticInserted] = instance().moduleStaticLinkReadTimes_.emplace(linkSourceDir, node.nativeReadTime);
-                if (!staticInserted)
-                    staticReadTime->second = std::min(staticReadTime->second, node.nativeReadTime);
-            }
-            for (const fs::path& sourceDir : {linkSourceDir, node.sourcePaths.sharedDir})
-            {
-                if (sourceDir.empty())
-                    continue;
-                auto [nativeReadTime, nativeInserted] = instance().moduleNativeReadTimes_.emplace(sourceDir, node.nativeReadTime);
-                if (!nativeInserted)
-                    nativeReadTime->second = std::min(nativeReadTime->second, node.nativeReadTime);
-            }
-            instance().registerImportedDependencyLinkDir(linkDependenciesIn && !node.paths.staticDir.empty() ? node.paths.staticDir : node.paths.linkDir);
-            instance().registerImportedSharedModuleDir(node.paths.sharedDir);
-            if (hostTargetOs() == Runtime::TargetOs::Linux && !node.paths.sharedDir.empty())
-            {
-                std::vector<size_t> closure;
-                std::vector<Utf8>   transitiveModules;
-                DependencyPlanBuilder::collectClosure(closure, transitiveModules, *resolvedImport.plan, nodeIndex);
-                std::vector<Utf8> sharedDependencies;
-                for (const size_t dependencyIndex : closure)
-                {
-                    const auto& dependency = resolvedImport.plan->nodes[dependencyIndex];
-                    if (dependencyIndex != nodeIndex && !dependency.paths.sharedDir.empty())
-                        sharedDependencies.push_back(resolveDependencyLinkModuleName(dependency.paths.sharedDir, dependency.moduleName.view(), instance().cmdLine().targetOs));
-                }
-                const Utf8 library = resolveDependencyLinkModuleName(node.paths.sharedDir, node.moduleName.view(), instance().cmdLine().targetOs);
-                instance().externalModuleMgr().registerDependencies(library, std::move(sharedDependencies));
-            }
-        }
-
-        const CompilerInstance::ResolvedDependencyNode& directNode = resolvedImport.plan->nodes[resolvedImport.binding->nodeIndex];
-        const fs::path&                                 linkDir    = linkDependenciesIn && !directNode.paths.staticDir.empty() ? directNode.paths.staticDir : directNode.paths.linkDir;
-        if (!linkDir.empty())
-        {
-            CompilerInstance::NativeRuntimeImport runtimeImport;
-            runtimeImport.moduleName           = resolvedImport.request->moduleName;
-            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(linkDir, resolvedImport.request->moduleName.view(), instance().cmdLine().targetOs);
-            runtimeImport.transitiveImports    = resolvedImport.binding->transitiveImports;
-            runtimeImport.hasSharedRuntimeHook = !directNode.paths.sharedDir.empty();
-            instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));
-        }
-    }
-
-    for (const fs::path& filePath : setupSnapshot.loadedFiles)
-    {
-        fs::path resolvedPath = filePath;
-        SWC_RESULT(FileSystem::resolveFile(taskCtx(), resolvedPath));
-        if (instance().hasResolvedFilePath(resolvedPath))
-            continue;
-
-        // 'SetupLoaded' is what tells the regular pass to skip the module setup directives this
-        // file states: the setup pass has already read them, and reading them again here would
-        // report them as directives outside a module setup file.
-        instance().addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc | FileFlagsE::SetupLoaded);
-    }
-
-    return Result::Continue;
-}
-
-Result DependencyPlanBuilder::resolveExplicitDependencyRoot(fs::path& outRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
-{
-    if (importRequest.location == "swag@std")
-        return resolveSwagStdOutputRoot(outRoot, taskCtx());
-
-    outRoot = fs::path(importRequest.location.c_str());
-    if (outRoot.is_relative())
-    {
-        const fs::path baseDir = !importRequest.baseDir.empty() ? importRequest.baseDir : (instance().cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : instance().cmdLine().moduleFilePath.parent_path());
-        if (!baseDir.empty())
-            outRoot = (baseDir / outRoot).lexically_normal();
-    }
-
-    SWC_RESULT(FileSystem::resolveFolder(taskCtx(), outRoot));
-    return Result::Continue;
-}
-
-Result DependencyPlanBuilder::resolveLinkAndSharedDirs(CompilerInstance::ResolvedDependencyPaths& outPaths, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
-{
-    outPaths.linkDir.clear();
-    outPaths.sharedDir.clear();
-    outPaths.staticDir.clear();
-    outPaths.sourceRoot = FileSystem::normalizePath(dependencyRoot);
-
-    const CommandLine&                     cmdLine = instance().cmdLine();
-    Utf8                                   because;
-    std::vector<DependencyConfigCandidate> matches;
-    const Result                           collected = collectDependencyConfigurationMatches(matches, because, dependencyRoot, importRequest.moduleName.view(), cmdLine);
-    if (collected == Result::Continue)
-    {
-        if (const fs::path* sharedDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::SharedLibrary))
-            outPaths.sharedDir = *sharedDir;
-
-        if (const fs::path* staticDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::StaticLibrary))
-            outPaths.staticDir = *staticDir;
-    }
-
-    if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
-    {
-        if (collected == Result::Continue)
-        {
-            if (const fs::path* linkDir = findDependencyBackendDirectory(matches, importRequest.linkBackendKind))
-            {
-                outPaths.linkDir = *linkDir;
-                return Result::Continue;
-            }
-            because = std::format("no '{}' dependency backend matches {}", backendKindName(importRequest.linkBackendKind).c_str(), dependencyConfigurationLabel(cmdLine).c_str());
-        }
-        return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-    }
-
-    if (!outPaths.sharedDir.empty())
-    {
-        outPaths.linkDir = outPaths.sharedDir;
-        return Result::Continue;
-    }
-
-    if (outPaths.apiBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
-        outPaths.linkDir = outPaths.apiDir;
-    return Result::Continue;
-}
-
-// Whether the compiler reads its dependencies from a copy instead of from where they were built.
-//
-// A workspace vendors them into a '.dep' directory it owns. A script has no directory of its own
-// and shares the content-addressed cache. Everything else reads them where they are: only these
-// two run a program whose libraries may be rebuilt underneath it by the very run that loaded them.
-bool DependencyPlanBuilder::mirrorsDependencies() const
-{
-    return !workspaceDependencyRoot.empty() || instance().cmdLine().scriptMode;
-}
-
-Result DependencyPlanBuilder::mirrorDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-{
-    if (ioDir.empty())
-        return Result::Continue;
-    if (!workspaceDependencyRoot.empty())
-        return mirrorWorkspaceDependencyDir(ioDir, sourceDependencyRoot, apiSnapshot);
-    return mirrorScriptDependencyDir(ioDir, sourceDependencyRoot, apiSnapshot);
-}
-
-Result DependencyPlanBuilder::mirrorWorkspaceDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-{
-    const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
-    const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
-    if (FileSystem::pathEquals(normalizedSourceRoot, workspaceOutputRoot) || FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
-    {
-        ioDir = normalizedSourceDir;
-        return Result::Continue;
-    }
-
-    fs::path relativePath;
-    SWC_RESULT(resolveDependencyMirrorRelativePath(relativePath, taskCtx(), normalizedSourceDir, normalizedSourceRoot));
-
-    fs::path   destinationDir = (workspaceDependencyRoot / relativePath).lexically_normal();
-    const Utf8 mirrorKey      = std::format("{}|{}", Utf8(normalizedSourceDir).c_str(), Utf8(destinationDir).c_str());
-    if (mirroredDependencyDirs.insert(mirrorKey).second)
-    {
-        std::vector<ModuleApi::SourceSnapshot> capturedApi;
-        SWC_RESULT(captureMissingApiSnapshot(taskCtx(), apiSnapshot, capturedApi, normalizedSourceDir));
-
-        ModuleApi::DirectoryAccess publication;
-        Utf8                       because;
-        if (apiSnapshot)
-        {
-            std::error_code ec;
-            fs::create_directories(destinationDir, ec);
-            if (ec)
-                return reportWorkspaceDependencySyncFailure(taskCtx(), destinationDir, FileSystem::normalizeSystemMessage(ec));
-            if (publication.beginPublication(because, destinationDir) != Result::Continue)
-                return reportWorkspaceDependencySyncFailure(taskCtx(), destinationDir, because);
-        }
-
-        SWC_RESULT(syncWorkspaceDependencyDirectory(taskCtx(), normalizedSourceDir, destinationDir, apiSnapshot));
-        if (apiSnapshot && publication.completePublication(because) != Result::Continue)
-            return reportWorkspaceDependencySyncFailure(taskCtx(), destinationDir, because);
-    }
-
-    ioDir = std::move(destinationDir);
-    return Result::Continue;
-}
-
-Result DependencyPlanBuilder::mirrorScriptDependencyDir(fs::path& ioDir, const fs::path& sourceDependencyRoot, const std::vector<ModuleApi::SourceSnapshot>* apiSnapshot)
-{
-    const fs::path normalizedSourceDir = FileSystem::normalizePath(ioDir);
-
-    // What already lives in the cache is never copied into it again.
-    if (FileSystem::pathStartsWith(normalizedSourceDir, FileSystem::normalizePath(WorkspaceLayout::dependencyCacheRoot())))
-    {
-        ioDir = normalizedSourceDir;
-        return Result::Continue;
-    }
-
-    // One directory is asked for as many times as it answers for — an API directory that is also
-    // the link directory, a module two others import — and reading what it holds is the expensive
-    // half of the answer.
-    const auto entryKey = Utf8(normalizedSourceDir);
-    const auto it       = scriptDependencyEntries.find(entryKey);
-    if (it != scriptDependencyEntries.end())
-    {
-        ioDir = it->second;
-        return Result::Continue;
-    }
-
-    fs::path relativePath;
-    SWC_RESULT(resolveDependencyMirrorRelativePath(relativePath, taskCtx(), normalizedSourceDir, FileSystem::normalizePath(sourceDependencyRoot)));
-
-    std::vector<ModuleApi::SourceSnapshot> capturedApi;
-    SWC_RESULT(captureMissingApiSnapshot(taskCtx(), apiSnapshot, capturedApi, normalizedSourceDir));
-
-    fs::path mirroredDir;
-    SWC_RESULT(resolveDependencyCacheEntry(mirroredDir, taskCtx(), normalizedSourceDir, relativePath, apiSnapshot));
-    scriptDependencyEntries.emplace(entryKey, mirroredDir);
-    ioDir = std::move(mirroredDir);
-    return Result::Continue;
-}
-
-bool DependencyPlanBuilder::tryResolveDependencyApiDir(CompilerInstance::ResolvedDependencyPaths& outPaths, Utf8& outBecause, const fs::path& dependencyRoot, const CompilerInstance::ModuleSetupImport& importRequest) const
-{
-    return findDependencyConfigurationDirectory(outPaths.apiDir, outBecause, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) == Result::Continue;
-}
-
-Result DependencyPlanBuilder::resolveDependencyImportDir(CompilerInstance::ResolvedDependencyPaths& outPaths, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
-{
-    outPaths = {};
-
-    if (!importRequest.location.empty())
-    {
-        fs::path dependencyRoot;
-        SWC_RESULT(resolveExplicitDependencyRoot(dependencyRoot, importRequest));
-
-        Utf8 because;
-        if (!tryResolveDependencyApiDir(outPaths, because, dependencyRoot, importRequest))
-            return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-
-        return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
-    }
-
-    if (preferredDependencyRoot && !preferredDependencyRoot->empty())
-    {
-        Utf8 because;
-        if (findDependencyConfigurationDirectory(outPaths.apiDir, because, *preferredDependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) == Result::Continue)
-            return resolveLinkAndSharedDirs(outPaths, *preferredDependencyRoot, importRequest);
-    }
-
-    if (!instance().cmdLine().workspacePath.empty())
-    {
-        fs::path        workspaceModuleDir = workspaceModuleDirectory(instance().cmdLine().workspacePath, importRequest.moduleName.view());
-        std::error_code ec;
-        if (fs::is_directory(workspaceModuleDir, ec))
-        {
-            const fs::path dependencyRoot = WorkspaceLayout::workspaceOutputDirectory(instance().cmdLine().workspacePath);
-            Utf8           because;
-            if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
-                return FileSystem::reportInvalidFolder(taskCtx(), dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-            return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
-        }
-    }
-
-    std::vector<DependencyConfigCandidate> matches;
-    for (const fs::path& dependencyRoot : instance().cmdLine().importApiDirs)
-    {
-        DependencyConfigCandidate match;
-        Utf8                      because;
-        if (findDependencyConfigurationDirectory(match.path, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &match.backendKind) != Result::Continue)
-            continue;
-
-        matches.push_back(std::move(match));
-    }
-
-    if (matches.empty())
-    {
-        if (instance().cmdLine().importApiDirs.empty())
-            return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), "no workspace dependency was found and no --import-api-dir root was provided");
-
-        const Utf8 because = std::format("module '{}' was not found in any dependency root for {}", importRequest.moduleName.c_str(), dependencyConfigurationLabel(instance().cmdLine()).c_str());
-        return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
-    }
-
-    std::ranges::sort(matches, {}, &DependencyConfigCandidate::path);
-    matches.erase(std::ranges::unique(matches, {}, &DependencyConfigCandidate::path).begin(), matches.end());
-    if (matches.size() != 1)
-    {
-        std::vector<fs::path> paths;
-        paths.reserve(matches.size());
-        for (const DependencyConfigCandidate& match : matches)
-            paths.push_back(match.path);
-
-        const Utf8 because = std::format("multiple dependency roots match {} ({})", dependencyConfigurationLabel(instance().cmdLine()).c_str(), joinDependencyPaths(paths).c_str());
-        return FileSystem::reportInvalidFolder(taskCtx(), importRequest.moduleName.c_str(), because);
-    }
-
-    outPaths.apiDir         = matches.front().path;
-    outPaths.apiBackendKind = matches.front().backendKind;
-    return resolveLinkAndSharedDirs(outPaths, dependencyRootFromConfigurationDir(outPaths.apiDir), importRequest);
-}
-
-Result DependencyPlanBuilder::captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const
-{
-    CommandLine setupCmdLine = instance().cmdLine();
-    setupCmdLine.directories.clear();
-    setupCmdLine.files.clear();
-    setupCmdLine.importApiModules.clear();
-    setupCmdLine.importApiFiles.clear();
-    setupCmdLine.exportApiDir.clear();
-    setupCmdLine.modulePath.clear();
-    setupCmdLine.moduleFilePath = depsFile;
-    CommandLineParser::refreshBuildCfg(setupCmdLine);
-    return instance().captureModuleSetupSnapshot(taskCtx(), setupCmdLine, outSnapshot);
-}
-
-// Generated dependency metadata and small declarative module files share the same literal import
-// grammar. Returning false is deliberately silent: the regular parser and semantic pass then own
-// every diagnostic and every more expressive setup form.
 static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector<CompilerInstance::ModuleSetupImport>& outImports)
 {
     std::string             content;
@@ -2838,41 +977,11 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
 
             skipSpaces(line, pos);
 
-            Utf8* target = nullptr;
-            if (line.substr(pos).starts_with("location:"))
-            {
-                pos += 9;
-                target = &importRequest.location;
-            }
-            else if (line.substr(pos).starts_with("version:"))
-            {
-                pos += 8;
-                target = &importRequest.version;
-            }
-            else if (line.substr(pos).starts_with("link:"))
-            {
-                pos += 5;
-                Utf8 link;
-                skipSpaces(line, pos);
-                if (!readQuoted(link, line, pos))
-                    return false;
-
-                if (link == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary))
-                    importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
-                else if (link == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary))
-                    importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::StaticLibrary;
-                else
-                    return false;
-
-                continue;
-            }
-            else
-            {
+            if (!importRequest.location.empty() || !line.substr(pos).starts_with("location:"))
                 return false;
-            }
-
+            pos += 9;
             skipSpaces(line, pos);
-            if (!readQuoted(*target, line, pos))
+            if (!readQuoted(importRequest.location, line, pos) || importRequest.location.empty())
                 return false;
         }
 
@@ -2887,220 +996,213 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
     return true;
 }
 
-Result DependencyPlanBuilder::captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports)
+// Source dependencies stay in their original directories. The completed DFS is also the
+// order used for initialization and for compiler-generated declarations.
+Result CompilerInstance::prepareSourceDependencies(TaskContext& ctx, std::unique_ptr<SourceDependencyPlan>& outPlan, const fs::path& rootModule, const ModuleSetupSnapshot& setup) const
 {
-    // depsFile has already been resolved to an absolute path by the caller, so a lexical key is
-    // enough to identify it without paying for another weakly_canonical() disk round-trip.
-    const auto key = Utf8(depsFile.lexically_normal().string());
-    const auto it  = dependencyImportsCache.find(key);
-    if (it != dependencyImportsCache.end())
-    {
-        *outImports = &it->second;
+    using Kind = Runtime::BuildCfgBackendKind;
+    outPlan.reset();
+    if (setup.imports.empty())
         return Result::Continue;
-    }
 
-    std::vector<CompilerInstance::ModuleSetupImport> imports;
-    if (!tryCaptureLiteralModuleImports(depsFile, imports))
-    {
-        CompilerInstance::ModuleSetupSnapshot snapshot;
-        SWC_RESULT(captureDependencyImportSnapshot(depsFile, snapshot));
-        imports = std::move(snapshot.imports);
-    }
+    auto                   plan = std::make_unique<SourceDependencyPlan>();
+    std::map<Utf8, uint32_t> visited;
+    std::map<Utf8, fs::path> namespaces;
+    fs::path               stdWorkspace;
 
-    const auto [insertedIt, inserted] = dependencyImportsCache.emplace(key, std::move(imports));
-    SWC_UNUSED(inserted);
-    *outImports = &insertedIt->second;
-    return Result::Continue;
-}
-
-Result DependencyPlanBuilder::resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot)
-{
-    CompilerInstance::ResolvedDependencyPaths paths;
-    SWC_RESULT(resolveDependencyImportDir(paths, importRequest, preferredDependencyRoot));
-
-    const fs::path sourceApiDir = FileSystem::normalizePath(paths.apiDir);
-    const Utf8     nodeKey      = std::format("{}|{}|{}", Utf8(sourceApiDir).c_str(), importRequest.moduleName.c_str(), importRequest.version.c_str());
-    const auto     existingIt   = nodeIndices.find(nodeKey);
-    if (existingIt != nodeIndices.end())
-    {
-        outIndex = existingIt->second;
-        return Result::Continue;
-    }
-
-    const fs::path                                          sourceRoot    = paths.sourceRoot;
-    const std::vector<CompilerInstance::ModuleSetupImport>* nestedImports = nullptr;
-    CompilerInstance::ResolvedDependencyNode                node;
-    node.moduleName      = importRequest.moduleName;
-    node.location        = importRequest.location;
-    node.version         = importRequest.version;
-    node.linkBackendKind = importRequest.linkBackendKind;
-    node.apiSourceDir    = sourceApiDir;
-    node.sourcePaths     = paths;
-    {
-        ModuleApi::DirectoryAccess access;
-        Utf8                       because;
-        if (access.openRead(because, sourceApiDir) != Result::Continue)
-            return FileSystem::reportInvalidFolder(taskCtx(), sourceApiDir, because);
-
-        node.apiReadTime = fs::file_time_type::clock::now();
-        SWC_RESULT(captureModuleApiSources(taskCtx(), node.apiFiles, sourceApiDir));
-        fs::path depsFile = dependencyImportMetadataPath(sourceApiDir);
-        if (FileSystem::resolveExistingFile(depsFile, because) == Result::Continue)
-            SWC_RESULT(captureDependencyImports(depsFile, &nestedImports));
-    }
-
-    // API mirroring can copy the native files in the same directory as well. Keep the source
-    // boundary before any mirror: a later module entry time would certify intervening rebuilds.
-    node.nativeReadTime = fs::file_time_type::clock::now();
-
-    // An API mirror publishes the captured bytes after releasing the source lock. Inverse
-    // mirrors therefore never acquire A then B while another process acquires B then A.
-    if (mirrorsDependencies())
-    {
-        SWC_RESULT(mirrorDependencyDir(paths.apiDir, sourceRoot, &node.apiFiles));
-        SWC_RESULT(mirrorDependencyDir(paths.linkDir, sourceRoot));
-        SWC_RESULT(mirrorDependencyDir(paths.sharedDir, sourceRoot));
-        if (mayLinkDependenciesIn(instance()))
-            SWC_RESULT(mirrorDependencyDir(paths.staticDir, sourceRoot));
-        else
-            paths.staticDir.clear();
-    }
-
-    for (ModuleApi::SourceSnapshot& source : node.apiFiles)
-        source.path = paths.apiDir / source.path.lexically_relative(sourceApiDir);
-    node.paths = std::move(paths);
-    outIndex   = plan.nodes.size();
-    nodeIndices.emplace(nodeKey, outIndex);
-    plan.nodes.push_back(std::move(node));
-
-    if (nestedImports)
-        for (const CompilerInstance::ModuleSetupImport& nestedImport : *nestedImports)
+    const auto visit = [&](auto&& self, const ModuleSetupImport& request, uint32_t& outOwner) -> Result {
+        fs::path moduleDir;
+        if (request.location == "swag@std")
         {
-            size_t dependencyIndex = 0;
-            SWC_RESULT(resolveNode(dependencyIndex, plan, nestedImport, &sourceRoot));
-            plan.nodes[outIndex].dependencies.push_back(dependencyIndex);
+            if (stdWorkspace.empty())
+                SWC_RESULT(resolveSwagStdWorkspaceRoot(stdWorkspace, ctx));
+            moduleDir = workspaceModuleDirectory(stdWorkspace, request.moduleName.view());
+        }
+        else if (request.location.empty())
+        {
+            moduleDir = request.baseDir.parent_path() / fs::path(request.moduleName.c_str());
+        }
+        else
+        {
+            const fs::path workspace = request.baseDir / fs::path(request.location.c_str());
+            moduleDir = workspaceModuleDirectory(workspace, request.moduleName.view());
         }
 
+        fs::path moduleFile = moduleDir / "module.swg";
+        SWC_RESULT(FileSystem::resolveFile(ctx, moduleFile));
+        moduleDir  = moduleFile.parent_path();
+        auto [entry, inserted] = visited.try_emplace(Utf8Helper::normalizePathForCompare(moduleFile), 0);
+        if (!inserted)
+        {
+            if (entry->second)
+            {
+                outOwner = entry->second;
+                return Result::Continue;
+            }
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_cycle);
+            diag.addArgument(Diagnostic::ARG_SYM, request.moduleName);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        fs::path sourceDir = moduleDir / "src";
+        Utf8 because;
+        if (FileSystem::resolveExistingFolder(sourceDir, because) != Result::Continue)
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_module_src_missing, moduleDir);
+
+        CommandLine dep = cmdLine();
+        dep.command = CommandKind::Build;
+        dep.workspacePath.clear();
+        dep.moduleFilePath = moduleFile;
+        dep.modulePath = moduleDir;
+        dep.name.clear();
+        dep.artifactNameExplicit = false;
+        dep.moduleNamespace.clear();
+        dep.moduleNamespaceExplicit = false;
+        dep.backendKind = Kind::None;
+        dep.artifactKindExplicit = false;
+        dep.outDir.clear();
+        dep.workDir.clear();
+        dep.outDirStorage.clear();
+        dep.workDirStorage.clear();
+        dep.outDirExplicit = false;
+        dep.workDirExplicit = false;
+        dep.directories.clear();
+        dep.files.clear();
+        dep.fileFilter.clear();
+        dep.scriptMode = false;
+        dep.sourceDrivenTest = false;
+        CommandLineParser::refreshBuildCfg(dep);
+
+        ModuleSetupSnapshot snapshot;
+        SWC_RESULT(resolveModuleSetupSnapshot(ctx, dep, moduleFile, snapshot));
+        if (snapshot.buildCfg.ignoreInWorkspace)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_ignored_dependency);
+            diag.addArgument(Diagnostic::ARG_SYM, Utf8(request.baseDir.filename()));
+            diag.addArgument(Diagnostic::ARG_TARGET, request.moduleName);
+            diag.report(ctx);
+            return Result::Error;
+        }
+        if (snapshot.buildCfg.backendKind == Kind::Executable)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_source_dependency_executable);
+            diag.addArgument(Diagnostic::ARG_SYM, request.moduleName);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        Utf8 namespaceName = buildCfgString(snapshot.buildCfg.moduleNamespace);
+        if (namespaceName.empty())
+        {
+            const Utf8 artifactName = buildCfgString(snapshot.buildCfg.name);
+            namespaceName = defaultModuleNamespace(artifactName.empty() ? defaultArtifactName(dep) : artifactName);
+        }
+
+        const auto [namespaceEntry, namespaceInserted] = namespaces.try_emplace(namespaceName, moduleFile);
+        if (!namespaceInserted)
+        {
+            const Utf8 previousFile = FileSystem::formatFileName(namespaceEntry->second);
+            const Utf8 because = std::format("source group namespace '{}' is already declared by '{}'", namespaceName.view(), previousFile.view());
+            return FileSystem::reportInvalidFolder(ctx, moduleDir, because);
+        }
+
+        std::set<uint32_t> visibleOwners;
+        for (const ModuleSetupImport& nested : snapshot.imports)
+        {
+            uint32_t owner = 0;
+            SWC_RESULT(self(self, nested, owner));
+
+            visibleOwners.insert(owner);
+            const auto& transitive = plan->dependencies[owner - 1].visibleOwners;
+            visibleOwners.insert(transitive.begin(), transitive.end());
+        }
+
+        SourceDependency& group = plan->dependencies.emplace_back();
+        group.namespaceName    = std::move(namespaceName);
+        group.loadedFiles       = std::move(snapshot.loadedFiles);
+        group.visibleOwners.assign(visibleOwners.begin(), visibleOwners.end());
+        collectSwagFilesRec(dep, sourceDir, group.files, false);
+        std::ranges::sort(group.files);
+        plan->inputs.push_back(moduleFile);
+        plan->inputs.insert(plan->inputs.end(), group.files.begin(), group.files.end());
+        appendWorkspaceInputFiles(plan->inputs, group.loadedFiles);
+        appendWorkspaceInputFiles(plan->inputs, snapshot.compilerInputFiles);
+
+        outOwner      = static_cast<uint32_t>(plan->dependencies.size());
+        entry->second = outOwner;
+        return Result::Continue;
+    };
+
+    visited.emplace(Utf8Helper::normalizePathForCompare(rootModule), 0);
+    for (const ModuleSetupImport& request : setup.imports)
+    {
+        uint32_t owner = 0;
+        SWC_RESULT(visit(visit, request, owner));
+    }
+
+    normalizeWorkspacePathsLexically(plan->inputs);
+    outPlan = std::move(plan);
     return Result::Continue;
 }
 
-void DependencyPlanBuilder::collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, const size_t nodeIndex)
+void CompilerInstance::applySourceDependencies(const ModuleSetupSnapshot& setup)
 {
-    if (std::ranges::find(outClosure, nodeIndex) != outClosure.end())
+    moduleSetupImports_     = setup.imports;
+    moduleSetupLoadedFiles_ = setup.loadedFiles;
+
+    for (const fs::path& path : setup.loadedFiles)
+    {
+        const auto existing = std::ranges::find(files_, path, [](const auto& file) -> const fs::path& { return file->path(); });
+        if (existing != files_.end())
+            (*existing)->addFlag(FileFlagsE::SetupLoaded);
+        else
+            addResolvedFile(path, FileFlagsE::ModuleSrc | FileFlagsE::SetupLoaded);
+    }
+
+    uint32_t owner = 0;
+    if (!sourceDependencyPlan_)
         return;
 
-    outClosure.push_back(nodeIndex);
-    const CompilerInstance::ResolvedDependencyNode& node = plan.nodes[nodeIndex];
-    for (const size_t dependencyIndex : node.dependencies)
+    for (const SourceDependency& dep : sourceDependencyPlan_->dependencies)
     {
-        if (std::ranges::find(outClosure, dependencyIndex) != outClosure.end())
-            continue;
-
-        const CompilerInstance::ResolvedDependencyNode& dependency = plan.nodes[dependencyIndex];
-        if (std::ranges::find(outModules, dependency.moduleName) == outModules.end())
-            outModules.push_back(dependency.moduleName);
-        collectClosure(outClosure, outModules, plan, dependencyIndex);
-    }
-}
-
-Result DependencyPlanBuilder::build(CompilerInstance::DependencyPlan& outPlan, const std::span<const CompilerInstance::ModuleSetupImport> imports)
-{
-    outPlan = {};
-    for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
-    {
-        bool alreadyBound = false;
-        for (const CompilerInstance::ResolvedDependencyBinding& binding : outPlan.bindings)
+        ++owner;
+        // A file named by two descriptors is evaluated in each group's own scope.
+        for (const fs::path& path : dep.loadedFiles)
+            addResolvedFile(path, FileFlagsE::ModuleSrc | FileFlagsE::SetupLoaded).setSourceOwner(owner);
+        for (const fs::path& path : dep.files)
         {
-            if (isSameImportRequest(binding.request, importRequest))
-            {
-                alreadyBound = true;
-                break;
-            }
+            if (dep.loadedFiles.empty() || !dep.loadedFiles.contains(FileSystem::normalizePath(path)))
+                addResolvedFile(path, FileFlagsE::ModuleSrc).setSourceOwner(owner);
         }
-        if (alreadyBound)
-            continue;
-
-        CompilerInstance::ResolvedDependencyBinding binding;
-        binding.request = importRequest;
-        SWC_RESULT(resolveNode(binding.nodeIndex, outPlan, importRequest, nullptr));
-        collectClosure(binding.closure, binding.transitiveImports, outPlan, binding.nodeIndex);
-        outPlan.bindings.push_back(std::move(binding));
     }
-
-    return Result::Continue;
 }
 
-Result CompilerInstance::prepareDependencyPlan(TaskContext& ctx, DependencyPlan& outPlan, const std::span<const ModuleSetupImport> imports)
+bool CompilerInstance::canSeeSourceOwner(const uint32_t from, const uint32_t owner) const
 {
-    // Materialization precedes resolution. The compiler distribution already owns swag@std's
-    // sources, so its provider only has to build the requested roots. A future repository provider
-    // can fetch and build its source here, then hand the same flat resolver an output root.
-    std::set<Utf8> stdModules;
-    for (const ModuleSetupImport& importRequest : imports)
-    {
-        if (importRequest.location == "swag@std")
-            stdModules.insert(importRequest.moduleName);
-    }
-
-    if (!stdModules.empty())
-    {
-        fs::path workspacePath;
-        SWC_RESULT(resolveSwagStdWorkspaceRoot(workspacePath, ctx));
-
-        CommandLine stdCmdLine              = cmdLine();
-        stdCmdLine.command                  = CommandKind::Build;
-        stdCmdLine.commandExplicit          = true;
-        stdCmdLine.scriptMode               = false;
-        stdCmdLine.sourceDrivenTest         = false;
-        stdCmdLine.workspaceDependencyBuild = true;
-        stdCmdLine.workspacePath            = workspacePath;
-
-        stdCmdLine.workspaceModuleFilter.clear();
-        stdCmdLine.workspaceModuleSelection = std::move(stdModules);
-        stdCmdLine.rebuild                  = cmdLine().rebuild && !cmdLine().rebuildModule;
-        stdCmdLine.rebuildModule            = false;
-
-        stdCmdLine.moduleFilePath.clear();
-        stdCmdLine.modulePath.clear();
-        stdCmdLine.directories.clear();
-        stdCmdLine.files.clear();
-
-        stdCmdLine.importApiModules.clear();
-        stdCmdLine.importApiDirs.clear();
-        stdCmdLine.importApiFiles.clear();
-        stdCmdLine.exportApiDir.clear();
-
-        stdCmdLine.outDir.clear();
-        stdCmdLine.workDir.clear();
-        stdCmdLine.outDirStorage.clear();
-        stdCmdLine.workDirStorage.clear();
-        stdCmdLine.outDirExplicit  = false;
-        stdCmdLine.workDirExplicit = false;
-
-        stdCmdLine.name.clear();
-        stdCmdLine.artifactNameExplicit = false;
-        stdCmdLine.backendKind          = Runtime::BuildCfgBackendKind::Executable;
-        stdCmdLine.artifactKindExplicit = false;
-
-        stdCmdLine.moduleNamespace.clear();
-        stdCmdLine.moduleNamespaceStorage.clear();
-        stdCmdLine.moduleNamespaceExplicit = false;
-
-        stdCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
-        CommandLineParser::refreshBuildCfg(stdCmdLine);
-
-        CompilerInstance stdCompiler(global(), stdCmdLine);
-        if (stdCompiler.runWorkspace() != ExitCode::Success)
-            return Result::Error;
-    }
-
-    DependencyPlanBuilder builder(*this, ctx);
-    return builder.build(outPlan, imports);
+    if (!from || from == owner)
+        return true;
+    const auto& visible = sourceDependencyPlan_->dependencies[from - 1].visibleOwners;
+    return std::ranges::binary_search(visible, owner);
 }
 
-bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild)
+void CompilerInstance::assignSourceNamespaces(TaskContext& ctx, const std::span<SourceFile* const> files)
 {
-    return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
+    std::vector<SymbolNamespace*> namespaces{moduleNamespace()};
+    if (sourceDependencyPlan_)
+    {
+        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+        for (const SourceDependency& dep : sourceDependencyPlan_->dependencies)
+        {
+            const IdentifierRef idRef = ctx.idMgr().addIdentifierOwned(dep.namespaceName, Math::hash(dep.namespaceName));
+            auto* ns = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, flags);
+            importRootNamespace()->addSingleSymbol(ctx, ns);
+            namespaces.push_back(ns);
+        }
+    }
+
+    for (SourceFile* file : files)
+        file->setModuleNamespace(*namespaces[file->sourceOwner()]);
 }
 
 // A module's native link, run as a normal job on the shared JobManager. The owned CommandLine,
@@ -3168,19 +1270,6 @@ namespace
 
         if (link.writeManifest && Stats::get().numWarnings.load(std::memory_order_relaxed) == link.warningsBefore)
         {
-            const LinkJob& linkJob = link.builder->deferredToolRun();
-            if (linkJob.incrementalCachePublished)
-            {
-                link.manifest.linkObjects.reserve(linkJob.incrementalObjects.size());
-                for (const LinkJob::IncrementalObject& object : linkJob.incrementalObjects)
-                    link.manifest.linkObjects.push_back(object.path);
-                normalizeWorkspacePathsLexically(link.manifest.linkObjects);
-
-                link.manifest.linkLibraries = linkJob.incrementalLibraries;
-                std::ranges::sort(link.manifest.linkLibraries);
-                link.manifest.linkLibraries.erase(std::ranges::unique(link.manifest.linkLibraries).begin(), link.manifest.linkLibraries.end());
-            }
-
             collectWorkspaceOutputArtifacts(link.manifest.artifacts, link.outDir);
             SWC_RESULT(writeWorkspaceArtifactManifest(link.builder->ctx(), link.manifest, link.manifestPath));
         }
@@ -3189,106 +1278,12 @@ namespace
     }
 }
 
-Result CompilerInstance::completeWorkspaceDependency()
-{
-    if (!pendingWorkspaceLink_)
-        return Result::Continue;
-    const std::unique_ptr<WorkspaceModuleLink> link = std::move(*pendingWorkspaceLink_);
-    pendingWorkspaceLink_                           = nullptr;
-    if (!link)
-        return Result::Continue;
-
-    SWC_SCHED_PHASE(global().jobMgr(), "workspace link wait");
-    SWC_RESULT(finalizeWorkspaceModuleLink(*link));
-
-    // Setup captured the API while the native image was still being linked.
-    // Date native consumption after that link, without advancing the API boundary:
-    // otherwise a subsequent no-op would incorrectly see a late dependency edit.
-    const auto      readTime  = fs::file_time_type::clock::now();
-    const fs::path& staticDir = link->cmdLine->staticLibraryOutDir;
-    for (auto* readTimes : {&moduleNativeReadTimes_, &moduleStaticLinkReadTimes_})
-        for (auto& [directory, time] : *readTimes)
-            if (FileSystem::pathEquals(directory, link->outDir) || (!staticDir.empty() && FileSystem::pathEquals(directory, staticDir)))
-                time = readTime;
-    return Result::Continue;
-}
-
-Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, const std::span<const ModuleSetupImport> imports)
-{
-    outDirs.clear();
-    outDirs.reserve(imports.size() * 3);
-    for (const ModuleSetupImport& importRequest : imports)
-    {
-        const DependencyPlan*            selectedPlan = &dependencyPlan;
-        const ResolvedDependencyBinding* binding      = nullptr;
-        for (const ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
-        {
-            if (isSameImportRequest(candidate.request, importRequest))
-            {
-                binding = &candidate;
-                break;
-            }
-        }
-
-        DependencyPlan localPlan;
-        if (!binding)
-        {
-            DependencyPlanBuilder builder(*this, ctx);
-            SWC_RESULT(builder.build(localPlan, std::span{&importRequest, 1}));
-            SWC_ASSERT(localPlan.bindings.size() == 1);
-            selectedPlan = &localPlan;
-            binding      = &localPlan.bindings.front();
-        }
-
-        const ResolvedDependencyPaths& paths = selectedPlan->nodes[binding->nodeIndex].paths;
-        if (!paths.apiDir.empty())
-            outDirs.push_back(paths.apiDir);
-        if (!paths.linkDir.empty())
-            outDirs.push_back(paths.linkDir);
-        if (!paths.sharedDir.empty())
-            outDirs.push_back(paths.sharedDir);
-    }
-
-    normalizeWorkspacePaths(outDirs);
-    return Result::Continue;
-}
-
-// Builds the same workspace selection this consuming command covers, so every imported module has
-// published its interface and link artifacts before tests or documentation are compiled. The
-// nested run is an ordinary build, so it cannot come back here.
-ExitCode CompilerInstance::runWorkspacePublishPass(const DependencyPlan& dependencies) const
-{
-    // `publish` is deliberately inherited: this is a build of the workspace the consuming command
-    // requested, and a link that does not publish removes runtime files a previous link placed
-    // beside the artifact.
-    CommandLine buildCmdLine          = cmdLine();
-    buildCmdLine.command              = CommandKind::Build;
-    buildCmdLine.commandExplicit      = true;
-    buildCmdLine.sourceDrivenTest     = false;
-    buildCmdLine.artifactKindExplicit = false;
-    buildCmdLine.outDir.clear();
-    buildCmdLine.workDir.clear();
-    buildCmdLine.outDirStorage.clear();
-    buildCmdLine.workDirStorage.clear();
-    buildCmdLine.outDirExplicit  = false;
-    buildCmdLine.workDirExplicit = false;
-    // This pass can be the first code in the process to load and initialize a shared module, and
-    // those lifecycle hooks are process-wide: they must close over the arguments of the command
-    // that asked for the build, not over a plain build's. In particular, test isolation must not be
-    // decided once by a build that is not under test.
-    buildCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
-    CommandLineParser::refreshBuildCfg(buildCmdLine);
-
-    CompilerInstance buildCompiler(global(), buildCmdLine);
-    return buildCompiler.runWorkspace(&dependencies);
-}
-
-ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependencies)
+ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext    ctx(*this);
     ScopedTimedLog workspaceStage(ctx, ScopedTimedLog::Stage::Workspace);
     fs::path       workspacePath = cmdLine().workspacePath;
-    fs::path       modulesPath   = workspaceModulesDirectory(workspacePath);
+    fs::path       modulesPath   = WorkspaceLayout::workspaceModulesDirectory(workspacePath);
     Utf8           because;
 
     workspaceBuildLogState_  = {};
@@ -3345,67 +1340,32 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         return ExitCode::CompileError;
     }
 
-    std::unordered_map<Utf8, size_t> moduleIndices;
-    moduleIndices.reserve(modules.size());
-    for (size_t i = 0; i < modules.size(); ++i)
-        moduleIndices.emplace(modules[i].name, i);
-
-    // Running a module's setup means parsing and sema'ing its module.swg, including its
-    // #run build-configuration block on the main JIT thread. That is the dominant cost of a
-    // workspace command, so when a module filter is active we only snapshot the requested
-    // module and the transitive closure of its workspace dependencies, discovered lazily by
-    // following each module's imports as it is snapshotted. Every other module stays
-    // filtered out and is never set up.
     std::set<Utf8> requestedModules = cmdLine().workspaceModuleSelection;
     if (!cmdLine().workspaceModuleFilter.empty())
         requestedModules.insert(cmdLine().workspaceModuleFilter);
 
-    const bool          hasFilter = !requestedModules.empty();
-    std::vector<size_t> requestedModuleIndices;
-    std::vector<size_t> snapshotOrder;
-    std::vector         snapshotQueued(modules.size(), false);
-    if (hasFilter)
+    for (const Utf8& requested : requestedModules)
     {
-        for (const Utf8& requestedModule : requestedModules)
-        {
-            const auto it = moduleIndices.find(requestedModule);
-            if (it == moduleIndices.end())
-            {
-                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
-                FileSystem::setDiagnosticPath(diag, cmdLine().workspacePath);
-                diag.addArgument(Diagnostic::ARG_SYM, requestedModule);
-                diag.report(ctx);
-                return ExitCode::CompileError;
-            }
+        if (std::ranges::find(modules, requested, &WorkspaceModuleBuild::name) != modules.end())
+            continue;
 
-            requestedModuleIndices.push_back(it->second);
-            snapshotOrder.push_back(it->second);
-            snapshotQueued[it->second]        = true;
-            modules[it->second].commandTarget = true;
-        }
-
-        for (auto& module : modules)
-            module.filteredOut = true;
-    }
-    else
-    {
-        snapshotOrder.reserve(modules.size());
-        for (size_t i = 0; i < modules.size(); ++i)
-        {
-            snapshotOrder.push_back(i);
-            snapshotQueued[i]        = true;
-            modules[i].commandTarget = true;
-        }
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
+        FileSystem::setDiagnosticPath(diag, workspacePath);
+        diag.addArgument(Diagnostic::ARG_SYM, requested);
+        diag.report(ctx);
+        return ExitCode::CompileError;
     }
 
-    for (size_t cursor = 0; cursor < snapshotOrder.size(); ++cursor)
+    const CommandKind                        command = cmdLine().command;
+    const bool                               executableTargetsOnly = requestedModules.empty() && (command == CommandKind::Build || isRunLikeCommand(command));
+    std::vector<const WorkspaceModuleBuild*> targets;
+    for (WorkspaceModuleBuild& moduleBuild : modules)
     {
-        WorkspaceModuleBuild& moduleBuild = modules[snapshotOrder[cursor]];
-        if (hasFilter)
-            moduleBuild.filteredOut = false;
+        if (!requestedModules.empty() && !requestedModules.contains(moduleBuild.name))
+            continue;
 
         CommandLine setupCmdLine = cmdLine();
-        setupCmdLine.rebuild     = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
+        setupCmdLine.rebuild     = cmdLine().rebuild || cmdLine().rebuildModule;
         setupCmdLine.workspacePath.clear();
         setupCmdLine.modulePath     = moduleBuild.moduleDir;
         setupCmdLine.moduleFilePath = moduleBuild.moduleFile;
@@ -3415,242 +1375,37 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
         {
             SWC_SCHED_PHASE(ctx.global().jobMgr(), "workspace module setup");
-            if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.name, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
+            if (resolveModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
                 return ExitCode::CompileError;
         }
 
-        moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
-        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
+        if (moduleBuild.setup.buildCfg.ignoreInWorkspace)
         {
-            if (!importRequest.location.empty())
+            ++workspaceBuildLogState_.ignoredModules;
+            if (requestedModules.empty())
                 continue;
 
-            const auto depIt = moduleIndices.find(importRequest.moduleName);
-            if (depIt == moduleIndices.end())
-                continue;
-
-            moduleBuild.workspaceDependencies.push_back(importRequest.moduleName);
-            if (hasFilter && !snapshotQueued[depIt->second])
-            {
-                snapshotQueued[depIt->second] = true;
-                snapshotOrder.push_back(depIt->second);
-            }
-        }
-    }
-
-    for (const size_t requestedModuleIndex : requestedModuleIndices)
-    {
-        if (!modules[requestedModuleIndex].ignoreInWorkspace)
-            continue;
-
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
-        diag.addArgument(Diagnostic::ARG_SYM, modules[requestedModuleIndex].name);
-        diag.report(ctx);
-        return ExitCode::CompileError;
-    }
-
-    for (const WorkspaceModuleBuild& moduleBuild : modules)
-    {
-        if (!isWorkspaceModuleActive(moduleBuild))
-            continue;
-
-        for (const Utf8& dependency : moduleBuild.workspaceDependencies)
-        {
-            const WorkspaceModuleBuild& dependencyModule = modules[moduleIndices.at(dependency)];
-            if (!dependencyModule.ignoreInWorkspace)
-                continue;
-
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_ignored_dependency);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
             diag.addArgument(Diagnostic::ARG_SYM, moduleBuild.name);
-            diag.addArgument(Diagnostic::ARG_TARGET, dependency);
             diag.report(ctx);
             return ExitCode::CompileError;
         }
-    }
 
-    const auto isCommandTarget = [this, hasFilter](const WorkspaceModuleBuild& moduleBuild) {
-        if (!isWorkspaceModuleActive(moduleBuild))
-            return false;
-        return cmdLine().command != CommandKind::Test || !hasFilter || moduleBuild.commandTarget;
-    };
-
-    std::vector<uint32_t>            indegree(modules.size(), 0);
-    std::vector<std::vector<size_t>> dependents(modules.size());
-    size_t                           activeModuleCount   = 0;
-    size_t                           filteredModuleCount = 0;
-    size_t                           ignoredModuleCount  = 0;
-    for (size_t i = 0; i < modules.size(); ++i)
-    {
-        if (modules[i].ignoreInWorkspace)
-        {
-            ignoredModuleCount++;
+        if (executableTargetsOnly && effectiveBackendKind(setupCmdLine, moduleBuild.setup.buildCfg.backendKind) == Runtime::BuildCfgBackendKind::None)
             continue;
-        }
-        if (modules[i].filteredOut || !isCommandTarget(modules[i]))
-        {
-            filteredModuleCount++;
-            continue;
-        }
 
-        activeModuleCount++;
-        for (const Utf8& dependency : modules[i].workspaceDependencies)
-        {
-            const size_t dependencyIndex = moduleIndices.at(dependency);
-            if (!isCommandTarget(modules[dependencyIndex]))
-                continue;
-
-            indegree[i]++;
-            dependents[dependencyIndex].push_back(i);
-        }
+        if (prepareSourceDependencies(ctx, moduleBuild.sourceDependencies, moduleBuild.moduleFile, moduleBuild.setup) != Result::Continue)
+            return ExitCode::CompileError;
+        targets.push_back(&moduleBuild);
     }
 
     workspaceBuildLogState_.discoveredModules = modules.size();
-    workspaceBuildLogState_.activeModules     = activeModuleCount;
-    workspaceBuildLogState_.filteredModules   = filteredModuleCount;
-    workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
-    workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
+    workspaceBuildLogState_.activeModules     = targets.size();
+    workspaceBuildLogState_.filteredModules   = modules.size() - targets.size() - workspaceBuildLogState_.ignoredModules;
+    workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
+    const Logger::ScopedStagesDetailed stagesDetailedScope(global().logger(), targets.size() == 1);
 
-    // Older compilers emitted test DLLs and libraries into normal publication directories, and
-    // focused executables into the reusable test directory. Remove those exact legacy products
-    // before the publish pass reads a manifest or copies a dependency beside an executable.
-    if (cmdLine().command == CommandKind::Test)
-    {
-        CommandLine buildCmdLine      = cmdLine();
-        buildCmdLine.command          = CommandKind::Build;
-        buildCmdLine.sourceDrivenTest = false;
-        buildCmdLine.testFileFilter.clear();
-        buildCmdLine.testTagFilter.clear();
-        for (const WorkspaceModuleBuild& moduleBuild : modules)
-        {
-            if (!isCommandTarget(moduleBuild))
-                continue;
-
-            const Runtime::BuildCfgBackendKind backendKind = moduleBuild.setup.buildCfg.backendKind;
-            if (backendKind == Runtime::BuildCfgBackendKind::Executable)
-            {
-                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
-                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
-                    return ExitCode::CompileError;
-
-                CommandLine testCmdLine = cmdLine();
-                testCmdLine.testFileFilter.clear();
-                testCmdLine.testTagFilter.clear();
-                const fs::path testDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, testCmdLine, backendKind, false);
-                if (removeLegacyWorkspaceTestArtifacts(ctx, testDirectory, true) != Result::Continue)
-                    return ExitCode::CompileError;
-            }
-            else
-            {
-                const fs::path publishedDirectory = workspaceModuleOutputDirectory(workspacePath, moduleBuild.name, buildCmdLine, backendKind, false);
-                if (removeLegacyWorkspaceTestArtifacts(ctx, publishedDirectory, false) != Result::Continue)
-                    return ExitCode::CompileError;
-            }
-        }
-    }
-
-    DependencyPlan ownedDependencies;
-    if (!preparedDependencies)
-    {
-        std::vector<ModuleSetupImport> externalImports;
-        for (const WorkspaceModuleBuild& moduleBuild : modules)
-        {
-            if (!isWorkspaceModuleActive(moduleBuild))
-                continue;
-            for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
-            {
-                if (!importRequest.location.empty())
-                    externalImports.push_back(importRequest);
-            }
-        }
-
-        if (prepareDependencyPlan(ctx, ownedDependencies, externalImports) != Result::Continue)
-            return ExitCode::CompileError;
-        preparedDependencies = &ownedDependencies;
-    }
-    SWC_ASSERT(preparedDependencies);
-
-    // Test and documentation compiles consume native dependency artifacts without publishing their
-    // own. Build the selected workspace first so both commands read complete artifacts from
-    // '.output'. The build is artifact-cached, and a workspace whose active modules do not import
-    // one another skips it.
-    if (cmdLine().command == CommandKind::Test || cmdLine().command == CommandKind::Doc)
-    {
-        bool hasActiveWorkspaceDependency = false;
-        for (const WorkspaceModuleBuild& moduleBuild : modules)
-        {
-            if (!isCommandTarget(moduleBuild))
-                continue;
-            for (const Utf8& dependency : moduleBuild.workspaceDependencies)
-            {
-                if (isWorkspaceModuleActive(modules[moduleIndices.at(dependency)]))
-                {
-                    hasActiveWorkspaceDependency = true;
-                    break;
-                }
-            }
-            if (hasActiveWorkspaceDependency)
-                break;
-        }
-
-        if (hasActiveWorkspaceDependency)
-        {
-            const ExitCode buildExitCode = runWorkspacePublishPass(*preparedDependencies);
-            if (buildExitCode != ExitCode::Success)
-                return buildExitCode;
-        }
-    }
-
-    // A workspace narrowed down to a single module reads like a plain build, so it gets the same
-    // phase-by-phase report. Any wider selection keeps one summary line per module. The choice is
-    // scoped because this function nests: a standard-library dependency built on demand runs a
-    // whole workspace build in the middle of an enclosing command, and its verbosity must not
-    // leak into the run that triggered it.
-    const Logger::ScopedStagesDetailed stagesDetailedScope(global().logger(), activeModuleCount == 1);
-
-    std::vector<size_t> buildOrder;
-    buildOrder.reserve(activeModuleCount);
-    std::vector scheduled(modules.size(), false);
-    while (buildOrder.size() < activeModuleCount)
-    {
-        size_t nextIndex = static_cast<size_t>(-1);
-        for (size_t i = 0; i < modules.size(); ++i)
-        {
-            if (!isCommandTarget(modules[i]) || scheduled[i] || indegree[i] != 0)
-                continue;
-
-            nextIndex = i;
-            break;
-        }
-
-        if (std::cmp_equal(nextIndex, -1))
-        {
-            for (size_t i = 0; i < modules.size(); ++i)
-            {
-                if (!isCommandTarget(modules[i]) || scheduled[i])
-                    continue;
-
-                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_cycle);
-                diag.addArgument(Diagnostic::ARG_SYM, modules[i].name);
-                diag.report(ctx);
-                return ExitCode::CompileError;
-            }
-
-            break;
-        }
-
-        scheduled[nextIndex] = true;
-        buildOrder.push_back(nextIndex);
-        for (const size_t dependentIndex : dependents[nextIndex])
-        {
-            SWC_ASSERT(indegree[dependentIndex] > 0);
-            indegree[dependentIndex]--;
-        }
-    }
-
-    // One native link can overlap the next module's frontend. API publication
-    // precedes linking, so parsing can consume it immediately; the driving thread
-    // joins before semantic analysis can execute imported code. The pipeline keeps
-    // at most one retained producer and never blocks a worker on its own pool.
+    // A link may overlap the next independent target's front end.
     std::unique_ptr<WorkspaceModuleLink> pendingLink;
 
     const auto joinPendingLink = [&]() -> Result {
@@ -3661,36 +1416,15 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         return finalizeWorkspaceModuleLink(*link);
     };
 
-    const uint32_t buildCount = static_cast<uint32_t>(buildOrder.size());
+    const auto buildCount = static_cast<uint32_t>(targets.size());
     for (uint32_t buildIndex = 0; buildIndex < buildCount; ++buildIndex)
     {
-        const size_t                moduleIndex = buildOrder[buildIndex];
-        const WorkspaceModuleBuild& moduleBuild = modules[moduleIndex];
-
-        const bool pendingDependency = pendingLink && std::ranges::find(moduleBuild.workspaceDependencies, pendingLink->moduleName) != moduleBuild.workspaceDependencies.end();
-        // Renamed artifacts need their published library to discover the link name.
-        // Keep that case synchronous until the interface carries the artifact name.
-        const bool parseAhead = pendingDependency && cmdLine().command == CommandKind::Build && pendingLink->builder->artifactPath.stem() == fs::path(pendingLink->moduleName.c_str());
-        if (pendingDependency && !parseAhead && joinPendingLink() != Result::Continue)
-            return ExitCode::CompileError;
-
-        // A documentation leaf renders directly from its in-memory symbols. Only modules with
-        // active dependents need an API file for a later module to import.
-        const bool                           importableArtifact = moduleBuild.setup.buildCfg.backendKind != Runtime::BuildCfgBackendKind::Executable;
-        const bool                           writeModuleApi     = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
+        const WorkspaceModuleBuild&          moduleBuild = *targets[buildIndex];
         std::unique_ptr<WorkspaceModuleLink> modulePending;
-        bool                                 compiled = false;
-
+        bool                                compiled = false;
         const WorkspaceModuleRun moduleRun = {
-            .moduleBuild    = &moduleBuild,
-            .dependencyPlan = preparedDependencies,
-            .logState       = {.name = moduleBuild.name, .ordinal = buildIndex + 1, .total = buildCount},
-            .writeModuleApi = writeModuleApi,
-            // Host semantic analysis can execute an imported function in #run. Publish
-            // only its dependencies; the selected leaves remain semantic-only, even
-            // when they have no entry point. Cross-target analysis retains its policy.
-            .buildNativeDependency = cmdLine().command == CommandKind::Sema && cmdLine().targetOs == hostTargetOs() && !dependents[moduleIndex].empty(),
-            .pendingDependency     = parseAhead ? &pendingLink : nullptr,
+            .moduleBuild = &moduleBuild,
+            .logState    = {.name = moduleBuild.name, .ordinal = buildIndex + 1, .total = buildCount},
         };
         if (runWorkspaceModule(moduleRun, compiled, modulePending) != Result::Continue)
         {
@@ -3712,7 +1446,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         workspaceBuildLogState_.builtModules++;
         if (compiled)
             workspaceBuildLogState_.compiledModules++;
-        workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
+        workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
     }
 
     if (joinPendingLink() != Result::Continue)
@@ -3724,24 +1458,17 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         return ExitCode::CompileError;
     }
 
-    if (cmdLine().workspaceDependencyBuild && workspaceBuildLogState_.compiledModules == 0)
-        workspaceStage.dismiss();
-
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
 Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
-    const WorkspaceModuleBuild& moduleBuild          = *moduleRun.moduleBuild;
-    const DependencyPlan&       dependencies         = *moduleRun.dependencyPlan;
-    const fs::file_time_type    dependenciesReadTime = fs::file_time_type::clock::now();
+    const WorkspaceModuleBuild& moduleBuild = *moduleRun.moduleBuild;
     outPending.reset();
     outCompiled = false;
 
     CommandLine moduleCmdLine = cmdLine();
-    moduleCmdLine.rebuild     = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
-    if (moduleRun.buildNativeDependency)
-        moduleCmdLine.command = CommandKind::Build;
+    moduleCmdLine.rebuild     = cmdLine().rebuild || cmdLine().rebuildModule;
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
     moduleCmdLine.moduleFilePath = moduleBuild.moduleFile;
     moduleCmdLine.directories.clear();
@@ -3750,49 +1477,33 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     moduleCmdLine.outDir  = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
 
-    // A shared library publishes its code twice from one compilation: the DLL the compiler loads to
-    // run this module at compile time, and the archive an executable links instead of importing.
-    // Only a 'build' produces both; a test compile owns a directory of its own and links nothing.
-    moduleCmdLine.staticLibraryOutDir.clear();
-    if (moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::SharedLibrary &&
-        moduleCmdLine.command != CommandKind::Test)
-    {
-        moduleCmdLine.staticLibraryOutDir = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, Runtime::BuildCfgBackendKind::StaticLibrary, false);
-    }
-    // Executables do not publish an API. Keeping their output directory here lets the module API
-    // pass remove files left by an older compiler before suppressing the export.
-    if (moduleRun.writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
-        moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
-    else
-        moduleCmdLine.exportApiDir.clear();
     moduleCmdLine.outDirExplicit  = true;
     moduleCmdLine.workDirExplicit = true;
     moduleCmdLine.outDirStorage   = Utf8(moduleCmdLine.outDir);
     moduleCmdLine.workDirStorage  = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
-    bool                  tryReuse = shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind);
+    const bool            tryReuse = shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind);
     std::vector<fs::path> currentInputs;
+    const auto appendSourceInputs = [&](std::vector<fs::path>& inputs) {
+        if (!moduleBuild.sourceDependencies)
+            return;
+        const auto& sourceInputs = moduleBuild.sourceDependencies->inputs;
+        inputs.insert(inputs.end(), sourceInputs.begin(), sourceInputs.end());
+        normalizeWorkspacePathsLexically(inputs);
+    };
     if (tryReuse)
     {
         collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});
-        if (moduleRun.pendingDependency && *moduleRun.pendingDependency)
-        {
-            // An owned input edit already proves that compilation is required.
-            // Do not join a dependency just to confirm that through an artifact probe.
-            WorkspaceArtifactManifest manifest;
-            tryReuse = readWorkspaceArtifactManifest(manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine)) && workspaceInputsAreCurrent(manifest, exeFullName_, currentInputs);
-        }
+        appendSourceInputs(currentInputs);
     }
 
     if (tryReuse)
     {
         CompilerInstance probeCompiler(global(), moduleCmdLine);
         probeCompiler.precomputedModuleSetup_    = &moduleBuild.setup;
-        probeCompiler.precomputedDependencyPlan_ = &dependencies;
+        probeCompiler.sourceDependencyPlan_      = moduleBuild.sourceDependencies.get();
         probeCompiler.workspaceModuleLogState_   = moduleRun.logState;
-        probeCompiler.pendingWorkspaceLink_      = moduleRun.pendingDependency;
-        SWC_RESULT(probeCompiler.completeWorkspaceDependency());
 
         TaskContext probeCtx(probeCompiler);
         if (probeCompiler.prepareModuleBuildConfig(probeCtx) != Result::Continue)
@@ -3814,19 +1525,14 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             artifactProbeBuilder.queryPaths(artifactPaths);
 
             if (!probeCompiler.buildCfg().backend.debugInfo &&
-                (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
-                 probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
                 unexpectedPdbPath = artifactPaths.pdbPath;
 
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
-                if (!artifactPaths.staticLibraryPath.empty())
-                    requiredArtifacts.push_back(artifactPaths.staticLibraryPath);
 
-                if (probeCompiler.buildCfg().backend.debugInfo &&
-                    (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
-                     probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
+                if (probeCompiler.buildCfg().backend.debugInfo && !artifactPaths.pdbPath.empty())
                     requiredArtifacts.push_back(artifactPaths.pdbPath);
 
                 probeCompiler.setLastArtifactLabel(artifactPaths.artifactLabel());
@@ -3837,52 +1543,26 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             }
         }
 
-        std::vector<fs::path> currentDependencyDirs;
-        if (probeCompiler.collectWorkspaceModuleDependencyDirs(probeCtx, currentDependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
-            return Result::Error;
-
         WorkspaceArtifactManifest manifest;
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine);
         std::error_code           unexpectedPdbError;
         const bool                hasUnexpectedPdb = !unexpectedPdbPath.empty() && fs::exists(unexpectedPdbPath, unexpectedPdbError);
         WorkspaceArtifactState    artifactState    = WorkspaceArtifactState::Stale;
         if (!hasUnexpectedPdb && !unexpectedPdbError && readWorkspaceArtifactManifest(manifest, manifestPath))
-            artifactState = workspaceArtifactState(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags);
+            artifactState = workspaceArtifactState(manifest, moduleCmdLine.outDir, manifestPath, exeFullName_, currentInputs, requiredArtifacts, workspaceArtifactConfiguration(probeCompiler), moduleCmdLine.tags);
 
         if (artifactState == WorkspaceArtifactState::UpToDate)
         {
             const bool     runReusedTestArtifact = !testArtifactPath.empty() && workspaceManifestContainsArtifact(manifest, moduleCmdLine.outDir, testArtifactPath);
             ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
-            bool           moduleSetupApplied = false;
-            if (moduleBuild.setup.buildCfg.publishDependencies && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
-            {
-                if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
-                    return Result::Error;
-                moduleSetupApplied = true;
-
-                NativeBackendBuilder publishBuilder(probeCompiler, false);
-                if (publishBuilder.publishExistingArtifact() != Result::Continue)
-                    return Result::Error;
-            }
-
             if (isRunLikeCommand(moduleCmdLine.command))
             {
-                if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
-                {
-                    if (!moduleSetupApplied && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
-                        return Result::Error;
-
-                    NativeBackendBuilder runBuilder(probeCompiler, true);
-                    if (runBuilder.runExistingArtifact() != Result::Continue)
-                        return Result::Error;
-                }
+                NativeBackendBuilder runBuilder(probeCompiler, true);
+                SWC_RESULT(runBuilder.runExistingArtifact());
             }
 
             if (runReusedTestArtifact)
             {
-                if (!moduleSetupApplied && probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
-                    return Result::Error;
-
                 NativeBackendBuilder testBuilder(probeCompiler, true);
                 const Result         testResult = testBuilder.runExistingArtifact();
 
@@ -3894,47 +1574,11 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
                     return Result::Error;
             }
 
-            if (moduleCmdLine.workspaceDependencyBuild)
-                moduleStage.dismiss();
-            else
-            {
-                moduleStage.markUpToDate();
-                moduleStage.setStat(formatWorkspaceArtifactStat(probeCompiler));
-            }
+            moduleStage.markUpToDate();
+            moduleStage.setStat(formatWorkspaceArtifactStat(probeCompiler));
             return Result::Continue;
         }
 
-        if (artifactState == WorkspaceArtifactState::Relink)
-        {
-            ScopedTimedLog moduleStage(probeCtx, ScopedTimedLog::Stage::Module);
-            if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
-                return Result::Error;
-
-            NativeBackendBuilder relinkBuilder(probeCompiler, isRunLikeCommand(moduleCmdLine.command));
-            bool                 prepared = false;
-            if (relinkBuilder.tryPrepareIncrementalLink(prepared, manifest.linkObjects, manifest.linkLibraries) != Result::Continue)
-                return Result::Error;
-            if (prepared)
-            {
-                Linker::executeLink(relinkBuilder.deferredToolRun());
-                if (relinkBuilder.finishDeferredLink() != Result::Continue)
-                    return Result::Error;
-
-                manifest.dependenciesReadTime = dependenciesReadTime;
-                manifest.apiReadTimes         = probeCompiler.moduleApiReadTimes_;
-                manifest.nativeReadTimes      = workspaceNativeReadTimes(probeCompiler,
-                                                                         probeCompiler.moduleNativeReadTimes_,
-                                                                         probeCompiler.moduleStaticLinkReadTimes_);
-                manifest.apiInputs            = probeCompiler.moduleApiInputs_;
-                normalizeWorkspacePathsLexically(manifest.apiInputs);
-                collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
-                if (writeWorkspaceArtifactManifest(probeCtx, manifest, manifestPath) != Result::Continue)
-                    return Result::Error;
-
-                moduleStage.setStat(formatWorkspaceArtifactStat(probeCompiler, "relinked"));
-                return Result::Continue;
-            }
-        }
     }
 
     const uint64_t errorsBefore   = Stats::getNumErrors();
@@ -3947,9 +1591,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     auto moduleCmdLineOwned                    = std::make_unique<CommandLine>(moduleCmdLine);
     auto moduleCompiler                        = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
     moduleCompiler->precomputedModuleSetup_    = &moduleBuild.setup;
-    moduleCompiler->precomputedDependencyPlan_ = &dependencies;
+    moduleCompiler->sourceDependencyPlan_      = moduleBuild.sourceDependencies.get();
     moduleCompiler->workspaceModuleLogState_   = moduleRun.logState;
-    moduleCompiler->pendingWorkspaceLink_      = moduleRun.pendingDependency;
     moduleCompiler->setDeferNativeLink(true);
     outCompiled = true;
 
@@ -3982,18 +1625,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
             {
                 WorkspaceArtifactManifest manifest;
                 manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
-                manifest.dependenciesReadTime = dependenciesReadTime;
-                manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-                manifest.nativeReadTimes      = workspaceNativeReadTimes(*moduleCompiler,
-                                                                         moduleCompiler->moduleNativeReadTimes_,
-                                                                         moduleCompiler->moduleStaticLinkReadTimes_);
-                manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
-                normalizeWorkspacePathsLexically(manifest.apiInputs);
                 manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
                 manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
-                if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
-                    return Result::Error;
+                appendSourceInputs(manifest.inputs);
                 collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
                 if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine)) != Result::Continue)
                     return Result::Error;
@@ -4016,18 +1651,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
         if (link->writeManifest)
         {
             link->manifest.inputsReadTime       = moduleBuild.setup.inputsReadTime;
-            link->manifest.dependenciesReadTime = dependenciesReadTime;
-            link->manifest.apiReadTimes         = moduleCompiler->moduleApiReadTimes_;
-            link->manifest.nativeReadTimes      = workspaceNativeReadTimes(*moduleCompiler,
-                                                                           moduleCompiler->moduleNativeReadTimes_,
-                                                                           moduleCompiler->moduleStaticLinkReadTimes_);
-            link->manifest.apiInputs            = moduleCompiler->moduleApiInputs_;
-            normalizeWorkspacePathsLexically(link->manifest.apiInputs);
             link->manifest.configuration   = workspaceArtifactConfiguration(*moduleCompiler);
             link->manifest.tagsFingerprint = workspaceTagsFingerprint(moduleCmdLine.tags);
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles());
-            if (moduleCompiler->collectWorkspaceModuleDependencyDirs(moduleCtx, link->manifest.dependencyDirs, dependencies, moduleBuild.setup.imports) != Result::Continue)
-                return Result::Error;
+            appendSourceInputs(link->manifest.inputs);
         }
 
         link->builder  = std::move(deferredBuilder);
@@ -4039,7 +1666,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     return Result::Continue;
 }
 
-Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName, const std::string_view location, const std::string_view version, const Runtime::BuildCfgBackendKind linkBackendKind)
+Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName, const std::string_view location)
 {
     if (moduleName.empty())
         return Result::Continue;
@@ -4060,18 +1687,14 @@ Result CompilerInstance::registerModuleSetupImport(const std::string_view module
     {
         if (existingImport.moduleName == moduleName &&
             existingImport.location == location &&
-            existingImport.version == version &&
-            FileSystem::pathEquals(existingImport.baseDir, baseDir) &&
-            existingImport.linkBackendKind == linkBackendKind)
+            FileSystem::pathEquals(existingImport.baseDir, baseDir))
             return Result::Continue;
     }
 
     ModuleSetupImport importRequest;
     importRequest.moduleName      = moduleName;
     importRequest.location        = location;
-    importRequest.version         = version;
     importRequest.baseDir         = std::move(baseDir);
-    importRequest.linkBackendKind = linkBackendKind;
     moduleSetupImports_.push_back(std::move(importRequest));
     return Result::Continue;
 }
@@ -4099,59 +1722,73 @@ std::set<fs::path> CompilerInstance::moduleSetupLoadedFiles() const
     return moduleSetupLoadedFiles_;
 }
 
-void CompilerInstance::registerCompilerInputFile(const fs::path& filePath)
+void CompilerInstance::appendBuildConfigCacheIdentity(ByteArray& out) const
+{
+    const auto& cfg = buildCfg();
+    out.appendLe32(cfg.moduleVersion);
+    out.appendLe32(cfg.moduleRevision);
+    out.appendLe32(cfg.moduleBuildNum);
+    out.appendLe32(cfg.ignoreInWorkspace);
+    out.appendLe32(cfg.tempAllocatorCapacity);
+    out.appendLe32(cfg.errorAllocatorCapacity);
+    out.appendLe32(static_cast<uint32_t>(cfg.safetyGuards));
+    out.appendLe32(static_cast<uint32_t>(cfg.sanityGuards));
+    out.appendLe32(cfg.allocatorCaptureStack);
+    out.appendLe32(cfg.allocatorLeaks);
+    out.appendLe32(cfg.allocatorTrackAllocations);
+    out.appendLe32(cfg.allocatorElectricMode);
+    out.appendLe32(cfg.allocatorFillMemory);
+    out.appendLe32(cfg.errorStackTrace);
+    out.appendLe32(static_cast<uint32_t>(cfg.backendKind));
+    out.appendLe32(static_cast<uint32_t>(cfg.backendSubKind));
+    cfg.backend.appendCacheIdentity(out);
+
+    const auto& doc = cfg.genDoc;
+    out.appendLe32(static_cast<uint32_t>(doc.kind));
+    out.appendLe32(doc.syntaxDefaultColor);
+    out.appendLe32(std::bit_cast<uint32_t>(doc.syntaxColorLum));
+    out.appendLe32(doc.accentColor);
+    out.appendLe32(static_cast<uint32_t>(doc.theme));
+    out.appendLe32(doc.hasSwagWatermark);
+    out.appendLe32(doc.hasSymbolIndex);
+    out.appendLe32(doc.hasSearch);
+
+    visitBuildCfgStrings(cfg, [&out](const Runtime::String& value) {
+        out.appendLe32(value.ptr != nullptr);
+        out.appendLe64(value.length);
+        if (value.ptr && value.length)
+            out.append(std::string_view(value.ptr, value.length));
+    });
+}
+
+void CompilerInstance::registerCompilerInputFile(const fs::path& filePath, std::optional<std::span<const std::byte>> contents)
 {
     if (filePath.empty())
         return;
+    if (semaBodyCache_)
+        semaBodyCache_->recordInput();
 
-    const fs::path         normalizedPath = FileSystem::normalizePath(filePath);
+    const fs::path normalizedPath = FileSystem::normalizePath(filePath);
+    const auto     checksum       = moduleSetupMode_ && contents ? std::optional{sha256(*contents)} : std::nullopt;
+
     const std::scoped_lock lock(moduleInputsMutex_);
     compilerInputFiles_.insert(normalizedPath);
+    if (checksum)
+    {
+        const auto [entry, inserted] = moduleSetupInputChecksums_.try_emplace(normalizedPath, *checksum);
+        if (!inserted && entry->second != *checksum)
+            moduleSetupInputsConsistent_ = false;
+    }
+    else if (moduleSetupMode_)
+    {
+        moduleSetupInputsConsistent_ = false;
+    }
 }
 
 std::set<fs::path> CompilerInstance::compilerInputFiles() const
 {
     const std::scoped_lock lock(moduleInputsMutex_);
     return compilerInputFiles_;
-}
-
-void CompilerInstance::registerImportedDependencyLinkDir(const fs::path& path)
-{
-    if (path.empty())
-        return;
-
-    const fs::path normalizedPath = FileSystem::normalizePath(path);
-    if (!importedDependencyLinkDirSet_.insert(normalizedPath).second)
-        return;
-
-    importedDependencyLinkDirs_.push_back(normalizedPath);
-}
-
-void CompilerInstance::registerImportedSharedModuleDir(const fs::path& path)
-{
-    if (path.empty())
-        return;
-
-    const fs::path normalizedPath = FileSystem::normalizePath(path);
-    if (importedDependencySharedDirSet_.insert(normalizedPath).second)
-        importedDependencySharedDirs_.push_back(normalizedPath);
-
-    externalModuleMgr().registerSearchPath(normalizedPath);
-}
-
-// Imported interfaces name their origin module ('core'); dependency resolution may have
-// selected a differently named artifact for it — 'core.test' when a test compile binds
-// the test variants of its dependencies. Names that are not imports answer unchanged,
-// so foreign system modules ('kernel32') pass through.
-std::string_view CompilerInstance::runtimeImportLinkName(const std::string_view moduleName) const
-{
-    for (const NativeRuntimeImport& runtimeImport : nativeRuntimeImports_)
-    {
-        if (runtimeImport.moduleName.view() == moduleName)
-            return runtimeImport.linkModuleName.view();
-    }
-
-    return moduleName;
 }
 
 Result CompilerInstance::validateAllocatorConfig(TaskContext& ctx) const
@@ -4256,7 +1893,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 {
     SWC_UNUSED(ctx);
     outSnapshot                = {};
-    outSnapshot.inputsReadTime = fs::file_time_type::clock::now();
+    outSnapshot.inputsReadTime = std::chrono::floor<Os::FileChangeTime::duration>(std::chrono::system_clock::now());
     CompilerInstance setupCompiler(global(), setupCmdLine);
     setupCompiler.moduleSetupMode_ = true;
     struct ConstCallCacheResetGuard
@@ -4300,6 +1937,28 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+
+        // A setup that emits diagnostics or writes through the JIT must run again
+        // so its externally visible effects occur on every invocation.
+        if (!setupCompiler.moduleSetupInputsConsistent_ || setupCompiler.jitHasUntrackedEffects() || !setupCompiler.reportedDiagnostics_.empty())
+            return;
+
+        auto& checksums = outSnapshot.inputChecksums;
+        checksums       = std::move(setupCompiler.moduleSetupInputChecksums_);
+        for (const SourceFile* file : setupCompiler.files())
+        {
+            if (!file->hasFlag(FileFlagsE::Module) || file->hasFlag(FileFlagsE::CustomSrc) || !file->ast().hasSourceView())
+                continue;
+
+            const fs::path path = FileSystem::normalizePath(file->path());
+            const auto checksum = setupCompiler.sourceFileChecksum(*file);
+            const auto [entry, inserted] = checksums.try_emplace(path, checksum);
+            if (!inserted && entry->second != checksum)
+            {
+                checksums.clear();
+                return;
+            }
+        }
     };
 
     if (files.empty())
@@ -4368,10 +2027,10 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 // are the ones that produced it, and runs the setup otherwise. A '--rebuild' never reads the
 // cache, so the one command that promises to redo everything redoes this too; it still writes
 // it, since the next command is not a rebuild.
-Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const Utf8& moduleName, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
+Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, const fs::path& moduleFile, ModuleSetupSnapshot& outSnapshot) const
 {
     ModuleSetupSnapshot literalImports;
-    literalImports.inputsReadTime = fs::file_time_type::clock::now();
+    literalImports.inputsReadTime = std::chrono::floor<Os::FileChangeTime::duration>(std::chrono::system_clock::now());
     if (tryCaptureLiteralModuleImports(moduleFile, literalImports.imports))
     {
         literalImports.buildCfg = setupCmdLine.defaultBuildCfg;
@@ -4380,16 +2039,15 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
         return Result::Continue;
     }
 
-    const fs::path cachePath   = moduleSetupCachePath(cmdLine(), moduleName);
-    const Utf8     fingerprint = moduleSetupFingerprint(setupCmdLine, exeFullName_);
-    if (fingerprint.empty())
+    const Utf8 key = moduleSetupCacheKey(setupCmdLine, moduleFile, exeFullName_);
+    if (key.empty())
         return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
 
     if (!setupCmdLine.rebuild)
     {
         ModuleSetupSnapshot cached;
-        cached.inputsReadTime = fs::file_time_type::clock::now();
-        if (readModuleSetupCache(cachePath, fingerprint, moduleFile, cached.buildCfg, cached.ownedStrings, cached.imports, cached.loadedFiles, cached.compilerInputFiles))
+        cached.inputsReadTime = literalImports.inputsReadTime;
+        if (readModuleSetupCache(cached, key, moduleFile))
         {
             outSnapshot = std::move(cached);
             return Result::Continue;
@@ -4397,15 +2055,8 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot));
-    writeModuleSetupCache(cachePath, fingerprint, moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles, outSnapshot.inputsReadTime);
+    writeModuleSetupCache(key, moduleFile, outSnapshot);
     return Result::Continue;
-}
-
-Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
-{
-    SWC_ASSERT(precomputedDependencyPlan_);
-    ModuleSetupInputApplier applier(*this, ctx);
-    return applier.apply(setupSnapshot, *precomputedDependencyPlan_);
 }
 
 Result CompilerInstance::resolveModuleInputPaths(TaskContext& ctx)
@@ -4445,43 +2096,35 @@ Result CompilerInstance::resolveModuleInputPaths(TaskContext& ctx)
 Result CompilerInstance::runModuleSetup(TaskContext& ctx)
 {
     SWC_RESULT(resolveModuleInputPaths(ctx));
-    if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
+    if (modulePathFile_.empty())
         return Result::Continue;
 
     if (precomputedModuleSetup_)
     {
         SWC_RESULT(adoptModuleBuildCfg(ctx, precomputedModuleSetup_->buildCfg));
-        return applyModuleSetupInputs(ctx, *precomputedModuleSetup_);
+        applySourceDependencies(*precomputedModuleSetup_);
+        return Result::Continue;
     }
 
     CommandLine setupCmdLine = cmdLine();
     setupCmdLine.directories.clear();
     setupCmdLine.files.clear();
-    setupCmdLine.importApiModules.clear();
-    setupCmdLine.importApiDirs.clear();
-    setupCmdLine.importApiFiles.clear();
-    setupCmdLine.exportApiDir.clear();
     setupCmdLine.moduleFilePath = modulePathFile_;
     setupCmdLine.modulePath     = modulePathFile_.parent_path();
     CommandLineParser::refreshBuildCfg(setupCmdLine);
 
-    // A module built on its own answers its setup from the same cache a workspace module does.
-    // It carries no workspace name, and needs none: its cache sits under its own root, so the
-    // directory already tells the module apart.
     ModuleSetupSnapshot setupSnapshot;
-    SWC_RESULT(resolveModuleSetupSnapshot(ctx, setupCmdLine, Utf8{}, modulePathFile_, setupSnapshot));
+    SWC_RESULT(resolveModuleSetupSnapshot(ctx, setupCmdLine, modulePathFile_, setupSnapshot));
     SWC_RESULT(adoptModuleBuildCfg(ctx, setupSnapshot.buildCfg));
-    ownedDependencyPlan_ = std::make_unique<DependencyPlan>();
-    SWC_RESULT(prepareDependencyPlan(ctx, *ownedDependencyPlan_, setupSnapshot.imports));
-    precomputedDependencyPlan_ = ownedDependencyPlan_.get();
-    return applyModuleSetupInputs(ctx, setupSnapshot);
+    SWC_RESULT(prepareSourceDependencies(ctx, ownedSourceDependencyPlan_, modulePathFile_, setupSnapshot));
+    sourceDependencyPlan_ = ownedSourceDependencyPlan_.get();
+    applySourceDependencies(setupSnapshot);
+    return Result::Continue;
 }
 
 // Adopts the module build configuration without applying its input set. This is the cheap
 // half of runModuleSetup: it makes buildCfg() (backend kind, debug info, artifact naming)
-// available so the workspace up-to-date probe can compute artifact paths, but it skips
-// applyModuleSetupInputs/processImports, which would recursively re-parse and sema every
-// transitive dependency's metadata file just to register imports the probe never uses.
+// available so the workspace up-to-date probe can compute artifact paths before loading sources.
 Result CompilerInstance::prepareModuleBuildConfig(TaskContext& ctx)
 {
     SWC_RESULT(resolveModuleInputPaths(ctx));
@@ -4492,7 +2135,7 @@ Result CompilerInstance::prepareModuleBuildConfig(TaskContext& ctx)
     return adoptModuleBuildCfg(ctx, precomputedModuleSetup_->buildCfg);
 }
 
-void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, const std::string_view apiModuleName)
+void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)
 {
     if (paths.empty())
         return;
@@ -4502,7 +2145,7 @@ void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFla
     {
         if (hasResolvedFilePath(path))
             continue;
-        addResolvedFile(std::move(path), flags).setApiModuleName(apiModuleName);
+        addResolvedFile(std::move(path), flags);
     }
 }
 
@@ -4512,111 +2155,6 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     collectSwagFilesRec(cmdLine(), folder, paths, canFilter);
     std::ranges::sort(paths);
     appendResolvedFiles(paths, flags);
-}
-
-// A generated public API file sits at '<module>/<backend>/<build-cfg>/<arch>/<file>', so the
-// module it describes is the fourth directory above it. An explicit '--import-api-file' carries
-// no import request to read that name from, and every entry of a module API resolves its foreign
-// module through it.
-Utf8 CompilerInstance::apiModuleNameFromPath(const fs::path& file)
-{
-    fs::path dir = file.parent_path();
-    for (uint32_t level = 0; level < 3; ++level)
-        dir = dir.parent_path();
-
-    return dir.has_filename() ? Utf8(dir.filename().string().c_str()) : Utf8{};
-}
-
-void CompilerInstance::appendImportedApiSnapshot(const std::span<const ModuleApi::SourceSnapshot> files, const std::string_view moduleName)
-{
-    files_.reserve(files_.size() + files.size());
-    for (const ModuleApi::SourceSnapshot& source : files)
-    {
-        const fs::path extension = source.path.extension();
-        if (extension != ".swg" && extension != ".swgs")
-            continue;
-        if (hasResolvedFilePath(source.path))
-            continue;
-        SourceFile& file = addResolvedFile(source.path, FileFlagsE::ImportedApi);
-        file.setApiModuleName(moduleName);
-        file.setContent(source.content);
-        Stats::get().numFiles.fetch_add(1, std::memory_order_relaxed);
-    }
-}
-
-Result CompilerInstance::collectImportedApiFolderFiles(TaskContext& ctx, const fs::path& folder, const std::string_view moduleName)
-{
-    ModuleApi::DirectoryAccess access;
-    Utf8                       because;
-    if (access.openRead(because, folder) != Result::Continue)
-        return FileSystem::reportInvalidFolder(ctx, folder, because);
-
-    std::vector<ModuleApi::SourceSnapshot> sources;
-    SWC_RESULT(captureModuleApiSources(ctx, sources, folder));
-    appendImportedApiSnapshot(sources, moduleName);
-    return Result::Continue;
-}
-
-Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
-{
-    const CommandLine& cmdLine = ctx.cmdLine();
-
-    if (!cmdLine.importApiModules.empty())
-    {
-        fs::path dependencyRoot;
-        SWC_RESULT(resolveSwagStdOutputRoot(dependencyRoot, ctx));
-        for (const Utf8& moduleName : cmdLine.importApiModules)
-        {
-            fs::path importDir;
-            auto     importBackendKind = Runtime::BuildCfgBackendKind::None;
-            Utf8     because;
-            if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
-                return FileSystem::reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
-
-            SWC_RESULT(collectImportedApiFolderFiles(ctx, importDir, moduleName.view()));
-            std::vector<DependencyConfigCandidate> matches;
-            if (collectDependencyConfigurationMatches(matches, because, dependencyRoot, moduleName.view(), cmdLine) != Result::Continue)
-                matches.clear();
-            const fs::path* sharedDir = findDependencyBackendDirectory(matches, Runtime::BuildCfgBackendKind::SharedLibrary);
-            if (sharedDir)
-            {
-                registerImportedSharedModuleDir(*sharedDir);
-                registerImportedDependencyLinkDir(*sharedDir);
-            }
-            else if (importBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
-            {
-                registerImportedDependencyLinkDir(importDir);
-            }
-        }
-    }
-
-    if (cmdLine.importApiFiles.empty())
-        return Result::Continue;
-
-    std::map<fs::path, std::vector<fs::path>> filesByDirectory;
-    for (const fs::path& file : cmdLine.importApiFiles)
-        filesByDirectory[FileSystem::normalizePath(file.parent_path())].push_back(file);
-
-    files_.reserve(files_.size() + cmdLine.importApiFiles.size());
-    for (const auto& [directory, paths] : filesByDirectory)
-    {
-        ModuleApi::DirectoryAccess access;
-        Utf8                       because;
-        if (access.openRead(because, directory) != Result::Continue)
-            return FileSystem::reportInvalidFolder(ctx, directory, because);
-
-        for (const fs::path& path : paths)
-        {
-            if (hasResolvedFilePath(path))
-                continue;
-            SourceFile& file = addResolvedFile(path, FileFlagsE::ImportedApi);
-            file.setApiModuleName(apiModuleNameFromPath(path).view());
-            SWC_RESULT(file.loadContent(ctx));
-        }
-        registerImportedDependencyLinkDir(directory);
-    }
-
-    return Result::Continue;
 }
 
 Result CompilerInstance::collectFiles(TaskContext& ctx)
@@ -4653,8 +2191,6 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
             collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
     }
 
-    SWC_RESULT(collectImportedApiFiles(ctx));
-
     // Collect runtime files. The runtime bootstrap (which declares compiler intrinsics such
     // as `Swag.compiler()`) must always be part of the input set, including the module-setup pass
     // that runs module-setup directives and `#run` blocks, so those blocks can reach it too.
@@ -4676,12 +2212,11 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     return Result::Continue;
 }
 
-Result CompilerInstance::exportModuleApi(TaskContext& ctx)
+Result CompilerInstance::collectDocumentation(TaskContext& ctx)
 {
-    const Result result = ModuleApi::exportFiles(ctx);
+    const Result result = ModuleApi::collectPublicEntries(ctx, ctx.compiler().prepareModuleApiPublicEntries());
 
-    // The export indexed every file's reachable nodes to answer its lookups. Nothing after it
-    // asks at that rate, so the indexes go before code generation starts allocating.
+    // Documentation uses the reachable-node indexes only during collection.
     for (SourceFile* file : ctx.compiler().files())
     {
         if (file)

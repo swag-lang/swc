@@ -4,7 +4,7 @@
 //! Role: This file owns the public chroma-sampling options for Y4M streams.
 //
 #global namespace Y4m
-#global export
+#global public
 
 // Chroma sampling used for YUV4MPEG2 output.
 enum EncodeChromaMode

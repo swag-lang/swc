@@ -48,6 +48,7 @@ public:
         size_t numTests                = 0;
         size_t numTestsFailed          = 0;
         size_t numTokens               = 0;
+        size_t numDeferredFunctionBodies = 0;
         size_t numFormatRewrittenFiles = 0;
 
         static StatsSnapshot capture();

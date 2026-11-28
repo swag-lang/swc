@@ -5,6 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class CompilerInstance;
+class SourceFile;
 class Symbol;
 class SymbolMap;
 
@@ -49,6 +51,9 @@ public:
 
     void clear();
     void resetCandidates();
+
+    void setSourceAccess(const CompilerInstance& compiler, const SourceFile* site);
+    bool canSeeSourceSymbol(const Symbol& symbol) const;
 
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
@@ -103,6 +108,8 @@ public:
     SmallVector<SymbolMapCandidate> symMaps;
 
 private:
+    const CompilerInstance* compiler_ = nullptr;
+    const SourceFile*        sourceSite_ = nullptr;
     SmallVector<const Symbol*> symbols_;
 
     // Unique symbols in first-discovery order, including candidates below the best priority.

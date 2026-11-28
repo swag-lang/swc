@@ -1,4 +1,4 @@
-#global export
+#global public
 using Swag
 
 func(T) nullPtr()->*T?

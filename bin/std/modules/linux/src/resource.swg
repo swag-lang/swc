@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global public
 
 const PRIO_PROCESS = 0_s32
 const PRIO_PGRP    = 1_s32

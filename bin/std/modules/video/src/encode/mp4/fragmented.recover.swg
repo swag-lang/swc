@@ -4,7 +4,7 @@
 //! Role: This file rebuilds the final random-access index without copying a long recording.
 //
 #global namespace Mp4
-#global export
+#global public
 
 using Core, Core.Errors
 

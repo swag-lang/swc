@@ -130,11 +130,8 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("in", State.Control)
         .mapWords.add("as", State.Control)
 
-        .mapWords.add("export", State.Keyword)
         .mapWords.add("generated", State.Keyword)
         .mapWords.add("location", State.Keyword)
-        .mapWords.add("link", State.Keyword)
-        .mapWords.add("version", State.Keyword)
 
         .mapWords.add("using", State.Keyword)
         .mapWords.add("with", State.Keyword)

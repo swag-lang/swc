@@ -23,10 +23,8 @@ enum class FileFlagsE : uint32_t
     Module      = 1 << 2,
     Runtime     = 1 << 3,
     SkipFmt     = 1 << 4,
-    ImportedApi = 1 << 5,
 
-    // #load files reached from module setup are read by the setup pass,
-    // then skipped by the regular pass, like the setup file itself.
+    // Files reached by #load while resolving a source group setup.
     SetupLoaded = 1 << 6,
 };
 using FileFlags = EnumFlags<FileFlagsE>;
@@ -60,12 +58,11 @@ public:
     void             addFlag(FileFlags flag) { flags_.add(flag); }
 
     bool isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
-    bool isImportedApi() const { return flags_.has(FileFlagsE::ImportedApi); }
+    uint32_t sourceOwner() const { return sourceOwner_; }
+    void     setSourceOwner(uint32_t owner) { sourceOwner_ = owner; }
+
     bool mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
 
-    // Default module for Foreign attributes in a generated public API file.
-    const Utf8& apiModuleName() const { return apiModuleName_; }
-    void        setApiModuleName(const std::string_view name) { apiModuleName_ = name; }
 
     NodePayload&       nodePayloadContext() { return *nodePayloadContext_; }
     const NodePayload& nodePayloadContext() const { return *nodePayloadContext_; }
@@ -101,7 +98,7 @@ private:
     FileRef   fileRef_ = FileRef::invalid();
     fs::path  path_;
     FileFlags flags_ = FileFlagsE::Zero;
-    Utf8      apiModuleName_;
+    uint32_t  sourceOwner_ = 0;
 
     mutable std::once_flag pathStringOnce_;
     mutable Utf8           pathString_;

@@ -1,7 +1,8 @@
 #global public
 
-// `is` on an interface value built in this imported module and checked in the consumer
-// executable must work for an *empty* derived struct whose marker interface has no methods.
+// Repro (real shared-library DLL): `is` on an interface value built inside this DLL,
+// then checked in the consumer exe, must work for an *empty* derived struct whose impl
+// of a marker interface has no member functions.
 
 interface IDepEvt {}
 
@@ -35,8 +36,8 @@ struct DepResizeEvt
 impl IDepEvt for DepResizeEvt {}
 
 // Cross-module type identity (typeinfo `==`, which compares the `crc`/runtimeHash
-// after the pointer fast-path) must be stable across the module boundary: a typeinfo
-// produced inside this module must compare equal to the consumer's view of the same
+// after the pointer fast-path) must be stable across the DLL boundary: a typeinfo
+// produced inside this DLL must compare equal to the consumer's view of the same
 // imported type. Used to fail because runtimeHash folded in the importer-prefixed
 // scoped name + per-compilation source refs.
 func depTypeOfResizeEvt()->typeinfo  => #typeof(DepResizeEvt)
@@ -44,7 +45,7 @@ func depTypeOfDestroyEvt()->typeinfo => #typeof(DepDestroyEvt)
 
 alias DepEvtCallback = func(IDepEvt)
 
-// The interface value is constructed HERE (in the imported module), passed to the consumer.
+// The interface value is constructed HERE (in the DLL), passed to the consumer.
 func depDispatchEvt(cb: DepEvtCallback, kind: s32)
 {
     switch kind

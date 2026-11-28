@@ -2,6 +2,8 @@
 // data flows through summarized callees without a diagnostic; the error cases (local
 // data through the same callees) are covered in bin/unittests/sanity/borrow_escape.swg
 // for the intra-module half, and rely on the same judgement path here.
+using StaticApi
+
 var gConsumerBorrowInt: s32 = 3
 
 func verifyImportedBorrowSummaries()

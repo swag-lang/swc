@@ -3,8 +3,8 @@
 #[Swag.Foreign("kernel32", "Sleep", callconv: Swag.CallConv.C)]
 private func sleep(milliseconds: u32)
 
-// Registration in the executable and completion in the source dependency must use the same
-// condition and waiter count and resolve to the executable's runtime state.
+// Registration in the executable and completion in the DLL must use the same condition and
+// waiter count, even though each artifact compiles its own runtime implementation.
 #test
 {
     if Swag.jit()
@@ -14,7 +14,7 @@ private func sleep(milliseconds: u32)
     Swag.setWorkerCount(4)
     Swag.startWorkers()
     let scheduler = Swag.schedulerInstance()
-    Swag.require(SchedulerProvider.schedulerAddress() == cast(u64, scheduler))
+    Swag.require(SchedulerDll.schedulerAddress() == cast(u64, scheduler))
     let limit = scheduler.threadLimit
     if limit != 0
     {
@@ -27,7 +27,7 @@ private func sleep(milliseconds: u32)
     {
         started.reset()
         parked = false
-        SchedulerProvider.submitObserved(&task, &started, &parked,
+        SchedulerDll.submitObserved(&task, &started, &parked,
                                     priority: round % 2 == 0 ? Swag.TaskPriority.Background : Swag.TaskPriority.Normal)
         for 1000
         {

@@ -1,4 +1,4 @@
-// Runtime `Swag.*` types are compiled into every module, so the descriptors this dependency emits and
+// Runtime `Swag.*` types are compiled into every module, so the descriptors this DLL emits and
 // the ones the consumer emits must describe one identity: `==` and `case` compare the typeinfo
 // crc, `is` and `as` compare the descriptor fullname, and both must answer the same on either
 // side of the boundary.

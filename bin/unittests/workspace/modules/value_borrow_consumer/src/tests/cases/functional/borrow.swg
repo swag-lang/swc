@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global #[Swag.Safety(.ValueBorrow, true)]
 #global private
-using BorrowProvider
+using BorrowLibrary
 
 func mustReject(action: func||())
 {
@@ -14,7 +14,7 @@ func localWrite(target: *Value) { target.first = 0 }
 #[Swag.NoInline]
 func localRead(value: Value, target: *Value)->u64
 {
-    BorrowProvider.write(target)
+    BorrowLibrary.write(target)
     return value.first
 }
 
@@ -41,11 +41,11 @@ func localRead(value: Value, target: *Value)->u64
     var other: Value = {first: 277}
     let observed     = readAfterCallback(value, &localWrite, &other)
     Swag.require(observed == 271 and value.first == 271 and other.first == 0)
-    BorrowProvider.write(&value)
+    BorrowLibrary.write(&value)
     Swag.require(read(value) == 0)
 }
 
-// Only the imported module registers this borrow; the unchecked forwarding frame adds no record.
+// Only the DLL registers this borrow; the unchecked forwarding frame adds no record.
 #[Swag.NoInline, Swag.Safety(.ValueBorrow, false)]
 func fromUncheckedCaller(value: Value, target: *Value)->u64 => readAfterCallback(value, &localWrite, target)
 

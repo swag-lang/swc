@@ -623,6 +623,11 @@ impl Surface
 
         // The surface position and the constraint work in physical desktop pixels.
         let monitor = Env.monitorForPoint(Math.Point{.position.x, .position.y})
+        if monitor.physicalBounds.width <= 0 or monitor.physicalBounds.height <= 0
+        {
+            return
+        }
+
         var np      = .position
 
         if bottomRight

@@ -2142,35 +2142,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ArtifactReusePreservesSourceWarnings)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
-{
-    const LinkerTestDirectory directory("shared_source_load");
-    constexpr std::string_view load = "#load(\"../../shared.swg\")\n";
-    constexpr std::string_view sourceKind = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n";
-    const auto dependencySetup = std::format("{}{}", load, sourceKind);
-    SWC_RESULT(directory.write("shared.swg", "func sharedValue()->s32 => 17\n"));
-    SWC_RESULT(directory.write("modules/left/module.swg", dependencySetup));
-    SWC_RESULT(directory.write("modules/right/module.swg", dependencySetup));
-    SWC_RESULT(directory.write("modules/left/src/main.swg", "public func value()->s32 => sharedValue()\n"));
-    SWC_RESULT(directory.write("modules/right/src/main.swg", "public func value()->s32 => sharedValue()\n"));
-    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"left\")\n#import(\"right\")\n#load(\"../../shared.swg\")\n"));
-    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
-#main
-{
-    Swag.require(sharedValue() == 17 and Left.value() == 17 and Right.value() == 17)
-    Swag.print("shared source load passed\n")
-}
-)"));
-
-    const std::vector<Utf8> arguments = {"run", "--workspace", Utf8(directory.path()), "-bc", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
-    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "shared source load passed"));
-
-    constexpr std::string_view conflictingSetup = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None; cfg.moduleNamespace = \"Left\" }\n";
-    SWC_RESULT(directory.write("modules/right/module.swg", conflictingSetup));
-    SWC_RESULT(runCompiler(arguments, ExitCode::CompileError, "source group namespace 'Left' is already declared by"));
-}
-SWC_TEST_END()
-
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

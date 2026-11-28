@@ -1,5 +1,5 @@
 #import("core", location: "swag@std")
-#import("runtime_context_bridge")
+#import("runtime_context_bridge_dll")
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()

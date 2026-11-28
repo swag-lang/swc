@@ -45,8 +45,7 @@ public func ctxSharedPanic()
     Swag.panic("raised by a dependency", #curlocation)
 }
 
-// Exercise calls from the executable into an imported source module with scalars, aggregates,
-// pointers and struct returns.
+// Exercise exe -> dll calls with a wide ABI surface: scalars, aggregates, pointers and struct returns.
 public alias CtxAbiAlias = s32
 
 public enum CtxAbiEnum: u16

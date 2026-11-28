@@ -1228,8 +1228,8 @@ namespace
         }
     };
 
-    // One input of a setup, dated the way the artifact manifest dates its inputs: by write time,
-    // plus the size so a rewrite that lands on the same tick still misses.
+    // One input of a setup, dated by write time and size, with a digest so equal-size rewrites
+    // that preserve their timestamp still invalidate the cached result.
     bool stampModuleSetupInput(ModuleSetupCacheWriter& writer, const fs::path& path, const fs::file_time_type inputsReadTime)
     {
         std::error_code    ec;
@@ -1240,9 +1240,16 @@ namespace
         if (ec)
             return false;
 
+        std::vector<char>       contents;
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::readBinaryFile(path, contents, ioError) != Result::Continue)
+            return false;
+        const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(contents.data()), contents.size()});
+
         writer.path(path);
         writer.u64(static_cast<uint64_t>(writeTime.time_since_epoch().count()));
         writer.u64(static_cast<uint64_t>(size));
+        writer.blob(digest.data(), digest.size());
         return true;
     }
 
@@ -1254,12 +1261,24 @@ namespace
         if (reader.failed)
             return false;
 
+        const std::string_view storedDigest = reader.str();
+        if (reader.failed || storedDigest.size() != 32)
+            return false;
+
         std::error_code          ec;
         const fs::file_time_type writeTime = fs::last_write_time(outPath, ec);
         if (ec || static_cast<uint64_t>(writeTime.time_since_epoch().count()) != writeCount)
             return false;
         const uintmax_t size = fs::file_size(outPath, ec);
-        return !ec && static_cast<uint64_t>(size) == storedSize;
+        if (ec || static_cast<uint64_t>(size) != storedSize)
+            return false;
+
+        std::vector<char>       contents;
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::readBinaryFile(outPath, contents, ioError) != Result::Continue)
+            return false;
+        const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(contents.data()), contents.size()});
+        return std::memcmp(storedDigest.data(), digest.data(), digest.size()) == 0;
     }
 
     // Where a module keeps what the compiler cached about it between runs. A workspace gives every
@@ -4257,6 +4276,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     SWC_UNUSED(ctx);
     outSnapshot                = {};
     outSnapshot.inputsReadTime = fs::file_time_type::clock::now();
+    const size_t warningsBefore = Stats::get().numWarnings.load(std::memory_order_relaxed);
     CompilerInstance setupCompiler(global(), setupCmdLine);
     setupCompiler.moduleSetupMode_ = true;
     struct ConstCallCacheResetGuard
@@ -4299,6 +4319,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         outSnapshot.imports            = setupCompiler.moduleSetupImports();
         outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
+        outSnapshot.cacheable = Stats::get().numWarnings.load(std::memory_order_relaxed) == warningsBefore;
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
     };
 
@@ -4397,7 +4418,8 @@ Result CompilerInstance::resolveModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot));
-    writeModuleSetupCache(cachePath, fingerprint, moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles, outSnapshot.inputsReadTime);
+    if (outSnapshot.cacheable)
+        writeModuleSetupCache(cachePath, fingerprint, moduleFile, outSnapshot.buildCfg, outSnapshot.imports, outSnapshot.loadedFiles, outSnapshot.compilerInputFiles, outSnapshot.inputsReadTime);
     return Result::Continue;
 }
 

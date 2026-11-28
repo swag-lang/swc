@@ -1,5 +1,5 @@
 #global private
-using Swag, RuntimeCtxBridge
+using Swag, RuntimeCtxDll
 
 // The constants read inside the shared library must carry the same values the
 // consumer sees, whatever the read compiled to there: the address fold turns

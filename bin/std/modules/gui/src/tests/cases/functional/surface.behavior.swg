@@ -14,6 +14,15 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     defer host.shutdown()
 
     let bounds = Env.monitorForPoint({0, 0}).physicalBounds
+    if bounds.width <= 0 or bounds.height <= 0
+    {
+        let position = Math.Rectangle{10, 20, 100, 80}
+        host.surface.setPosition(position)
+        host.surface.constrainPositionToScreen(margin: 10)
+        Swag.require(host.surface.position == position)
+        return
+    }
+
     let large  = Math.Rectangle{bounds.x, bounds.y, bounds.width + 100, bounds.height + 100}
     host.surface.setPosition(large)
     host.surface.constrainPositionToScreen(margin: 10)

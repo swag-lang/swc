@@ -466,6 +466,7 @@ private:
     {
         Runtime::BuildCfg                  buildCfg{};
         fs::file_time_type                 inputsReadTime{};
+        bool                               cacheable = true;
         std::vector<ModuleSetupImport>     imports;
         std::set<fs::path>                 loadedFiles;
         std::set<fs::path>                 compilerInputFiles;

@@ -1,4 +1,4 @@
-using RuntimeCtxBridge
+using RuntimeCtxDll
 
 // `Swag.setContext` installs a POINTER to its argument, so the patched copy must outlive the frame
 // that builds it: the dependency's own `#drop` runs after this one and reads `user0` through the

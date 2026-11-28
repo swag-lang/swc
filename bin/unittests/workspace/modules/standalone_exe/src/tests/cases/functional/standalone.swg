@@ -1,5 +1,5 @@
 #global if #command == Swag.CompilerCommand.Test
-using Core, RuntimeCtxBridge
+using Core, RuntimeCtxDll
 
 // The dependency is a shared library, and this executable named no link kind, so its code was
 // linked in. Calling across what used to be a module boundary is what proves the archive carried

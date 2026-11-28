@@ -5,7 +5,7 @@ var answerValue: s32
 #drop
 {
     Swag.assert(answerValue == 42)
-    Swag.print("source dependency provider dropped\n")
+    Swag.print("shared provider dropped\n")
 }
 
 #[Swag.NoInline]

@@ -1,4 +1,4 @@
-// A separately compiled source dependency participates in the caller's borrow registry.
+// A shared artifact with its own emitted runtime participates in the caller's borrow registry.
 #global #[Swag.Safety(.ValueBorrow, true)]
 public struct Value
 {

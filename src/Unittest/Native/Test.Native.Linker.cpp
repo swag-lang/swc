@@ -2171,7 +2171,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_LoadsSharedFileInEachSourceGroup)
 }
 SWC_TEST_END()
 
-#if defined(__linux__) && defined(__x86_64__)
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObjects)
 {
     const LinkerTestDirectory directory("elf_function_cache");

@@ -233,7 +233,7 @@ before relying on them.
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.
 - Next: extend reuse to debug information, and move lookup ahead of IR generation using the
-  compiler.build.120 and compiler.build.119 fingerprints rather than a second dependency graph. Measure an
+  compiler.build.119 fingerprints rather than a second dependency graph. Measure an
   adaptive size threshold so that hashing and archiving a small function never costs more
   than its micro passes.
 - Done when: a body-only edit regenerates only the changed function and the functions whose
@@ -241,7 +241,7 @@ before relying on them.
   and warm builds produce byte-identical cache entries and reject compiler, target,
   configuration, ABI, API and optimization changes. The compiler.build.004 edit-build
   workloads show a material win with no measurable clean-build regression.
-- Related: compiler.build.120, compiler.build.119, compiler.build.004, compiler.build.030.
+- Related: compiler.build.119, compiler.build.004, compiler.build.030.
 
 ### compiler.build.041 — Reduce parallel dependency registration to a workspace-suite witness
 
@@ -298,7 +298,7 @@ before relying on them.
   diagnostics, forwarded arguments, environment, output and exit code. Tests cover
   transitive loads, imports, configuration changes, corrupt entries and concurrent
   population.
-- Related: compiler.build.120, compiler.build.119, compiler.build.121, platform.portability.080.
+- Related: compiler.build.119, compiler.build.121, platform.portability.080.
 
 ### compiler.build.083 — Define an embeddable compiler driver boundary
 
@@ -437,154 +437,8 @@ before relying on them.
 - Done when: adding, removing, or renaming files, and changing configuration or compiler
   version, give fresh and reused builds the same inputs and diagnostics. Reuse measurably
   reduces parse costs in a representative executable build.
-- Related: compiler.build.120, compiler.build.122, compiler.build.004, compiler.build.003,
+- Related: compiler.build.122, compiler.build.004, compiler.build.003,
   compiler.build.016.
-
-### compiler.build.120 — Reuse semantic work across executable builds
-
-- Evidence: `MachineCodeCache` fingerprints the lowered Micro instructions. Even a hit still
-  pays for semantic analysis, specialization, inlining, and lowering. Prior delayed-body work
-  showed that native and JIT preparation can need semantic completion of methods reached
-  indirectly through allocation-failure reporting.
-- Semantic analysis dominates warm work. Sharing the generated signal arguments by arity
-  reduced the median `gui1` one-constant edit from 8.12 s to 7.34 s across six paired Linux
-  Release runs with four workers. The latter spent 6.89 s in sema over 1,500 files, peaked at
-  a median 1,730 MiB RSS, and reused at least 9,732 of 9,814 Micro functions. Signal forwarding
-  uses `ConstExpr` to read the parameter count and types. The direct reflection variant was
-  faster but intermittently failed to resolve a pointer parameter or fold the count.
-  In an earlier series the PNG-decoding script took a median 3.48 s, including 3.12 s of sema
-  over 1,073 files, with a median peak of 1,131 MiB RSS.
-- Runtime bodies and generic-instance methods were the first to be analyzed on demand
-  (`canDelayFunctionBody`). A prototype deferred every source-dependency body, free functions
-  and methods: call sites kept only the signature, native code generation analyzed reached
-  bodies through `SemaJob` jobs, and `Sema::waitDone` analyzed the callees that deferred
-  borrow checks read before judging them. It deferred 15,884 bodies of the PNG script and
-  analyzed about 5,600; 32,006 and about 18,000 entries for `gui1`. CPU time fell from about
-  12.5 s to 7.5 s on the PNG script, but rose from about 24.8 s to 32.5 s on the `gui1` edit:
-  paused bodies were resumed repeatedly and the extra analysis ran in 42 drained waves instead
-  of 16. The prototype was kept out of the compiler. A later trace found 3,094 completed pure functions
-  without native or JIT code in `gui1`, and 2,436 in PNG. A scratch experiment deferred
-  previously unreached bodies at 604 and 577 source locations, respectively. Two warm
-  pairs on each workload showed no consistent gain. Source locations also combine some
-  generic specializations, which would need distinct identities in a persistent cache.
-- A trace counted 463 queued `#run` expressions for `gui1` and 452 for the PNG script.
-  CRC32 and CRC64 power and reciprocal calculations led both counts. Warm Linux Release
-  builds reused 408 results in each workload before JIT preparation. The key covers current
-  scalar arguments, local bindings, inlined operations, selected transitive bodies, source
-  bytes, runtime inputs, and safety and warning settings. Other operations continue through
-  the regular JIT path. A private callee edit and a competing overload produced distinct
-  keys, a signature edit preserved the fresh build's diagnostic, and a corrupted entry was
-  recalculated. Editing one provider file recalculated its result and reused the result
-  from a second provider file. Four concurrent writers left a reusable entry. Signed overflow
-  wrapped in fresh and warm Release builds and reported the same diagnostic location in fresh and
-  warm Release Safe builds. Across six alternating pairs on Linux Release with four
-  workers, compared with e001896f14, the median `gui1` edit took 7.46 s before and
-  7.34 s with the cache (1,714 to 1,717 MiB peak RSS). The PNG script took 3.55 s
-  before and 3.38 s with the cache (1,139 to 1,130 MiB peak RSS). The median paired
-  elapsed-time change was -1.0% on `gui1`, with mixed results, and -4.8% on PNG,
-  which improved in every pair. With the foreign-call guards in a1e77511ab, six more
-  Linux Release pairs against the same baseline measured 7.39 to 7.16 s on `gui1`
-  (1,707 to 1,712 MiB peak RSS) and 3.66 to 3.33 s on PNG (1,135 to 1,144 MiB).
-  The median paired elapsed-time change was -0.4% for `gui1`, with mixed results, and
-  -8.4% for PNG, which improved in all six pairs. Both still reused 408 results.
-- Next: profile the remaining compile-time evaluations. A runtime root with calls adds every
-  global function-initializer target even when its expression only reads type information.
-  Caching the combined initializer order left `gui1` unchanged and slowed the PNG script by
-  1.8% by median across three pairs. Check the cost of preparing unrelated targets.
-- Versioning JIT constant relocation metadata by allocation region reduced median warm time
-  by 1.2% to 4.9% on a `gui1` edit and by 0.9% to 1.0% on a PNG script rerun, across two Linux
-  Release series with four workers and five paired runs each. Instrumented runs avoided about
-  89% and 73% of the respective metadata refreshes. Reading multiple semantic AST payload
-  fields from one snapshot helped the PNG script but gave back part of the `gui1` gain.
-- Finding JIT targets accounted for about 88% of constant allocation lookups in a separate
-  instrumented `gui1` rebuild. A per-walk filter for repeated exact references left `gui1`
-  time flat and added 0.9% to the PNG script in a three-pair comparison. A combined traversal
-  saved 5.4% on `gui1` by median paired time before accounting for concurrent relocation
-  publication. The guarded variant saved 0.7% and used more CPU. The progressive variant
-  regressed `gui1` by 13.3% in median time. Focus reuse earlier than JIT graph discovery.
-- Executable builds record checked bodies of ordinary functions and concrete struct methods in
-  source dependencies when the bodies stayed dormant during code generation and compile-time
-  execution. The archive keys the exact parsed bytes of visible source groups and the runtime,
-  their visibility, the target, build configuration, and warning policy. A warm build rechecks
-  declarations and signatures and delays eligible bodies until demanded. A demanded body
-  resumes with its declaration's namespace, attributes, and build configuration. Groups that
-  observe external input or compiler messages still check their bodies eagerly. Generic
-  instantiation, macro expansion, compile-time execution, and diagnostics prevent publication
-  of the affected bodies.
-  Reusing typed bodies for functions that the build reaches remains open.
-- Windows now identifies the system DLL directory by filesystem identity. The loader and OS
-  API can spell `System32` differently, which previously blocked archive use on the measured
-  host. A workspace test warms the archive with an unused concrete method, then calls it from
-  both JIT and native code and verifies that a provider edit invalidates the result. Three
-  alternating Windows Release pairs with four workers deferred 1,371 bodies per `gui1` edit.
-  Median elapsed time moved from 12.52 s to 11.47 s, with two faster pairs, and median peak
-  working set from 1,493 to 1,522 MiB. The single cold pair moved from 15.03 s to 17.28 s.
-  Windows validation passed the semantic and expected-error suites, 1,620 JIT Release
-  tests, 4,107 native Release tests, and 1,867 C++ DevMode tests.
-- Workspace artifact reuse now checks filesystem change times alongside write times and
-  verifies the manifest's checksum. A same-size private-body edit with a restored write time
-  updates both the `#run` result and the executable. An added overload changes the selected
-  call, a signature edit matches a forced build's diagnostic, and a damaged manifest that
-  omits a discovered `#include` is rebuilt. Over seven Linux Release pairs, the median
-  unchanged `gui1` build went from 20 ms to 21 ms. Builds that report warnings leave no
-  reusable manifest, so subsequent `run` and `test` commands report the same warnings.
-  Compiler-thread JIT writes and environment reads through the guarded platform APIs
-  prevent publication of the corresponding setup snapshot or workspace manifest. On Linux
-  setting an environment variable updates both the setup-selected executable name and a
-  value calculated during compilation. Stable setup results still allow native artifact
-  reuse. Direct calls to foreign functions declared outside the runtime now mark execution
-  in the JIT. Materializing a foreign function address conservatively prevents publication
-  while preserving the address. On Linux, builds that read through `fopen` and `fgetc`
-  see an edited file, and an untaken foreign call still allows an unchanged artifact to
-  be reused. The guard covers the sixth Swag integer argument and the System V variadic
-  argument state. JIT calls that convert an address to an integer now prevent publication
-  for ordinary code. Direct calls and calls through a function value both observe the
-  current process address, while an unchanged `gui1` still reuses its executable.
-  Runtime host inputs outside the guarded APIs still need tracking. Preparing an
-  untaken foreign call can load a native library and run an initializer. An explicit
-  library path now prevents publication of that setup snapshot or workspace manifest.
-  Linux tests ran the initializer on fresh and repeated builds, both by explicit path
-  and by name through `LD_LIBRARY_PATH`. The compiler checks the loaded library path
-  and treats the host system library directories as platform dependencies. An unchanged
-  artifact can still be reused after its setup initializer runs.
-  A prototype reused an analyzed short integer expression after a caller edit and missed
-  after a body edit. None of the bodies in `gui1` or the PNG script met its closed-expression
-  proof, so it is not merged.
-- Measure a separate cache of deterministic `#ast` results before JIT preparation. Record the
-  metadata properties and external inputs each generator observes, and analyze restored text
-  in the destination scope. Start with a proof that allows replay only for effect-free
-  execution. An application edit can preserve entries for source owners that cannot see that
-  application. The PNG decoding script executed no block `#ast` evaluations, so use a consumer
-  with block generators when assessing this cache.
-- Cache contract: persist stable identities and remap them into each compiler invocation.
-  Preserve namespace membership, source locations, safety and ABI information, and the
-  required effects of compile-time code. Fingerprint files from the bytes the compiler
-  consumed, including loaded and included inputs. Validate compiler and target identity,
-  relevant configuration, and tracked dependencies. Publish complete entries atomically and
-  fall back to analysis for invalid entries or effects the cache cannot replay.
-- Validation on Linux x86-64: a warm compile deferred 553 checks on the `gui1` edit and
-  788 on the PNG script. Fresh and warm native smoke runs both completed the GUI startup
-  under X11 and decoded the PNG to the expected RGBA bytes. Demanding a deferred body
-  through direct and indirect calls preserved borrow diagnostics, and compile-time and
-  native calls returned the same value. Release narrowing still yielded 44 after a later
-  application `#run` enabled overflow checks. A same-size private-body edit with restored
-  write time invalidated a transitive consumer and restored its diagnostic. Signature and
-  overload edits invalidated their consumers and left an unrelated group reusable. Four
-  concurrent writers left a reusable archive, and a damaged record fell back to semantic
-  analysis and was republished. A resource read kept its group on the eager path. The C++
-  DevMode, JIT Release, and Release Safe suites passed 1,891, 1,605, and 166 tests.
-- Across six alternating Linux Release pairs with four workers, compared with `6f4c48e925`
-  before body deferral, the `gui1` one-constant edit took a median 6.97 to 7.13 s and peak
-  RSS went from 1,713 to 1,703 MiB. The PNG script took 3.40 to 3.51 s and went from 1,136
-  to 1,137 MiB peak RSS. Median paired elapsed time rose by 0.6% on `gui1` and 2.3% on PNG.
-  An unchanged `gui1` build still reused its native artifact.
-- Done when: a private-body edit reanalyzes the changed file and the affected consumers.
-  A signature or overload change invalidates each affected lookup. Fresh and reused builds
-  agree on diagnostics, compile-time execution, safety, and native results. Concurrent
-  writers and damaged entries leave builds correct, and edit time and peak memory are
-  measured on representative consumers.
-- Related: compiler.build.119, compiler.build.121, compiler.build.122, compiler.query.001,
-  compiler.build.030, compiler.optimization.107.
 
 ### compiler.build.121 — Reuse analyzed prelude state
 
@@ -595,7 +449,7 @@ before relying on them.
   target, and relevant configuration in the keys.
 - Done when: warm executable builds and script launches skip reusable prelude analysis
   and agree with fresh builds on diagnostics and artifacts.
-- Related: compiler.build.119, compiler.build.120, compiler.build.122, compiler.build.004,
+- Related: compiler.build.119, compiler.build.122, compiler.build.004,
   compiler.build.016.
 
 ### compiler.build.122 — Compile source dependencies into executables
@@ -621,4 +475,4 @@ before relying on them.
   Fresh and incremental builds agree on behavior and diagnostics. Paired cold, no-op,
   application edit, private standard source edit, and second-application runs report wall
   time, peak memory, and artifact size on identical sources and isolated caches.
-- Related: compiler.build.119, compiler.build.120, compiler.build.121, compiler.build.004.
+- Related: compiler.build.119, compiler.build.121, compiler.build.004.

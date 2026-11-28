@@ -44,6 +44,8 @@ private:
 
     CompilerInstance& compiler_;
     std::map<uint32_t, Group> groups_;
+    Group runtimeGroup_; // Runtime files and application source both use owner zero.
+    bool hasRuntimeGroup_ = false;
     mutable std::shared_mutex mutex_;
     std::unordered_set<const SymbolFunction*> effects_;
     uint32_t activeOwner_      = 0;

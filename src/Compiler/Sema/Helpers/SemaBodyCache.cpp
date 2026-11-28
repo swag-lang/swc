@@ -78,6 +78,8 @@ SemaBodyCache::SemaBodyCache(CompilerInstance& compiler, std::span<SourceFile* c
         inputs.push_back({file, sha256(bytes)});
         if (!file->isRuntime())
             groups_.try_emplace(file->sourceOwner());
+        else
+            hasRuntimeGroup_ = true;
     }
 
     std::ranges::sort(inputs, {}, [](const Input& input) {
@@ -89,6 +91,47 @@ SemaBodyCache::SemaBodyCache(CompilerInstance& compiler, std::span<SourceFile* c
     ByteArray initialConfig;
     compiler.appendBuildConfigCacheIdentity(initialConfig);
     const auto configDigest = sha256(initialConfig.span());
+
+    if (hasRuntimeGroup_)
+    {
+        ByteArray identity;
+        identity.append("checked dormant runtime bodies v1");
+        identity.appendLe32(static_cast<uint32_t>(command.targetOs));
+        identity.appendLe32(static_cast<uint32_t>(command.targetArch));
+        identity.appendLe32(static_cast<uint32_t>(command.command));
+        appendText(identity, command.targetCpu.view());
+        appendText(identity, command.buildCfg.view());
+        identity.append(std::as_bytes(std::span{configDigest}));
+        command.warningPolicy.appendCacheIdentity(identity);
+        compiler.warningPolicy().appendCacheIdentity(identity);
+        identity.appendLe64(command.tags.size());
+        for (const auto& tag : command.tags)
+            appendText(identity, tag.view());
+
+        for (const auto& input : inputs)
+        {
+            const auto& file = *input.file;
+            if (!file.isRuntime())
+                continue;
+
+            runtimeGroup_.fileIndices.emplace(file.ref().get(), static_cast<uint32_t>(runtimeGroup_.files.size()));
+            runtimeGroup_.files.push_back(&file);
+            identity.appendLe32(file.flags().get());
+            appendText(identity, file.genericPathString().view());
+            if (file.moduleNamespace())
+                appendText(identity, file.moduleNamespace()->getFullScopedName(ctx).view());
+            else
+                appendText(identity, {});
+            identity.append(std::as_bytes(std::span{input.digest}));
+        }
+
+        runtimeGroup_.config       = compiler.buildCfg();
+        runtimeGroup_.configDigest = configDigest;
+        runtimeGroup_.key = Utf8Helper::toLowerHex(sha256Parts({identity.span(), std::as_bytes(std::span{configDigest})}));
+        if (!command.rebuild && !compiler.jitHasUntrackedEffects())
+            runtimeGroup_.loaded = load(runtimeGroup_);
+    }
+
     for (auto& [owner, group] : groups_)
     {
         ByteArray identity;
@@ -195,6 +238,11 @@ void SemaBodyCache::beginOwner(uint32_t sourceOwner)
         previous->second.checked = previous->second.configDigest == digest &&
                                    !compiler_.jitHasUntrackedEffects() && !hasVisibleInput(activeOwner_);
     }
+    if (hasRuntimeGroup_ && !runtimeGroup_.checked)
+    {
+        runtimeGroup_.checked = runtimeGroup_.configDigest == digest &&
+                                !compiler_.jitHasUntrackedEffects() && !runtimeInputRead_;
+    }
     activeOwner_ = sourceOwner;
     application_ = sourceOwner == 0;
 
@@ -224,22 +272,35 @@ void SemaBodyCache::recordInput()
 const Runtime::BuildCfg* SemaBodyCache::deferredBuildConfig(const SourceFile& file, TokenRef token) const
 {
     const std::shared_lock lock(mutex_);
-    if (activeOwner_ != file.sourceOwner() || compiler_.jitHasUntrackedEffects())
-        return nullptr;
-    const auto entry = groups_.find(file.sourceOwner());
-    if (entry == groups_.end() || !entry->second.loaded || hasVisibleInput(file.sourceOwner()))
+    if (compiler_.jitHasUntrackedEffects())
         return nullptr;
 
-    const auto& group = entry->second;
-    const auto index = group.fileIndices.find(file.ref().get());
-    if (index == group.fileIndices.end() || !group.deferred[index->second].contains(token.get()))
+    const Group* group = nullptr;
+    if (file.isRuntime())
+    {
+        if (!hasRuntimeGroup_ || !runtimeGroup_.loaded || runtimeInputRead_)
+            return nullptr;
+        group = &runtimeGroup_;
+    }
+    else
+    {
+        if (activeOwner_ != file.sourceOwner() || hasVisibleInput(file.sourceOwner()))
+            return nullptr;
+        const auto entry = groups_.find(file.sourceOwner());
+        if (entry == groups_.end() || !entry->second.loaded)
+            return nullptr;
+        group = &entry->second;
+    }
+
+    const auto index = group->fileIndices.find(file.ref().get());
+    if (index == group->fileIndices.end() || !group->deferred[index->second].contains(token.get()))
         return nullptr;
-    return &group.config;
+    return &group->config;
 }
 
 bool SemaBodyCache::isEligible(const SourceFile& file, const SymbolFunction& function)
 {
-    if (file.isRuntime() || !file.sourceOwner() || file.hasFlag(FileFlagsE::CustomSrc) ||
+    if ((!file.isRuntime() && !file.sourceOwner()) || file.hasFlag(FileFlagsE::CustomSrc) ||
         function.isGenericRoot() || function.isGenericInstance() ||
         function.isEmpty() || function.isForeign() || function.specOpKind() != SpecOpKind::None ||
         function.attributes().hasMacroOrMixin() || !function.ownerSymMap())
@@ -283,7 +344,7 @@ void SemaBodyCache::publish(std::span<SymbolFunction* const> functions, const st
     if (Stats::hasError() || Stats::get().numWarnings.load(std::memory_order_relaxed))
         return;
 
-    std::map<uint32_t, ByteArray> records;
+    std::map<std::pair<bool, uint32_t>, ByteArray> records;
     for (const auto* function : functions)
     {
         const auto* file = compiler_.declaringSourceFile(*function);
@@ -291,11 +352,27 @@ void SemaBodyCache::publish(std::span<SymbolFunction* const> functions, const st
             function->isCodeGenCompleted() || function->jitEntryAddress() || effects_.contains(function))
             continue;
 
-        const auto found = groups_.find(file->sourceOwner());
-        if (found == groups_.end() || !found->second.checked || found->second.loaded)
-            continue;
-        if (std::ranges::any_of(messageOwners, [&](uint32_t owner) {
-                return !owner || compiler_.canSeeSourceOwner(file->sourceOwner(), owner);
+        const bool     isRuntime = file->isRuntime();
+        const Group*   group     = nullptr;
+        const uint32_t groupOwner = file->sourceOwner();
+        if (isRuntime)
+        {
+            if (!hasRuntimeGroup_ || !runtimeGroup_.checked || runtimeGroup_.loaded)
+                continue;
+            group = &runtimeGroup_;
+        }
+        else
+        {
+            const auto found = groups_.find(groupOwner);
+            if (found == groups_.end() || !found->second.checked || found->second.loaded)
+                continue;
+            group = &found->second;
+        }
+        // Runtime declarations are deliberately excluded from module-level compiler message
+        // events. A listener in an application cannot observe whether one of these bodies was
+        // checked eagerly or resumed on demand.
+        if (!isRuntime && std::ranges::any_of(messageOwners, [&](uint32_t owner) {
+                return !owner || compiler_.canSeeSourceOwner(groupOwner, owner);
             }))
             continue;
 
@@ -303,18 +380,18 @@ void SemaBodyCache::publish(std::span<SymbolFunction* const> functions, const st
         if (hasBodyCompilerSyntax(file->ast(), decl.nodeBodyRef))
             continue;
 
-        const auto index = found->second.fileIndices.find(file->ref().get());
-        if (index == found->second.fileIndices.end())
+        const auto index = group->fileIndices.find(file->ref().get());
+        if (index == group->fileIndices.end())
             continue;
 
-        auto& payload = records[file->sourceOwner()];
+        auto& payload = records[{isRuntime, groupOwner}];
         payload.appendLe32(index->second);
         payload.appendLe32(function->tokRef().get());
     }
 
     for (auto& [owner, payload] : records)
     {
-        const auto& key = groups_.at(owner).key;
+        const auto& key = owner.first ? runtimeGroup_.key : groups_.at(owner.second).key;
         const auto checksum = bodyArchiveChecksum(payload.span(), key);
         payload.append(std::as_bytes(std::span{checksum}));
         CompilerCacheStore::get().write(key, std::move(payload));

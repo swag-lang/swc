@@ -2364,6 +2364,20 @@ public func narrow(value: s32)->s8
 {
     return cast(s8, value)
 }
+public struct Holder { public value: s32 }
+public interface IHolder { mtd get()->s32 }
+impl Holder
+{
+    #[Swag.NoInline]
+    public func narrow(me, value: s32)->s8
+    {
+        return cast(s8, value)
+    }
+}
+impl IHolder for Holder
+{
+    mtd get()->s32 => .value
+}
 public func initial()->s32 => 17
 )"));
     const std::vector<Utf8> warm = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
@@ -2380,10 +2394,15 @@ func enableOverflow()->s32
     return 300
 }
 const Input = #run enableOverflow()
-#main { Swag.print("narrowed=", Provider.narrow(Input)) }
+#main
+{
+    let holder: Provider.Holder = {value: 0}
+    let interfaceHolder: Provider.IHolder = holder
+    Swag.print("narrowed=", Provider.narrow(Input), "/", holder.narrow(Input), "/", interfaceHolder.get())
+}
 )"));
-    SWC_RESULT(runCompiler(warm, ExitCode::Success, "narrowed=44"));
-    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "narrowed=44"));
+    SWC_RESULT(runCompiler(warm, ExitCode::Success, "narrowed=44/44/0"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "narrowed=44/44/0"));
 }
 SWC_TEST_END()
 

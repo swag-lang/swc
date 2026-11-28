@@ -238,6 +238,8 @@ namespace
         const auto* cache = sema.compiler().semaBodyCache();
         const auto* file  = sema.file();
         if (!cache || !file || sema.curScope().isLocal() || declImpl != function.declImplContext() ||
+            (declImpl && (!function.isMethod() || !declImpl->isForStruct() || declImpl->symInterface())) ||
+            (function.isMethod() && !declImpl) ||
             !SemaBodyCache::isEligible(*file, function) || isImplicitGeneratedLifecycleWrapper(sema, function))
             return nullptr;
         return cache->deferredBuildConfig(*file, function.tokRef());

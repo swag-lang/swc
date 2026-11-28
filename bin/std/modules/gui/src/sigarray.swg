@@ -3,7 +3,7 @@
 using Core
 
 #[Swag.ConstExpr]
-private func(F) signalParameterType(index: u64)->typeinfo
+func(F) signalParameterType(index: u64)->typeinfo
 {
     return cast(typeinfo, unwrap (#typeof(F).parameters)![index].pointedType)
 }

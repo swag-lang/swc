@@ -1283,7 +1283,7 @@ ExitCode CompilerInstance::runWorkspace()
     TaskContext    ctx(*this);
     ScopedTimedLog workspaceStage(ctx, ScopedTimedLog::Stage::Workspace);
     fs::path       workspacePath = cmdLine().workspacePath;
-    fs::path       modulesPath   = workspaceModulesDirectory(workspacePath);
+    fs::path       modulesPath   = WorkspaceLayout::workspaceModulesDirectory(workspacePath);
     Utf8           because;
 
     workspaceBuildLogState_  = {};

@@ -587,7 +587,7 @@ void SymbolFunction::resetJitState() noexcept
     jitExecMemory_.reset();
     jitPatchedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
-    jitState_.remove(JitStateE::PatchJobScheduled | JitStateE::Prepared);
+    jitState_.store(JitStateE::Zero);
     jitReadyVersion_.store(0, std::memory_order_release);
 }
 

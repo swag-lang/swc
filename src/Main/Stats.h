@@ -10,7 +10,6 @@ struct Stats
     std::atomic<size_t> numTests                = 0;
     std::atomic<size_t> numTestsFailed          = 0;
     std::atomic<size_t> numTokens               = 0;
-    std::atomic<size_t> numDeferredFunctionBodies = 0;
     std::atomic<size_t> numFormatRewrittenFiles = 0;
 
     static Stats& get()

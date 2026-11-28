@@ -97,11 +97,6 @@ namespace Os
     ProcessRunResult                runProcess(uint32_t& outExitCode, const fs::path& exePath, std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options = nullptr);
     WindowsToolchainDiscoveryResult discoverWindowsToolchainPaths(WindowsToolchainPaths& outToolchain);
 
-    using FileChangeTime = std::chrono::sys_time<std::chrono::microseconds>;
-
-    // The latest filesystem-recorded write or metadata change, including timestamp resets.
-    bool tryGetFileChangeTime(FileChangeTime& outTime, const fs::path& path);
-
     // Names the processes that hold a file open, mapped, or running — the answer behind an
     // access-denied on a shared library or an executable. Best effort: an empty result means
     // nobody was found, not that nobody holds the file.
@@ -135,7 +130,6 @@ namespace Os
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
     void     registerExternalModuleSearchPath(const fs::path& path);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
-    bool     isSystemExternalModule(void* moduleHandle);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
     uint64_t tlsAlloc();
     void     tlsSetValue(uint64_t id, void* value);

@@ -153,7 +153,6 @@ StatsSnapshot StatsSnapshot::capture()
     result.numTests                = stats.numTests.load(std::memory_order_relaxed);
     result.numTestsFailed          = stats.numTestsFailed.load(std::memory_order_relaxed);
     result.numTokens               = stats.numTokens.load(std::memory_order_relaxed);
-    result.numDeferredFunctionBodies = stats.numDeferredFunctionBodies.load(std::memory_order_relaxed);
     result.numFormatRewrittenFiles = stats.numFormatRewrittenFiles.load(std::memory_order_relaxed);
     return result;
 }
@@ -280,7 +279,6 @@ StatsSnapshot ScopedTimedLog::delta() const
     result.numTests                = now.numTests - std::min(now.numTests, startSnapshot_.numTests);
     result.numTestsFailed          = now.numTestsFailed - std::min(now.numTestsFailed, startSnapshot_.numTestsFailed);
     result.numTokens               = now.numTokens - std::min(now.numTokens, startSnapshot_.numTokens);
-    result.numDeferredFunctionBodies = now.numDeferredFunctionBodies - std::min(now.numDeferredFunctionBodies, startSnapshot_.numDeferredFunctionBodies);
     result.numFormatRewrittenFiles = now.numFormatRewrittenFiles - std::min(now.numFormatRewrittenFiles, startSnapshot_.numFormatRewrittenFiles);
     return result;
 }

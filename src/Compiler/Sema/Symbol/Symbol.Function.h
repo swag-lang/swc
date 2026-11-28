@@ -488,8 +488,6 @@ public:
     bool  isJitWaitSatisfied(TaskStateKind kind) const noexcept;
     void* jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void* jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void  recordJitAddressObservation() noexcept { jitState_.add(JitStateE::ObservesAddress, std::memory_order_relaxed); }
-    bool  hasJitAddressObservation() const noexcept { return jitState_.has(JitStateE::ObservesAddress); }
     void* jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
 
     bool ownsJitCodeAddress(const void* address) const noexcept
@@ -596,7 +594,6 @@ private:
         Zero              = 0,
         PatchJobScheduled = 1 << 0,
         Prepared          = 1 << 1,
-        ObservesAddress   = 1 << 2,
     };
 
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |

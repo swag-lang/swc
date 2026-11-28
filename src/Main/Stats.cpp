@@ -12,7 +12,6 @@ void Stats::resetCommandMetrics()
     stats.numTests.store(0, std::memory_order_relaxed);
     stats.numTestsFailed.store(0, std::memory_order_relaxed);
     stats.numTokens.store(0, std::memory_order_relaxed);
-    stats.numDeferredFunctionBodies.store(0, std::memory_order_relaxed);
     stats.numFormatRewrittenFiles.store(0, std::memory_order_relaxed);
 }
 

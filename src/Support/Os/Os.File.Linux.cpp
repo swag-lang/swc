@@ -42,26 +42,6 @@ namespace
     }
 }
 
-bool Os::tryGetFileChangeTime(FileChangeTime& outTime, const fs::path& path)
-{
-    struct stat info{};
-    if (lstat(path.c_str(), &info) != 0)
-        return false;
-
-    const auto time = [](const timespec& value) -> FileChangeTime {
-        return std::chrono::sys_seconds{std::chrono::seconds{value.tv_sec}} +
-               std::chrono::duration_cast<FileChangeTime::duration>(std::chrono::nanoseconds{value.tv_nsec});
-    };
-    outTime = std::max(time(info.st_mtim), time(info.st_ctim));
-    if (S_ISLNK(info.st_mode))
-    {
-        if (stat(path.c_str(), &info) != 0)
-            return false;
-        outTime = std::max({outTime, time(info.st_mtim), time(info.st_ctim)});
-    }
-    return true;
-}
-
 void Os::queryFileLockOwners(std::vector<FileLockOwner>& outOwners, const fs::path& path)
 {
     outOwners.clear();

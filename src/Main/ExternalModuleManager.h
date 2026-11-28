@@ -12,7 +12,6 @@ public:
     void registerDependencies(Utf8 moduleName, std::vector<Utf8> dependencies);
     bool loadModule(void*& outModuleHandle, std::string_view moduleName);
     bool getFunctionAddress(void*& outFunctionAddress, std::string_view moduleName, std::string_view functionName);
-    bool hadUntrackedLibraryLoad() const { return hadUntrackedLibraryLoad_.load(std::memory_order_relaxed); }
 
 private:
     struct ModuleEntry
@@ -34,7 +33,6 @@ private:
     std::vector<ModuleEntry>     modules_;
     std::vector<fs::path>        searchPaths_;
     std::unordered_set<fs::path> searchPathSet_;
-    std::atomic_bool             hadUntrackedLibraryLoad_ = false;
 };
 
 SWC_END_NAMESPACE();

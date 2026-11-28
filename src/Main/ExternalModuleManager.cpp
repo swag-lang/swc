@@ -90,7 +90,6 @@ bool ExternalModuleManager::loadModuleLocked(void*& outModuleHandle, const std::
             if (!Os::loadExternalModule(outModuleHandle, Utf8(candidatePath).view()))
                 continue;
 
-            hadUntrackedLibraryLoad_.store(true, std::memory_order_relaxed);
             ModuleEntry moduleEntry{.moduleName = Utf8(moduleName), .moduleHandle = outModuleHandle};
             modules_.push_back(std::move(moduleEntry));
             return true;
@@ -99,8 +98,6 @@ bool ExternalModuleManager::loadModuleLocked(void*& outModuleHandle, const std::
         return false;
     }
 
-    if (!hadUntrackedLibraryLoad() && (requestedPath.has_parent_path() || !Os::isSystemExternalModule(outModuleHandle)))
-        hadUntrackedLibraryLoad_.store(true, std::memory_order_relaxed);
     ModuleEntry moduleEntry{.moduleName = Utf8(moduleName), .moduleHandle = outModuleHandle};
     modules_.push_back(std::move(moduleEntry));
     return true;

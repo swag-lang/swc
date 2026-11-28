@@ -8,7 +8,6 @@
 #include "Compiler/Sema/Generic/GenericCloneFlags.h"
 #include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Generic/SemaGenericStoredType.h"
-#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -1007,7 +1006,6 @@ namespace SemaGeneric
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance, CastFailure* outWhereFailure)
     {
-        SemaBodyCache::recordEffect(sema);
         Symbol* instance = nullptr;
         SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, outWhereFailure));
 
@@ -1017,7 +1015,6 @@ namespace SemaGeneric
 
     Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, SymbolFunction*& outInstance, CastFailure* outFailure, uint32_t* outFailureArgIndex)
     {
-        SemaBodyCache::recordEffect(sema);
         outInstance = nullptr;
         if (outFailure)
             *outFailure = {};
@@ -1113,7 +1110,6 @@ namespace SemaGeneric
 
     Result instantiateErasedRoot(Sema& sema, SymbolFunction& genericRoot)
     {
-        SemaBodyCache::recordEffect(sema);
         if (!genericRoot.isErasedGenericRoot() || !isDeclaredInPlace(genericRoot))
             return Result::Continue;
 
@@ -1151,7 +1147,6 @@ namespace SemaGeneric
 
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance, bool reportFailure)
     {
-        SemaBodyCache::recordEffect(sema);
         Symbol* instance = nullptr;
         SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, nullptr, reportFailure));
 
@@ -1161,7 +1156,6 @@ namespace SemaGeneric
 
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)
     {
-        SemaBodyCache::recordEffect(sema);
         outInstance = nullptr;
 
         std::unique_ptr<Sema> targetSemaHolder;

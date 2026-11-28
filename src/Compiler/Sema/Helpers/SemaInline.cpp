@@ -16,7 +16,6 @@
 #include "Compiler/Sema/Helpers/SemaAstLookup.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
-#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaReexpandExpr.h"
@@ -2946,8 +2945,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const Ast*             declAst = nullptr;
     if (!canInlineCall(sema, fn, &decl, &declAst))
         return Result::Continue;
-    if (fn.attributes().hasMacroOrMixin())
-        SemaBodyCache::recordEffect(sema);
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
     sema.appendResolvedCallArguments(callRef, resolvedArgs);

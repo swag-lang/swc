@@ -13,7 +13,6 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
-#include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -23,7 +22,6 @@
 #include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/CompilerCache.h"
 #include "Main/CompilerCacheStore.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
@@ -401,13 +399,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 CompilerInstance::~CompilerInstance()
 {
-    if (semaBodyCache_)
-    {
-        std::unordered_set<uint32_t> messageOwners;
-        for (const auto& listener : compilerMessageListeners_)
-            messageOwners.insert(listener.sourceOwner);
-        semaBodyCache_->publish(nativeCodeSegment_, messageOwners);
-    }
     CompilerCacheStore::flushAll();
     // Generated TLS cleanup reads this instance's code and globals, such as the runtime
     // allocator's thread heap. Retire its values and wait for active cleanup before unmapping
@@ -433,20 +424,6 @@ CompilerInstance::~CompilerInstance()
     globalInitSegment_.fill(std::byte{0xCD});
     compilerSegment_.fill(std::byte{0xCD});
 #endif
-}
-
-void CompilerInstance::prepareSemaBodyCache(std::span<SourceFile* const> files)
-{
-    if (!hasSourceDependencies() || isModuleSetupMode() ||
-        buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
-        cmdLine().semaOnly || !cmdLine().output || !cmdLine().printMicro.empty() ||
-        cmdLine().targetArch != Runtime::TargetArch::X86_64)
-        return;
-
-    const auto command = cmdLine().command;
-    if ((command == CommandKind::Build || command == CommandKind::Run || command == CommandKind::Smoke) &&
-        !compilerCacheIdentity().empty())
-        semaBodyCache_ = std::make_unique<SemaBodyCache>(*this, files);
 }
 
 size_t CompilerInstance::numPerThreadData() const noexcept
@@ -724,7 +701,7 @@ void CompilerInstance::setupRuntimeCompiler()
     // The runtime allocator's interface table is process-stable: its contents are identical for
     // every CompilerInstance (typeinfo slot + the global mimalloc-backed `req`), and a workspace
     // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
-    // cached in process-persistent imported-module globals (e.g. core's reflection hash tables); a
+    // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles, and the
     // callbacks never read the interface object, which names the instance that set it up.
@@ -845,8 +822,8 @@ void CompilerInstance::ensureProcessInfoRunArgs()
 
     // The arguments are handed to imported native modules, which parse them once, keep slices
     // into the buffer for the rest of the process, and routinely outlive this compiler instance
-    // (a workspace run builds each dependency with its own short-lived instance while core and
-    // its sibling modules stay loaded). The storage they point into must therefore never move and
+    // (a workspace run builds each dependency with its own short-lived instance while core.dll
+    // and its siblings stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
     struct StoredProcessArgs
     {

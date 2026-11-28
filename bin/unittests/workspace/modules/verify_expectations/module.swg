@@ -7,5 +7,5 @@
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "VerifyExpectations"
     // Backend diagnostics need generated code; source expectations keep test artifacts uncached.
-    cfg.backendKind = #command == Swag.CompilerCommand.Test ? .Executable : .None
+    cfg.backendKind = #command == Swag.CompilerCommand.Test ? .Executable : .Export
 }

@@ -1,4 +1,4 @@
-#global public
+#global export
 #global namespace Http
 
 using Core

@@ -118,8 +118,6 @@ namespace
     {
         for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
-            if (!lookUpCxt.canSeeSourceSymbol(*cur))
-                continue;
             if (cur->isIgnored())
             {
                 if (!cur->isExcludedByCondition())

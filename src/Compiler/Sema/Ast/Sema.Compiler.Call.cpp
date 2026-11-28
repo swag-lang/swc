@@ -108,6 +108,57 @@ namespace
         return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokLocationRef);
     }
 
+    std::string_view moduleImportVersion(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokVersionRef);
+    }
+
+    std::string_view moduleImportLink(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokLinkRef);
+    }
+
+    Result reportInvalidImportConstraintValue(Sema& sema, const AstCompilerImport& node, const TokenRef tokenRef, std::string_view argName, std::string_view value, std::string_view allowedValues)
+    {
+        Diagnostic diag = SemaError::build(sema, DiagnosticId::sema_err_import_invalid_constraint_value, SourceCodeRef{node.srcViewRef(), tokenRef});
+        diag.addArgument(Diagnostic::ARG_ARG, argName);
+        diag.addArgument(Diagnostic::ARG_VALUE, value);
+        diag.addArgument(Diagnostic::ARG_VALUES, allowedValues);
+        diag.report(sema.ctx());
+
+        return Result::Error;
+    }
+
+    Result resolveModuleImportLinkBackend(Sema& sema, const AstCompilerImport& node, Runtime::BuildCfgBackendKind& outBackendKind)
+    {
+        outBackendKind = Runtime::BuildCfgBackendKind::None;
+        if (node.tokLinkRef.isInvalid())
+            return Result::Continue;
+
+        const std::string_view linkValue = moduleImportLink(sema, node);
+        if (linkValue == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view())
+        {
+            outBackendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+            return Result::Continue;
+        }
+
+        if (linkValue == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view())
+        {
+            outBackendKind = Runtime::BuildCfgBackendKind::StaticLibrary;
+            return Result::Continue;
+        }
+
+        return reportInvalidImportConstraintValue(
+            sema,
+            node,
+            node.tokLinkRef,
+            Token::toName(TokenId::KwdLink),
+            linkValue,
+            std::format("{}|{}",
+                        backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view(),
+                        backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view()));
+    }
+
     Result resolveCompilerIncludePath(Sema& sema, AstNodeRef nodeRef, std::string_view rawPath, fs::path& outPath)
     {
         fs::path includePath{std::string(rawPath)};
@@ -1650,7 +1701,10 @@ Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
 
-    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this));
+    auto linkBackendKind = Runtime::BuildCfgBackendKind::None;
+    SWC_RESULT(resolveModuleImportLinkBackend(sema, *this, linkBackendKind));
+
+    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this), linkBackendKind);
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const

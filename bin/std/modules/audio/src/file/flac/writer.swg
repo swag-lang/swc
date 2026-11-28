@@ -3,7 +3,7 @@
 //! Role: This file writes bounded PCM blocks and keeps every flushed file prefix playable.
 //
 #global namespace Flac
-#global public
+#global export
 
 using Core, Core.Errors
 

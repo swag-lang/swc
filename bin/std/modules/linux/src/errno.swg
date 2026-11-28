@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const EPERM        = 1_s32
 const ENOENT       = 2_s32

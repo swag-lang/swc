@@ -8,4 +8,5 @@
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace     = "StandaloneExe"
     cfg.backendKind         = .Executable
+    cfg.publishDependencies = true
 }

@@ -4,7 +4,7 @@
 //! Role: Encodes dependent boundaries and edited spans; copies unaffected video and AAC payloads.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core, Core.Errors, Pixel
 

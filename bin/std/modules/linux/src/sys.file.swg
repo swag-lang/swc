@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const LOCK_SH = 1_s32
 const LOCK_EX = 2_s32

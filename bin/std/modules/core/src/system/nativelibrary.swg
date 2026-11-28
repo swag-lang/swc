@@ -2,6 +2,23 @@
 
 using Core.Errors
 
+private const SwagRuntimeHookSymbol        = "__swc_rt_stage"
+private const SwagRuntimeHookSync          = 0_u64
+private const SwagRuntimeHookDynamicLoad   = 4_u64
+private const SwagRuntimeHookDynamicUnload = 5_u64
+
+private func callSwagRuntimeHook(handle: const *void, stage: u64)
+{
+    let runtimeHook = nativeLibrarySymbol(handle, SwagRuntimeHookSymbol)
+    if not runtimeHook
+    {
+        return
+    }
+
+    let hook = cast(func(u64, u64, u64, const *(string?)), runtimeHook)
+    hook(stage, Swag.getContext().runtimeTlsIdPlusOne, cast(u64, Swag.getContext().runtimeFlags), &Swag.processInfo().args)
+}
+
 // Owns one dynamically loaded native library.
 //
 // Loading may run code owned by the library. Resolve symbols only while this value remains open;
@@ -44,7 +61,9 @@ impl NativeLibrary
 
     // Releases the loaded library. Repeated calls have no effect.
     //
-    // Every address returned by [[Core.NativeLibrary.symbol]] becomes invalid.
+    // For a Swag library, this releases one dynamic lifecycle reference and runs its `#drop`
+    // blocks before unloading when no static or dynamic owner remains. Every address returned by
+    // [[Core.NativeLibrary.symbol]] becomes invalid.
     mtd close()
     {
         if not .handle
@@ -52,15 +71,17 @@ impl NativeLibrary
             return
         }
 
+        callSwagRuntimeHook(.handle, SwagRuntimeHookDynamicUnload)
         closeNativeLibrary(.handle)
         .handle = null
     }
 
     // Loads a native library from `path`.
     //
-    // The returned owner closes the library automatically. Repeated loads hold independent
-    // references. Loading fails for a path containing a zero byte or when the platform loader
-    // cannot resolve the file or one of its dependencies.
+    // The returned owner closes the library automatically. For a Swag library, loading adopts the
+    // caller's runtime context and runs `#init` and `#premain` once before this function returns.
+    // Repeated loads hold independent lifecycle references. Embedded zero bytes are rejected;
+    // loading also fails when the platform loader cannot resolve the file or one of its dependencies.
     func load(path: string)->NativeLibrary fail
     {
         for byte in path where byte == 0
@@ -71,6 +92,8 @@ impl NativeLibrary
         var result: #returntype
         result.handle = try loadNativeLibrary(path)
 
+        callSwagRuntimeHook(result.handle, SwagRuntimeHookSync)
+        callSwagRuntimeHook(result.handle, SwagRuntimeHookDynamicLoad)
 
         return result
     }

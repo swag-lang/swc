@@ -597,8 +597,6 @@ func documented(value: s32)->s32
     return value + 1
 }
 
-public var documentationFixtureValue: s32 = 3
-
 // Source-order summary for an overloaded function.
 func ordered(value: s32) { discard value }
 func ordered(value: f32) { discard value }

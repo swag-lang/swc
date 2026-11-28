@@ -222,11 +222,14 @@ namespace Swag.Build
         }
     }
 
-    // Selects whether a source group is an executable target.
+    // The kind of native backend to generate.
     enum BackendKind
     {
-        None              // Supplies sources to its consumers.
-        Executable = 2    // Builds an executable with its source dependencies.
+        None              // Nothing
+        SharedLibrary     // The module needs to be compiled as a shared library.
+        Executable        // The module needs to be compiled to an executable application.
+        StaticLibrary     // The module needs to be compiled as a static library.
+        Export            // The module only exports dependency metadata/API and does not produce a native artifact.
     }
 
     // The native backend sub category.
@@ -329,7 +332,9 @@ namespace Swag.Build
             moduleRevision:  u32 = 0         // The module revision
             moduleBuildNum:  u32 = 0         // The module build value
             moduleNamespace: string?         // The namespace name of the module
+            embeddedImports      = false     // Module should embed all its dependencies
             ignoreInWorkspace    = false     // Skip this module when building a workspace
+            publishDependencies  = false     // Place the shared libraries an executable needs beside it, so it runs without the compiler
 
             tempAllocatorCapacity  = 4_u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
             errorAllocatorCapacity = 16_u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
@@ -360,7 +365,7 @@ namespace Swag.Build
 
             warnings: Warnings     // How this module reports its warnings
 
-            backendKind    = BackendKind.Executable     // An executable target or a source group
+            backendKind    = BackendKind.Executable     // Backend type (executable, shared library, static library, export...)
             backendSubKind = BackendSubKind.Console     // Backend sub kind
 
             name:    string?     // Artifact name

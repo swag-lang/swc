@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // System V shared memory is used by X11 MIT-SHM. IPC_PRIVATE is 0,
 // IPC_CREAT | 0600 is 0x380, and IPC_RMID is 0 on Linux.

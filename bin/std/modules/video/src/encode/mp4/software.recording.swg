@@ -3,7 +3,7 @@
 //! Role: This file connects the portable encoders to a recoverable audiovisual container.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core, Core.Errors, Pixel, Audio
 

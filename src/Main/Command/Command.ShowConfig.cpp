@@ -92,6 +92,7 @@ namespace
         addInfoEntry(entries, "Workspace path", cmdLine.workspacePath);
         addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
+        addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
         if (cmdLine.command == CommandKind::Doc)
         {
@@ -100,6 +101,9 @@ namespace
         }
         addSetEntries(entries, "Source directories", cmdLine.directories);
         addSetEntries(entries, "Source files", cmdLine.files);
+        addSetEntries(entries, "Import API modules", cmdLine.importApiModules);
+        addSetEntries(entries, "Import API directories", cmdLine.importApiDirs);
+        addSetEntries(entries, "Import API files", cmdLine.importApiFiles);
         addSetEntries(entries, "File filters", cmdLine.fileFilter);
         addSetEntries(entries, "Test file filters", cmdLine.testFileFilter);
         addSetEntries(entries, "Test tag filters", cmdLine.testTagFilter);

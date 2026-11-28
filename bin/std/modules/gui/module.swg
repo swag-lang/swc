@@ -83,7 +83,7 @@ guide below covers the motion and presentation contract.
     cfg.moduleRevision    = #swcrevision
     cfg.moduleBuildNum    = #swcbuildnum
     cfg.moduleNamespace   = "Gui"
-    cfg.backendKind       = .None
+    cfg.backendKind       = .SharedLibrary
     cfg.ignoreInWorkspace = false
     cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui"
 

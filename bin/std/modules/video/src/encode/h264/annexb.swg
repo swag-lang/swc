@@ -4,7 +4,7 @@
 //! Role: This file converts a codec's Annex B output into the AVC layout consumed by MP4.
 //
 #global namespace H264
-#global public
+#global export
 
 using Core, Core.Errors
 

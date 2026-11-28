@@ -80,7 +80,7 @@ SWC_TEST_BEGIN(Compiler_InfoReportsPathsWithoutCompilation)
     if (output.find('\x1b') != std::string::npos || std::ranges::find(lines, "Caches:") == lines.end() || std::ranges::find(lines, "Native toolchain:") == lines.end())
         return Result::Error;
 
-    for (const fs::path& path : {WorkspaceLayout::cacheRoot(), WorkspaceLayout::machineCacheRoot()})
+    for (const fs::path& path : {WorkspaceLayout::dependencyCacheRoot(), WorkspaceLayout::machineCacheRoot()})
     {
         if (output.find(path.string()) == std::string::npos)
             return Result::Error;
@@ -167,15 +167,8 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
     const fs::path                    source    = directory.path() / "smoke_script.swgs";
     const fs::path                    outputDir = directory.path() / "output";
     SWC_RESULT(CompilerTestFile::writeText(source, SOURCE));
-    const fs::path support = directory.path() / "modules" / "smoke_support";
-    SWC_RESULT(CompilerTestFile::writeText(support / "module.swg", R"(#run
-{
-    let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.moduleNamespace = "SmokeSupport"
-    cfg.backendKind = .None
-}
-)"));
-    SWC_RESULT(CompilerTestFile::writeText(support / "src" / "support.swg", "public func arguments()->const [..] string => Swag.args()\n"));
+    const fs::path supportApi = directory.path() / "smoke_support" / "export" / "devmode" / "x86_64" / "support.swg";
+    SWC_RESULT(CompilerTestFile::writeText(supportApi, "#global public\nnamespace SmokeSupport { func arguments()->const [..] string => Swag.args() }\n"));
 
     std::string           output;
     Os::ProcessRunOptions options;

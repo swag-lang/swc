@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // Optional systemd login/session APIs.
 //

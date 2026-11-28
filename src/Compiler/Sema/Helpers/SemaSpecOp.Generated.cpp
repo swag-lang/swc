@@ -169,14 +169,23 @@ namespace
 
         if (!defaultInit && owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
         {
+            const SourceFile* ownerFile = sema.compiler().sourceViewFile(owner);
+            if (!ownerFile)
+                ownerFile = sema.ownerSourceFile(owner.srcViewRef());
+
+            const bool imported = ownerFile && ownerFile->isImportedApi();
+            if (imported)
+                SWC_RESULT(owner.waitPendingImplMembers(sema, codeRef));
+
             const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
             for (const SymbolFunction* method : owner.declaredMethods())
             {
                 if (!method || method->isIgnored() || method->name(sema.ctx()) != wrapperName)
                     continue;
 
-                // A wrapper that is still collecting dependencies could be waiting on us.
-                if (!method->isSemaCompleted())
+                // Source wrappers may be collecting their own dependencies. Only
+                // imported declarations can be awaited here without a recursive wait.
+                if (!imported && !method->isSemaCompleted())
                     continue;
 
                 SWC_RESULT(sema.waitTyped(method, codeRef));

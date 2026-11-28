@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const RTLD_LOCAL    = 0_s32
 const RTLD_LAZY     = 1_s32

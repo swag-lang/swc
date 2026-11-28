@@ -3,7 +3,6 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/SymbolSort.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
@@ -361,7 +360,10 @@ namespace
     bool hasNativeArtifactEntryPoints(const CompilerInstance& compiler)
     {
         return hasRunnableNativeArtifactFunction(compiler, compiler.nativeTestFunctions()) ||
-               hasRunnableNativeArtifactFunction(compiler, compiler.nativeMainFunctions());
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeMainFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeInitFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativePreMainFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeDropFunctions());
     }
 
     bool reportJitTestCountMismatch(TaskContext& ctx, const uint32_t expectedCount, const uint32_t actualCount)
@@ -473,7 +475,6 @@ namespace
         JITCallErrorKind        callErrorKind = JITCallErrorKind::None;
         JITExecManager::Request request       = immediateJitRequest(function);
         request.outCallErrorKind              = &callErrorKind;
-        request.runtimeSetupMode              = JITRuntimeSetupMode::None;
 
         const size_t errorsBefore = Stats::getNumErrors();
         while (true)
@@ -579,7 +580,11 @@ namespace
         }
 
         SymbolSort::sortAndUniqueByLocation(allFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(initFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(preMainFunctions, ctx.compiler());
         SymbolSort::sortAndUniqueByLocation(testFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(dropFunctions, ctx.compiler());
+        std::ranges::reverse(dropFunctions);
 
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));
@@ -611,18 +616,6 @@ namespace
             .compiler = &compiler,
             .snapshot = snapshotDataSegments(compiler),
         };
-        // A test invocation shares one runtime context between its hooks and test bodies.
-        const IdentifierRef    setupId = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
-        const SymbolFunction*  setup   = compiler.runtimeFunctionSymbol(setupId);
-        if (!setup || !setup->jitEntryAddress())
-            return false;
-        JITExecManager::Request setupRequest = immediateJitRequest(*setup);
-        setupRequest.runtimeSetupMode = JITRuntimeSetupMode::None;
-        setupRequest.hasArg0          = true;
-        setupRequest.arg0             = static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler);
-        if (CommandRun::afterPauses(ctx, [&] { return compiler.jitExecMgr().submit(ctx, setupRequest); }) != Result::Continue)
-            return false;
-
         // Stop module-owned work before the snapshot restores the globals it reads.
         // Declaration order also guarantees this after an init/premain/test failure.
         JitTestDropGuard dropGuard{.ctx = &ctx, .functions = dropFunctions};

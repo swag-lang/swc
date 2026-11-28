@@ -193,7 +193,7 @@ let preview = try reader.readChunk(previewId)
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Core"
-    cfg.backendKind     = .None
+    cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/core"
 
     cfg.genDoc.kind         = .Api

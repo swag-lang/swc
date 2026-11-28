@@ -1,6 +1,5 @@
 #pragma once
-#include "Backend/Linker/LinkDebugInfo.CodeView.h"
-#include "Backend/Linker/LinkImage.h"
+#include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/OsPatcher.Win32.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"
@@ -9,12 +8,16 @@ SWC_BEGIN_NAMESPACE();
 
 class Diagnostic;
 
-// Writes resolved Windows PE32+ images and their optional PDB sidecars.
-// Each call to writeImage rebuilds the layout and relocation state.
-class PEWriter final
+// Windows PE32+ image writer (executable or DLL) and the COFF archive outputs (static and import
+// libraries). All symbol resolution, section layout, relocation patching, import-table/IAT synthesis
+// and base-relocation generation happen here; the result is the exact bytes to write to disk. The
+// per-image working state below is rebuilt on each writeImage call.
+class PEWriter final : public ImageWriter
 {
 public:
-    bool writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath);
+    bool writeImage(ByteArray& outBytes, ByteArray& outPdbBytes, Diagnostic& outDiag, const LinkImage& image, const LinkDebugInfo& debugInfo, const fs::path& pdbPath) override;
+    bool buildStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
+    bool buildImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
 
 private:
     struct OutSection

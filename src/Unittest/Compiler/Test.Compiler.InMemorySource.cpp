@@ -155,7 +155,7 @@ SWC_TEST_BEGIN(Compiler_ParserWorkersKeepFileDiagnosticsIsolated)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_SourceDependenciesDoNotRetainDocumentationTrivia)
+SWC_TEST_BEGIN(Compiler_ImportedApisDoNotRetainDocumentationTrivia)
 {
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Doc;
@@ -163,8 +163,7 @@ SWC_TEST_BEGIN(Compiler_SourceDependenciesDoNotRetainDocumentationTrivia)
     TaskContext                      compilerCtx(compiler);
     constexpr std::string_view       source   = "// Function documentation.\nfunc parsed()->s32 => 42\n";
     SourceFile&                      current  = Unittest::addTestSource(compilerCtx, "Compiler", "CurrentDocumentation", source);
-    SourceFile&                      imported = Unittest::addTestSource(compilerCtx, "Compiler", "DependencyDocumentation", source, FileFlagsE::ModuleSrc);
-    imported.setSourceOwner(1);
+    SourceFile&                      imported = Unittest::addTestSource(compilerCtx, "Compiler", "ImportedDocumentation", source, FileFlagsE::ImportedApi);
     const std::array<SourceFile*, 2> files    = {&current, &imported};
     parseSourceFiles(compilerCtx, files, {.emitTrivia = true});
 
@@ -2264,21 +2263,21 @@ func use(value: *s32?, count: u32)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_SharedSourceTextSurvivesSnapshot)
+SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshot)
 {
     constexpr std::string_view         source = "func published()->s32 => 42\n";
     std::weak_ptr<const SourceContent> retained;
     {
         CommandLine cmdLine;
         cmdLine.command = CommandKind::Syntax;
-        cmdLine.name    = "shared_source_text";
+        cmdLine.name    = "shared_api_text";
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         auto             snapshot = std::make_shared<const SourceContent>(source);
         retained                  = snapshot;
 
-        SourceFile& first  = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedSourceFirst"), FileFlagsE::ModuleSrc);
-        SourceFile& second = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedSourceSecond"), FileFlagsE::ModuleSrc);
+        SourceFile& first  = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedApiFirst"), FileFlagsE::ImportedApi);
+        SourceFile& second = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedApiSecond"), FileFlagsE::ImportedApi);
         first.setContent(snapshot);
         second.setContent(snapshot);
         if (first.sourceView().data() != second.sourceView().data() || first.sourceView() != source)

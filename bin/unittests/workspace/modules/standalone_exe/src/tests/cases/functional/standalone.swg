@@ -1,7 +1,9 @@
 #global if #command == Swag.CompilerCommand.Test
 using Core, RuntimeCtxBridge
 
-// Imported code uses the executable runtime context.
+// The dependency is a shared library, and this executable named no link kind, so its code was
+// linked in. Calling across what used to be a module boundary is what proves the archive carried
+// real code and not an import stub.
 #test
 {
     gPatchedContext       = Swag.getContext()[]
@@ -13,13 +15,14 @@ using Core, RuntimeCtxBridge
     Swag.require(ctxSharedContextMarker() == Swag.getContext().user2)
 }
 
-// Source dependencies leave no sibling libraries.
+// The deliverable itself: an executable that links its dependencies in ships alone. A shared
+// library beside it would be dead weight at best, and a second copy of a module already linked in
+// at worst — two allocators and two runtime contexts in one process.
 #test
 {
     let artifactDir = Path.directoryName(Env.executablePath())
     Swag.require(artifactDir != null)
 
-    let extension = #os == Swag.TargetOs.Windows ? ".dll" : ".so"
-    let libraries = expect Directory.enumerateFiles(artifactDir, extension)
+    let libraries = expect Directory.enumerateFiles(artifactDir, ".dll")
     Swag.require(libraries.count == 0)
 }

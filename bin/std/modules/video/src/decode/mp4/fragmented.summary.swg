@@ -4,7 +4,7 @@
 //! Role: This file reports track durations and recovery boundaries without a packet table.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core
 

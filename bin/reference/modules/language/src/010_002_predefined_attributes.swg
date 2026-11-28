@@ -64,8 +64,13 @@ needs 'typeinfo' and cannot exist in the bootstrap.
 'PrintAst' and 'PrintMicro' are development aids: they write compiler output and
 should not be used for program logic.
 
-'Inline' applies to calls across source groups. The compiler has access to the
-function body and resolves it in the source group that declares it.
+'Inline' on a public function also applies to calls from another module. The
+generated module API carries its body; '#global export' is not needed for this.
+If the body cannot be exposed, compilation reports an error instead of silently
+removing 'Inline'. Remove the attribute or make the body exportable, for example
+by exposing a helper it calls. A reference to a hidden member of an opaque type
+also prevents export. Intrinsics such as assertions, context access, and atomic
+operations do not prevent a body from being exposed.
 
 # Testing
 
@@ -117,7 +122,7 @@ them explicitly for tests that need a GPU, a native window, or another host reso
 Runtime switches over closed enums are exhaustive by default. The 'switch #complete'
 modifier requires explicit case coverage without a 'default' arm.
 
-# Layout, Ownership, and Reflection
+# Layout, Ownership, and Export
 
 | Attribute | Purpose |
 |---|---|
@@ -126,7 +131,7 @@ modifier requires explicit case coverage without a 'default' arm.
 | 'Offset(name: string)' | Overlay a field on another named field |
 | 'NoCopy()' | Forbid copying a struct |
 | 'Signal()' | Type the callbacks of a struct field with the struct that owns it |
-| 'Opaque()' | Omit a struct's members from its generated documentation table |
+| 'Opaque()' | Hide a struct's contents from exported module APIs |
 | 'ExportType(what: ExportWhat)' | Export selected runtime reflection data |
 | 'Strict()' | Keep an alias distinct for implicit-conversion purposes |
 
@@ -201,21 +206,21 @@ struct AttrCounterWidget
 flag has meaningful behavior in both systems. See the dedicated safety and
 sanity chapters before overriding defaults.
 
-The compiler infers borrow behavior from Swag function bodies, including bodies in
-source dependencies. Use 'BorrowSummary' on a foreign declaration to describe behavior
-that is visible only in its implementation.
-
-'returnsFields' identifies the first-level fields of a returned value that borrow
-a parameter. Each semicolon-separated entry contains a parameter index, a colon,
-and a field name encoded as hexadecimal UTF-8 bytes. 'freesFields' identifies
-first-level pointer fields of pointer parameters whose contents the function releases.
-'resetsFields' identifies those fields when the function also leaves a live replacement
-in the field on return. Earlier copies still refer to the released value.
-
-'writesFields' lists first-level pointer fields a function may change. With
-'writesFieldsComplete: true', the compiler can preserve provenance for fields absent
-from the list. A partial or unavailable summary leaves every unlisted field conservative.
-The list describes possible writes. It gives no ordering or lifetime guarantee.
+'BorrowSummary' is emitted automatically for ordinary Swag functions. Write it
+manually only for a foreign declaration whose ownership behavior the compiler
+cannot inspect. Generated module APIs encode first-level fields of a returned
+carrier that borrow a parameter in 'returnsFields'. Each entry contains a
+parameter index, a colon, and the field name as hexadecimal UTF-8 bytes;
+multiple entries use semicolons. 'freesFields' names first-level pointer fields
+of pointer parameters whose contents the function releases. 'resetsFields'
+names those fields when the function also leaves a live replacement in the field
+on return; copies made before that replacement still refer to the released value.
+'writesFields' lists first-level pointer fields a function may change. A generated
+'writesFieldsComplete: true' means the list covers every possible write visible to
+the compiler; callers can preserve provenance through bodyless API calls for fields
+absent from the list. A partial or unavailable summary leaves every unlisted field
+conservative. This write list is not a guarantee about the order of a write and a
+release, and does not make a post-call field valid.
 
 # Native Interoperability
 
@@ -243,9 +248,11 @@ declaration inherits it unless 'Foreign(callconv: ...)' states another ABI.
 |---|---|
 | 'NoDoc()' | Exclude an otherwise public declaration from generated API documentation |
 
-Use 'Swag.NoDoc' for public declarations that are intentionally absent from the
-published reference. Source visibility continues to follow the declaration's access
-modifier.
+Use 'Swag.NoDoc' only for declarations that are intentionally public but
+unsuitable for the generated API reference, such as a non-generic function that a
+public generic body calls once it expands in another module. It does not change
+visibility or module API export. A type that only non-public fields name needs
+neither 'public' nor 'Swag.NoDoc': it travels with the struct that embeds it.
 
 See [Native documentation](#_002_011_native_documentation_swg) for ordinary '//'
 contracts, '//!' file overviews, Markdown guides, and generation modes.

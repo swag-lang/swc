@@ -167,6 +167,15 @@ fs::path FileSystem::currentPathNoThrow()
     return currentDir.lexically_normal();
 }
 
+fs::path FileSystem::generatedDependencyApiDir(const fs::path& exeFullName, const std::string_view moduleName)
+{
+    fs::path result = compilerResourceRoot(exeFullName);
+    result /= "std";
+    result /= ".output";
+    result /= fs::path(std::string(moduleName));
+    return lexicallyNormalize(result);
+}
+
 Result FileSystem::normalizeAbsolutePath(fs::path& path, Utf8& because)
 {
     because.clear();

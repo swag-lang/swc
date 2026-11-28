@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // MIT-SHM requests sent through libxcb.so.1; no extension library is needed.
 // The descriptor and request vectors follow libxcb's xcbext ABI.

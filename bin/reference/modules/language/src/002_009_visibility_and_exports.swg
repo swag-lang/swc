@@ -12,8 +12,8 @@ Top-level declarations use three visibility levels:
 | 'public'   | yes                        | yes                       | yes               |
 
 'internal' is the default, for a top-level declaration and for an aggregate member
-alike. Use 'public' for declarations that importing source groups use and
-'private' for file-local implementation details.
+alike. Use 'public' deliberately for the supported module API and 'private' for
+file-local implementation details.
 */
 
 const VisibilityFileLocal = 10
@@ -42,7 +42,8 @@ public
 ```
 
 '#global' changes the default for the rest of one source file. This reference
-uses '#global private' to keep example declarations local to their files.
+starts files with '#global private' so examples cannot leak into a generated
+module API:
 
 ```swag
 #global private
@@ -123,9 +124,10 @@ A method follows the same rule as a field. A method of a 'private impl', or one 
 call through an overload set keeps the overloads the site can reach, so a private overload
 never takes a call from outside the type.
 
-The compiler lays out a struct using all its fields, including fields that callers
-cannot access. A non-public field can use an implementation type with restricted access.
-A public field's type is part of the declaration that callers use.
+A public struct takes every field into the generated module API, because an importer lays it
+out. The types its non-public fields name travel with it as supporting declarations and keep
+their own access, so an implementation type stays internal however deep it is embedded. A
+public field is different: every importer can reach it, so the types it names must be public.
 */
 
 struct Counter
@@ -168,12 +170,17 @@ Reflection reports the declared access through 'Swag.TypeValueFlags', so a gener
 walker such as a serializer or a property editor can leave implementation state alone
 instead of persisting it.
 
-# Public Source Files
+# Exporting a File's API
 
-Use '#global public' for a source file whose declarations should default to public.
-The compiler uses the declared access when resolving names across source groups.
+'#global export' is a fourth form. It sets the same access as '#global public', and
+additionally marks the file as one whose declarations belong to the generated module
+API. Only the file's first '#global' directive is read for that marking, so it belongs
+on the very first line. The standard modules open their public source files with it:
 
 ```swag
-#global public
+#global export
 ```
+
+Use '#global public' when a file is public inside the workspace, and '#global export'
+when its declarations are the module's published surface.
 */

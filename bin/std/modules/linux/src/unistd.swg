@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const SEEK_SET = 0_s32
 const SEEK_CUR = 1_s32

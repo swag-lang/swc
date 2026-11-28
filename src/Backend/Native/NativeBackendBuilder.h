@@ -30,11 +30,13 @@ struct NativeFunctionInfo
 
     Utf8 sortKey;
     Utf8 symbolName;
+    Utf8 exportName;
     Utf8 debugName;
 
     uint32_t jobIndex   = 0;
     uint32_t textOffset = 0;
 
+    bool exported   = false;
     bool compilerFn = false;
     bool cacheHit   = false;
 };
@@ -65,11 +67,29 @@ struct NativeStartupInfo
     uint32_t    textOffset = 0;
 };
 
+struct NativeRuntimeDependency
+{
+    Utf8 moduleName;
+    Utf8 linkModuleName;
+    Utf8 hookSymbolName;
+
+    std::vector<Utf8> transitiveImports;
+    SymbolFunction*   hookSymbol = nullptr;
+};
+
 struct NativeRDataAllocationMapEntry
 {
+    uint32_t shardIndex    = 0;
     uint32_t sourceOffset  = 0;
     uint32_t size          = 0;
+    uint32_t align         = 1;
     uint32_t emittedOffset = 0;
+    bool     zeroFilled    = false;
+    DataSegmentAllocationKind kind          = DataSegmentAllocationKind::Constant;
+
+    // Cached during archive partitioning, when relocations name each allocation.
+    // Other layouts leave this empty and compute the name when needed.
+    Utf8 symbolName;
 };
 
 struct NativeObjDescription
@@ -83,6 +103,11 @@ struct NativeObjDescription
 
     bool includeData          = false;
     bool includeMergedRData   = false;
+    bool splitRDataReferences = false;
+
+    // A range of the builder's emitted read-only allocations.
+    uint16_t rdataAllocationCount = 0;
+    uint32_t rdataAllocationIndex = INVALID_REF;
 
     bool allowUnresolvedSymbols = false;
 };
@@ -116,8 +141,14 @@ public:
     Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
 
     const NativeRDataAllocationMapEntry* tryFindRDataSourceAllocation(uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    bool tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    // The symbol an archive gives this allocation: the one formatted at partition time, or the
+    // same name formatted now for a layout that did not record it.
+    Utf8                                 rdataAllocationSymbol(const NativeRDataAllocationMapEntry& allocation) const;
+    const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
+    bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
 
+    Result remapRDataReferences(NativeSectionData& section);
+    Result buildRDataAllocationSection(NativeSectionData& section, const NativeRDataAllocationMapEntry& allocation);
     Result appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
 
     bool                             tryReuseFunction(SymbolFunction& function);
@@ -152,12 +183,18 @@ public:
 
     Result buildObject(uint32_t objIndex);
 
+    // Serialize the current partition into COFF bytes, including the finer
+    // partition used for a shared library's companion static archive.
     Result buildObjectBytes();
+
+    Result publishExistingArtifact();
+    Result publishExecutableDependencies();
 
     // Deferred linking: prepareForLink() captures a LinkJob in deferredToolRun().
     // Run Linker::executeLink() on a background thread, then finishDeferredLink()
     // on the foreground thread to report results and launch executable runs.
     Result   prepareForLink();
+    Result   tryPrepareIncrementalLink(bool& outPrepared, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames);
     Result   finishDeferredLink();
     LinkJob& deferredToolRun() { return deferredToolRun_; }
 
@@ -188,6 +225,9 @@ public:
     std::vector<SymbolFunction*> mainFunctions;
     std::vector<SymbolVariable*> regularGlobals;
 
+    std::vector<NativeRuntimeDependency> runtimeDependencies;
+    std::vector<uint32_t>                runtimeDependencyInitOrder;
+    std::vector<uint32_t>                runtimeDependencyDropOrder;
 
     std::vector<NativeFunctionInfo>                      functionInfos;
     PointerMap<SymbolFunction, const NativeFunctionInfo> functionBySymbol;
@@ -200,6 +240,7 @@ public:
     NativeGlobalLayout globalLayout;
 
     std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantStorageLayout::SHARD_COUNT> rdataAllocationMap;
+    std::vector<NativeRDataAllocationMapEntry>                                                 rdataAllocations;
 
     std::vector<NativeObjDescription> objectDescriptions;
 
@@ -230,6 +271,7 @@ public:
 private:
     struct NativeTestProgressContext;
 
+    Result      remapRDataReference(NativeSectionData& section, NativeSectionRelocation& relocation, const ScopedSymbolNames& names);
     static void forwardNativeTestProgress(void* userData, std::string_view line);
     void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
     size_t      selectedNativeTestCount() const;

@@ -1,4 +1,4 @@
-#global public
+#global export
 #global namespace Random
 
 private func floatBefore(value: f32)->f32

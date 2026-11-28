@@ -63,7 +63,7 @@ public static class ApplicationCompilerProbe
     if ($LASTEXITCODE -ne 0) { throw 'Quoted standard module was rejected.' }
     $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
     if ($call[0] -ne $availableWorkers -or $call[$call.IndexOf('--workspace-module') + 1] -ne 'gui' -or
-        $call -notcontains '--no-test-jit' -or $call -contains '--artifact-kind' -or
+        $call -notcontains '--no-test-jit' -or $call[$call.IndexOf('--artifact-kind') + 1] -ne 'executable' -or
         $call[$call.IndexOf('--test-file') + 1] -ne 'headless.render.swg') {
         throw 'Standard tests lost their native defaults, module, filter, or runtime workers.'
     }
@@ -79,10 +79,10 @@ public static class ApplicationCompilerProbe
 
     $env:SWAG_RUNTIME_THREADS = $null
     & $runner std dm build pixel | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Standard source check was rejected.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Standard library build was rejected.' }
     $call = @(Get-Content -LiteralPath $env:SWC_RUNNER_TEST_LOG)
     if ($call[0] -ne 'unset' -or $call -contains '--artifact-kind' -or $call -contains '--no-test-jit') {
-        throw 'Test defaults reached an ordinary source check.'
+        throw 'Test defaults reached an ordinary library build.'
     }
     Write-Output 'Standard runner: 3 regression cases passed.'
 }

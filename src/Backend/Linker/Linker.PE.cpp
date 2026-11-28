@@ -43,7 +43,9 @@ namespace
         return lib;
     }
 
-    void collectForeignLibs(std::set<Utf8>& outLibNames, PointerSet<const SymbolFunction>& seen, const MachineCode& code)
+    // Dependency hooks are foreign functions too, so their libraries join those
+    // referenced by ordinary code. A function already in seen needs no further lookup.
+    void collectForeignLibs(std::set<Utf8>& outLibNames, PointerSet<const SymbolFunction>& seen, const TaskContext& ctx, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
@@ -54,12 +56,17 @@ namespace
             if (!function || !seen.insert(function))
                 continue;
 
-            std::string_view moduleName = function->foreignLinkModuleName();
+            // An explicit link module wins; otherwise the origin module name maps to the
+            // link artifact dependency resolution selected ('core.test' in a test compile).
+            Utf8 moduleName{function->foreignLinkModuleName()};
             if (moduleName.empty())
-                moduleName = function->foreignModuleName();
+            {
+                const Utf8 originModule = function->resolveForeignModuleName(ctx);
+                moduleName              = Utf8{ctx.compiler().runtimeImportLinkName(originModule.view())};
+            }
 
             if (!moduleName.empty())
-                outLibNames.insert(normalizedLibName(moduleName));
+                outLibNames.insert(normalizedLibName(moduleName.view()));
         }
     }
 
@@ -560,7 +567,7 @@ namespace
     }
 
     void   collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs);
-    void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols);
+    void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage* image = nullptr);
     Result collectLinkWin32ApplicationConfig(NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig);
     bool   shouldCollectLinkDebugInfo(const NativeBackendBuilder& builder);
     void   collectLinkDebugInfo(NativeBackendBuilder& builder, LinkJob& outJob);
@@ -606,10 +613,11 @@ namespace
     class SymbolTableJob final : public LinkPrepareJobBase
     {
     public:
-        SymbolTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols) :
+        SymbolTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage& image) :
             LinkPrepareJobBase(ctx),
             builder_(&builder),
-            outSymbols_(&outSymbols)
+            outSymbols_(&outSymbols),
+            image_(&image)
         {
         }
 
@@ -618,35 +626,71 @@ namespace
             ctx().state().setNone();
             SWC_ASSERT(builder_ != nullptr);
             SWC_ASSERT(outSymbols_ != nullptr);
-            collectLinkSymbols(*builder_, *outSymbols_);
+            SWC_ASSERT(image_ != nullptr);
+            collectLinkSymbols(*builder_, *outSymbols_, image_);
             return JobResult::Done;
         }
 
     private:
         NativeBackendBuilder*            builder_    = nullptr;
         std::vector<SymbolTable::Entry>* outSymbols_ = nullptr;
+        LinkImage*                       image_      = nullptr;
     };
 
     void collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs)
     {
-        // Collect explicit libraries and libraries named by foreign functions.
+        // Library names: every foreign-function and dependency-hook module.
         for (const Utf8& library : builder.compiler().foreignLibs())
             outLibNames.insert(normalizedLibName(library.view()));
 
         PointerSet<const SymbolFunction> foreignFunctions;
         for (const NativeFunctionInfo& info : builder.functionInfos)
             if (info.machineCode)
-                collectForeignLibs(outLibNames, foreignFunctions, *info.machineCode);
+                collectForeignLibs(outLibNames, foreignFunctions, builder.ctx(), *info.machineCode);
         if (builder.startup)
-            collectForeignLibs(outLibNames, foreignFunctions, builder.startup->code);
+            collectForeignLibs(outLibNames, foreignFunctions, builder.ctx(), builder.startup->code);
 
-        // Import libraries for platform APIs come from the installed toolchain.
+        // Search directories: the SDK/MSVC library directories, then dependency link dirs and the folders
+        // that hold imported-API artifacts.
         Os::WindowsToolchainPaths toolchain;
         Os::discoverWindowsToolchainPaths(toolchain);
         for (const fs::path& dir : {toolchain.vcLibPath, toolchain.sdkUmLibPath, toolchain.sdkUcrtLibPath})
             if (!dir.empty())
                 outDirs.push_back(dir);
 
+        // Include every archive published by imported modules: a static dependency's
+        // own dependencies become undefined symbols of this link, even when our code
+        // never names them. Members of these additional archives are still pulled
+        // only to satisfy requested symbols.
+        for (const fs::path& dir : builder.compiler().importedDependencyLinkDirs())
+        {
+            outDirs.push_back(dir);
+
+            std::error_code ec;
+            for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+            {
+                if (ec)
+                    break;
+
+                ec.clear();
+                if (!it->is_regular_file(ec) || ec)
+                    continue;
+                if (it->path().extension() != ".lib")
+                    continue;
+
+                outLibNames.insert(Utf8(it->path().filename()));
+            }
+        }
+
+        for (const SourceFile* file : builder.compiler().files())
+        {
+            if (!file || !file->hasFlag(FileFlagsE::ImportedApi) || !file->path().has_parent_path())
+                continue;
+
+            const fs::path parent = file->path().parent_path().lexically_normal();
+            if (std::ranges::find(outDirs, parent) == outDirs.end())
+                outDirs.push_back(parent);
+        }
     }
 }
 
@@ -946,11 +990,28 @@ namespace
         image.sections.push_back(std::move(section));
     }
 
-    void collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols)
+    void collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage* image)
     {
+        const bool collectExports = builder.compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
         outSymbols.reserve(outSymbols.size() + builder.functionInfos.size());
         for (const NativeFunctionInfo& info : builder.functionInfos)
         {
+            if (image && collectExports && info.exported)
+            {
+                LinkExport exported;
+                exported.name       = info.symbolName;
+                exported.symbolName = info.symbolName;
+                image->exports.push_back(std::move(exported));
+
+                if (!info.exportName.empty() && info.exportName != info.symbolName)
+                {
+                    LinkExport alias;
+                    alias.name       = info.exportName;
+                    alias.symbolName = info.symbolName;
+                    image->exports.push_back(std::move(alias));
+                }
+            }
+
             SymbolTable::Entry entry;
             if (SymbolTable::makeEntry(entry, builder.ctx(), info))
                 outSymbols.push_back(std::move(entry));
@@ -1023,7 +1084,7 @@ Result PELinker::buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const
     SWC_RESULT(buildNativeImage(image));
 
     std::vector<SymbolTable::Entry> symbols;
-    collectLinkSymbols(*builder_, symbols);
+    collectLinkSymbols(*builder_, symbols, &image);
 
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
@@ -1043,17 +1104,27 @@ void PELinker::finishImage(LinkImage& image, LinkWin32ApplicationConfig&& win32C
 
     image.moduleName = Utf8(builder_->artifactPath.filename());
 
-    image.kind      = LinkImageKind::Executable;
-    image.imageBase = EXECUTABLE_IMAGE_BASE;
-    if (builder_->startup)
-        image.entrySymbol = builder_->startup->symbolName;
+    const bool isDll = builder_->compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
+    if (isDll)
+    {
+        image.kind      = LinkImageKind::SharedLibrary;
+        image.imageBase = SHARED_LIBRARY_IMAGE_BASE;
+    }
+    else
+    {
+        image.kind      = LinkImageKind::Executable;
+        image.imageBase = EXECUTABLE_IMAGE_BASE;
+        if (builder_->startup)
+            image.entrySymbol = builder_->startup->symbolName;
+    }
 
     image.stackReserve = DEFAULT_EXECUTABLE_STACK_RESERVE;
     image.win32        = std::move(win32Config);
 }
 
-Result PELinker::prepareImageLink(LinkJob& outJob) const
+Result PELinker::prepareImageLink(LinkJob& outJob, const LinkJob::Output output) const
 {
+    outJob.output = output;
     if (canPrepareLinkInParallel())
         return prepareImageLinkParallel(outJob);
 
@@ -1095,7 +1166,7 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     Result                          configResult = Result::Continue;
     if (imageResult == Result::Continue)
     {
-        enqueueJob(std::make_unique<SymbolTableJob>(builder_->ctx(), *builder_, symbols));
+        enqueueJob(std::make_unique<SymbolTableJob>(builder_->ctx(), *builder_, symbols, outJob.image));
         configResult = collectWin32ApplicationConfig(win32Config);
     }
 
@@ -1332,6 +1403,58 @@ bool PELinker::shouldCollectDebugInfo() const
     return shouldCollectLinkDebugInfo(*builder_);
 }
 
+Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMembers) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+
+    const auto count = static_cast<uint32_t>(builder_->objectDescriptions.size());
+    outMembers.resize(count);
+
+    const auto fillMember = [&](TaskContext&, uint32_t i) {
+        NativeObjDescription& description = builder_->objectDescriptions[i];
+        outMembers[i]                     = {.name = Utf8(description.objPath.filename()), .bytes = std::move(description.objBytes)};
+    };
+
+    if (!canPrepareLinkInParallel())
+    {
+        for (uint32_t i = 0; i < count; ++i)
+            fillMember(builder_->ctx(), i);
+        return Result::Continue;
+    }
+
+    // Each archive member takes ownership of its object's bytes. Workers claim distinct indices.
+    JobManager& jobMgr = builder_->ctx().global().jobMgr();
+    jobMgr.parallelForIndexed(builder_->ctx(), count, JobKind::NativeLinkPrepare, jobMgr.newClientId(), fillMember);
+    return Result::Continue;
+}
+
+Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
+{
+    outJob.output = LinkJob::Output::StaticLibrary;
+    return collectArchiveMembers(outJob.archiveMembers);
+}
+
+// Publish a shared library's code as one-function archive members as well.
+// The DLL image is already copied into outJob, so repartitioning can safely
+// overwrite the original text offsets.
+Result PELinker::prepareStaticLibrarySideArchive(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+
+    const NativeArtifactBuilder artifactBuilder(*builder_);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    if (paths.staticLibraryPath.empty())
+        return Result::Continue;
+
+    SWC_RESULT(artifactBuilder.partitionArchiveObjects());
+    SWC_RESULT(builder_->buildObjectBytes());
+    SWC_RESULT(collectArchiveMembers(outJob.staticLibraryMembers));
+
+    outJob.staticLibraryPath = paths.staticLibraryPath;
+    return Result::Continue;
+}
+
 Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -1391,6 +1514,112 @@ Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
     return Result::Continue;
 }
 
+Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    const CompilerInstance& compiler = builder_->compiler();
+    if (compiler.cmdLine().command == CommandKind::Test ||
+        compiler.buildCfg().backend.debugInfo ||
+        compiler.importedNativeExecuted())
+        return Result::Continue;
+
+    // Function reuse is useful for every incremental executable. The coarser whole-module object
+    // below exists specifically to relink unchanged consumers after a static dependency changes.
+    if (!compiler.hasImportedStaticLinkInputs())
+        return prepareIncrementalFunctionCache(outJob);
+
+    const NativeArtifactBuilder artifactBuilder(*builder_);
+    SWC_RESULT(artifactBuilder.partitionIncrementalObject());
+    SWC_RESULT(builder_->buildObjectBytes());
+
+    outJob.incrementalObjects.reserve(builder_->objectDescriptions.size());
+    for (NativeObjDescription& description : builder_->objectDescriptions)
+    {
+        LinkJob::IncrementalObject object;
+        object.path  = FileSystem::normalizePath(description.objPath);
+        object.bytes = std::move(description.objBytes);
+        outJob.incrementalObjects.push_back(std::move(object));
+    }
+
+    uint32_t cachedObjectIndex = 0;
+    for (const NativeFunctionInfo& info : builder_->functionInfos)
+    {
+        if (!info.cacheHit || !info.symbol)
+            continue;
+
+        const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
+        SWC_ASSERT(record && record->hit);
+        if (!record || !record->hit)
+            continue;
+
+        LinkJob::IncrementalObject object;
+        object.path  = builder_->functionCacheArchivePath().parent_path() / std::format("incremental_function_{:06}.obj", cachedObjectIndex++);
+        object.bytes = record->objectBytes;
+        outJob.incrementalObjects.push_back(std::move(object));
+    }
+
+    std::set<Utf8>        libraryNames;
+    std::vector<fs::path> libraryDirs;
+    collectLibrarySearch(libraryNames, libraryDirs);
+    outJob.incrementalLibraries.assign(libraryNames.begin(), libraryNames.end());
+    return prepareIncrementalFunctionCache(outJob);
+}
+
+Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, const std::span<const fs::path> objectPaths, const std::span<const Utf8> libraryNames)
+{
+    outPrepared = false;
+    SWC_ASSERT(builder_ != nullptr);
+    if (objectPaths.empty() ||
+        builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable ||
+        builder_->compiler().buildCfg().backend.debugInfo)
+        return Result::Continue;
+
+    std::vector<CoffObject>         objects;
+    std::vector<SymbolTable::Entry> symbols;
+    objects.reserve(objectPaths.size());
+    for (const fs::path& objectPath : objectPaths)
+    {
+        FileSystem::IoErrorInfo ioError;
+        ByteArray               bytes;
+        if (FileSystem::readBinaryFile(objectPath, bytes, ioError) != Result::Continue)
+            return Result::Continue;
+
+        CoffObject object;
+        Diagnostic diag;
+        if (!readCoffObject(object, diag, bytes))
+            return Result::Continue;
+
+        appendMemberSymbols(symbols, object);
+        objects.push_back(std::move(object));
+    }
+
+    Diagnostic mergeDiag;
+    if (!mergeCoffObjectsIntoImage(outJob.image, mergeDiag, std::move(objects)))
+        return Result::Continue;
+
+    std::set<Utf8>        searchNames(libraryNames.begin(), libraryNames.end());
+    std::vector<fs::path> searchDirs;
+    collectPeLibrarySearch(*builder_, searchNames, searchDirs);
+
+    std::vector<Archive> archives;
+    SWC_RESULT(loadArchivesFromSearch(archives, searchNames, searchDirs));
+    SWC_RESULT(resolveSymbols(outJob.image, outJob.debugInfo, symbols, archives));
+    if (!builder_->compiler().cmdLine().noRuntimeSymbols)
+        appendSymbolTable(outJob.image, symbols);
+
+    LinkWin32ApplicationConfig win32Config;
+    SWC_RESULT(collectWin32ApplicationConfig(win32Config));
+    finishImage(outJob.image, std::move(win32Config));
+    outJob.image.entrySymbol = "mainCRTStartup";
+
+    outJob.output     = LinkJob::Output::Executable;
+    outJob.outputPath = builder_->artifactPath;
+    outJob.buildDir   = builder_->buildDir;
+    outJob.targetOs   = builder_->ctx().cmdLine().targetOs;
+    outPrepared       = true;
+    return Result::Continue;
+}
+
 Result PELinker::prepareLink(LinkJob& outJob)
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -1398,8 +1627,22 @@ Result PELinker::prepareLink(LinkJob& outJob)
     outJob.buildDir   = builder_->buildDir;
     outJob.targetOs   = builder_->ctx().cmdLine().targetOs;
 
-    SWC_RESULT(prepareImageLink(outJob));
-    return prepareIncrementalFunctionCache(outJob);
+    switch (builder_->compiler().buildCfg().backendKind)
+    {
+        case Runtime::BuildCfgBackendKind::Executable:
+            SWC_RESULT(prepareImageLink(outJob, LinkJob::Output::Executable));
+            return prepareIncrementalObjects(outJob);
+        case Runtime::BuildCfgBackendKind::SharedLibrary:
+            SWC_RESULT(prepareImageLink(outJob, LinkJob::Output::SharedLibrary));
+            return prepareStaticLibrarySideArchive(outJob);
+        case Runtime::BuildCfgBackendKind::StaticLibrary:
+            return prepareStaticLibraryLink(outJob);
+        case Runtime::BuildCfgBackendKind::Export:
+        case Runtime::BuildCfgBackendKind::None:
+            SWC_UNREACHABLE();
+    }
+
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE();

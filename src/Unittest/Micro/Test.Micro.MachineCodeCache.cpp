@@ -66,12 +66,10 @@ namespace
         SourceFile*                       source   = nullptr;
         SymbolFunction*                   function = nullptr;
 
-        ModuleCacheFixture(const TaskContext& ctx, const std::string_view name, const bool script = false)
+        ModuleCacheFixture(const TaskContext& ctx, const std::string_view name)
         {
-            command.command     = script ? CommandKind::Run : CommandKind::Build;
-            command.scriptMode  = script;
-            command.backendKind = Runtime::BuildCfgBackendKind::Executable;
-            command.numCores    = Unittest::compilerWorkerCount(ctx);
+            command.command  = CommandKind::Build;
+            command.numCores = Unittest::compilerWorkerCount(ctx);
             CommandLineParser::refreshBuildCfg(command);
             compiler = std::make_unique<CompilerInstance>(ctx.global(), command);
             context  = std::make_unique<TaskContext>(*compiler);
@@ -82,35 +80,6 @@ namespace
         }
     };
 }
-
-SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesScriptCodeInAnExecutable)
-{
-    ModuleCacheFixture script(ctx, "cacheScriptExporter", true);
-    ModuleCacheFixture native(ctx, "cacheScriptExporter");
-    auto* scriptTarget = makeCacheFunction(*script.context, "cacheScriptCallee");
-    auto* nativeTarget = makeCacheFunction(*native.context, "cacheScriptCallee");
-    MicroBuilder scriptBody(*script.context);
-    MicroBuilder nativeBody(*native.context);
-    scriptBody.emitCallLocal(scriptTarget, CallConvKind::Swag);
-    scriptBody.emitRet();
-    nativeBody.emitCallLocal(nativeTarget, CallConvKind::Swag);
-    nativeBody.emitRet();
-
-    MachineCodeCache writeCache(*script.context, *script.function, scriptBody);
-    MachineCodeCache readCache(*native.context, *native.function, nativeBody);
-    MachineCode scriptCode;
-    SWC_RESULT(scriptCode.emit(*script.context, scriptBody));
-    if (scriptCode.codeRelocations.size() != 1 || scriptCode.codeRelocations.front().form != MicroRelocation::Form::Relative32)
-        return Result::Error;
-    writeCache.write(scriptCode);
-
-    MachineCode reused;
-    if (!readCache.read(reused) || reused.bytes != scriptCode.bytes || reused.codeRelocations.size() != 1)
-        return Result::Error;
-    if (reused.codeRelocations.front().targetSymbol != nativeTarget || reused.codeRelocations.front().form != MicroRelocation::Form::Relative32)
-        return Result::Error;
-}
-SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_PreservesIndirectFunctionAddressRelocations)
 {

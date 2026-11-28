@@ -161,6 +161,8 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
 
 Result NativeRDataCollector::emitReachableAllocations()
 {
+    const size_t firstAllocationIndex = builder_->rdataAllocations.size();
+    builder_->rdataAllocations.reserve(firstAllocationIndex + reachableAllocations_.size());
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
 
@@ -178,27 +180,36 @@ Result NativeRDataCollector::emitReachableAllocations()
 
         const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
         SWC_ASSERT(sourceBytes != nullptr);
-        std::memcpy(builder_->mergedRData.bytes.data() + emittedOffset, sourceBytes, allocation.size);
-        builder_->mergedRData.requireAlignment(alignment);
+        const bool zeroFilled = std::ranges::all_of(std::span<const std::byte>{sourceBytes, allocation.size}, [](const std::byte value) { return value == std::byte{}; });
 
-        entry.allocation->emittedOffset = emittedOffset;
-        builder_->rdataAllocationMap[entry.shardIndex].push_back({
-            .sourceOffset  = allocation.offset,
-            .size          = allocation.size,
-            .emittedOffset = emittedOffset,
-        });
+        // resize already zeroed the destination. Keep the result for the
+        // object writer instead of scanning the copied bytes a second time.
+        if (!zeroFilled)
+            std::memcpy(builder_->mergedRData.bytes.data() + emittedOffset, sourceBytes, allocation.size);
+
+        NativeRDataAllocationMapEntry mapEntry;
+        mapEntry.shardIndex    = entry.shardIndex;
+        mapEntry.sourceOffset  = allocation.offset;
+        mapEntry.size          = allocation.size;
+        mapEntry.align         = alignment;
+        mapEntry.emittedOffset = emittedOffset;
+        mapEntry.zeroFilled    = zeroFilled;
+        mapEntry.kind          = allocation.kind;
+        builder_->mergedRData.requireAlignment(mapEntry.align);
+
+        entry.allocation->emittedIndex = static_cast<uint32_t>(builder_->rdataAllocations.size());
+        builder_->rdataAllocationMap[entry.shardIndex].push_back(mapEntry);
+        builder_->rdataAllocations.push_back(mapEntry);
     }
 
     // An alias resolves its own source offsets to the bytes its canonical string emitted.
     for (const PendingRDataAllocation& alias : aliases_)
     {
-        const ReachableRDataAllocation* canonical = alias.allocation->canonical;
-        SWC_ASSERT(canonical && canonical->emittedOffset != INVALID_REF);
-        builder_->rdataAllocationMap[alias.shardIndex].push_back({
-            .sourceOffset  = alias.allocation->source.offset,
-            .size          = alias.allocation->source.size,
-            .emittedOffset = canonical->emittedOffset,
-        });
+        SWC_ASSERT(alias.allocation->canonical && alias.allocation->canonical->emittedIndex != INVALID_REF);
+        NativeRDataAllocationMapEntry mapEntry = builder_->rdataAllocations[alias.allocation->canonical->emittedIndex];
+        mapEntry.shardIndex                    = alias.shardIndex;
+        mapEntry.sourceOffset                  = alias.allocation->source.offset;
+        builder_->rdataAllocationMap[alias.shardIndex].push_back(std::move(mapEntry));
     }
 
     // Source offsets are looked up by binary search.
@@ -207,16 +218,21 @@ Result NativeRDataCollector::emitReachableAllocations()
 
     std::vector<DataSegmentRelocation> allocationRelocations;
     const Utf8*                        rdataBaseName = nullptr;
-    for (const PendingRDataAllocation& entry : reachableAllocations_)
+    for (size_t allocationIndex = 0; allocationIndex < reachableAllocations_.size(); ++allocationIndex)
     {
+        const PendingRDataAllocation& entry      = reachableAllocations_[allocationIndex];
         const DataSegment&            segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
         const DataSegmentAllocation&  allocation = entry.allocation->source;
+
+        // The emission list retains the order above; only the per-shard lookup tables were sorted.
+        const NativeRDataAllocationMapEntry& mapping = builder_->rdataAllocations[firstAllocationIndex + allocationIndex];
+        SWC_ASSERT(mapping.shardIndex == entry.shardIndex && mapping.sourceOffset == allocation.offset);
 
         segment.copyRelocations(allocationRelocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : allocationRelocations)
         {
             NativeSectionRelocation record;
-            record.offset = entry.allocation->emittedOffset + (relocation.offset - allocation.offset);
+            record.offset = mapping.emittedOffset + (relocation.offset - allocation.offset);
 
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {

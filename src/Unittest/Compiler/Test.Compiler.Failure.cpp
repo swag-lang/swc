@@ -375,7 +375,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_JitTestsDropModuleStateBeforeRestoringGlobals
     for (uint32_t phase = 0; phase < 4; ++phase)
     {
         const fs::path module = directory.path() / std::format("phase-{}", phase);
-        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#import(\"core\", location: \"swag@std\")\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#import(\"core\", location: \"swag@std\", link: \"shared-library\")\n"));
         const std::string source = std::format("#global private\nconst FailurePhase = {}\n", phase) + R"(using Core
 var finished: Swag.AtomicValue!{u32}
 var thread: Threading.Thread
@@ -424,7 +424,7 @@ func worker(current: const *Threading.Thread)
 )";
         SWC_RESULT(CompilerTestFile::writeText(module / "src" / "lifecycle.swg", source));
         const std::vector<Utf8> arguments = {
-            "test", "--module", Utf8(module), "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+            "test", "--module", Utf8(module), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
         std::string                               output;
         uint32_t                                  exitCode = 0;
         const Os::ProcessRunOptions               options{.capturedOutput = &output, .forwardOutput = false};
@@ -546,7 +546,7 @@ var initialized: bool
     SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
     const Utf8              targetOs  = hostTargetOs() == Runtime::TargetOs::Linux ? "linux" : "windows";
     const std::vector<Utf8> arguments = {
-        "test", "--os", targetOs, "--file", Utf8(sourcePath), "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
+        "test", "--os", targetOs, "--file", Utf8(sourcePath), "--artifact-kind", "export", "--no-test-native", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)),
         "--out-dir", Utf8(directory.path() / "output"), "--work-dir", Utf8(directory.path() / "work")};
     std::string                 output;
     uint32_t                    exitCode = 0;

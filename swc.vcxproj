@@ -143,6 +143,7 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.LangSpec.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.SymbolMap.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ModuleApiPublication.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Failure.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Messages.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.NodePayload.cpp"/>
@@ -477,6 +478,12 @@
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Decl.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Source.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApi.Symbol.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Content.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Generate.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Roots.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Supporting.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Validate.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\StructConfig.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
@@ -847,6 +854,7 @@
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Types.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Internal.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Source.h"/>
+        <ClInclude Include="src\Compiler\ModuleApi\ModuleApiExport.Internal.h"/>
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Main\WorkspaceLayout.h"/>
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
@@ -924,6 +932,7 @@
         <ClInclude Include="src\Backend\Debug\Records.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\SymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\Writer.PDB.h"/>
+        <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\OsPatcher.Win32.h"/>
         <ClInclude Include="src\Backend\Linker\Reader.COFF.h"/>
         <ClInclude Include="src\Backend\Linker\ObjectWriter.ELF.h"/>

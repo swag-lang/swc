@@ -36,7 +36,9 @@ true  try  unwrap
 
 # Contextual Source and Module Names
 
-'location' is the optional named argument to '#import'.
+'export', 'location', 'link', and 'version' are recognized in specific module-setup
+positions. Outside those positions the lexer treats them as ordinary identifiers; they are
+not part of the reserved keyword set above.
 
 # Built-In Types
 

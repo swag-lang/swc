@@ -8,6 +8,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -56,8 +57,8 @@ namespace
     }
 
     // Empty interface impls cannot be reconstructed from member entries.
-    // Include the relationship when both participating types are public.
-    bool isDocumentedEmptyInterfaceImpl(const Symbol& symbol)
+    // Export the relationship separately when both participating types are public.
+    bool isEmptyExportableInterfaceImpl(const Symbol& symbol)
     {
         if (!symbol.isImpl())
             return false;
@@ -74,61 +75,60 @@ namespace
         return implStruct->isPublic() && implInterface->isPublic();
     }
 
+    Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_global_variable, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
+        diag.last().addSpan(symbol.codeRange(ctx), "", DiagnosticSeverity::Error);
+        diag.addArgument(Diagnostic::ARG_SYM, symbol.name(ctx));
+        diag.report(ctx);
+
+        return Result::Error;
+    }
+}
+
+namespace
+{
     // Run only after semantic analysis: classification walks complete ASTs,
     // which semantic workers can mutate in place.
-    void resolvePendingSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiFileEntry& fileEntry)
+    Result resolvePendingSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiFileEntry& fileEntry, const bool diagnosticsOnly)
     {
+        if (diagnosticsOnly && !symbol.isVariable())
+            return Result::Continue;
+
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
         const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
         if (!astFile)
             astFile = sourceFile;
 
         if (!sourceFile || !astFile)
-            return;
+            return Result::Continue;
 
         const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(astFile->ast(), symbol);
         if (declRef.isInvalid())
-            return;
+            return Result::Continue;
 
-        if (!ModuleApi::isDocumentableDeclScope(*astFile, declRef, symbol))
-            return;
+        if (!ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol))
+            return Result::Continue;
 
-        ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = ModuleApi::findDocumentedDeclRoot(*astFile, declRef);
-        publicEntry.symbol  = &symbol;
-        if (publicEntry.rootRef.isInvalid())
-            return;
-
-        if (!ModuleApi::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
-            return;
-
-        addPublicEntry(fileEntry, publicEntry);
-    }
-
-    void resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries)
-    {
-        std::vector<ModuleApiFileEntry*> fileEntries;
-        fileEntries.reserve(entries.size());
-
-        for (auto& entry : entries | std::views::values)
+        if (symbol.isVariable())
         {
-            if (!entry.pendingSymbols.empty())
-                fileEntries.push_back(&entry);
+            if (ModuleApi::hasExplicitPublicAccessModifier(*astFile, declRef))
+                return reportModuleApiPublicGlobalVariable(ctx, symbol);
+
+            return Result::Continue;
         }
 
-        JobManager& jobMgr = ctx.global().jobMgr();
+        ModuleApiPublicEntry publicEntry;
+        publicEntry.rootRef = ModuleApi::findExportDeclRoot(*astFile, declRef);
+        publicEntry.symbol  = &symbol;
+        if (publicEntry.rootRef.isInvalid())
+            return Result::Continue;
 
-        jobMgr.parallelForIndexed(
-            ctx,
-            static_cast<uint32_t>(fileEntries.size()),
-            JobKind::DocSymbols,
-            ctx.compiler().jobClientId(),
-            [&](TaskContext& workerCtx, uint32_t i) {
-                ModuleApiFileEntry& fileEntry = *fileEntries[i];
+        if (!ModuleApi::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
+            return Result::Continue;
 
-                for (const Symbol* symbol : fileEntry.pendingSymbols)
-                    resolvePendingSymbol(workerCtx, *symbol, fileEntry);
-            });
+        addPublicEntry(fileEntry, publicEntry);
+        return Result::Continue;
     }
 }
 
@@ -140,11 +140,8 @@ namespace ModuleApi
         // AST traversal to resolvePendingEntries after semantic analysis completes.
         //
         // Empty interface impls have no public members to register them. Include them
-        // when both types are public.
-        if (symbol.isVariable())
-            return;
-
-        const bool isEmptyPublicInterfaceImpl = isDocumentedEmptyInterfaceImpl(symbol);
+        // when both types are public, preserving interface casts and is tests in importers.
+        const bool isEmptyPublicInterfaceImpl = isEmptyExportableInterfaceImpl(symbol);
         if (!symbol.isPublic() && !isEmptyPublicInterfaceImpl)
             return;
 
@@ -175,7 +172,7 @@ namespace ModuleApi
         state.files[symbol.srcViewRef()].pendingSymbols.push_back(&symbol);
     }
 
-    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries)
+    Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries, const bool diagnosticsOnly)
     {
         outEntries.clear();
 
@@ -183,7 +180,44 @@ namespace ModuleApi
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
 
-        resolvePendingEntries(ctx, outEntries);
+        return resolvePendingEntries(ctx, outEntries, diagnosticsOnly);
+    }
+
+    Result resolvePendingEntries(TaskContext& ctx, ModuleApiFileEntries& entries, const bool diagnosticsOnly)
+    {
+        std::vector<ModuleApiFileEntry*> fileEntries;
+        fileEntries.reserve(entries.size());
+
+        for (auto& entry : entries | std::views::values)
+        {
+            if (!entry.pendingSymbols.empty())
+                fileEntries.push_back(&entry);
+        }
+
+        std::vector results(fileEntries.size(), Result::Continue);
+        JobManager& jobMgr = ctx.global().jobMgr();
+
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(fileEntries.size()),
+            JobKind::ModuleApiExport,
+            ctx.compiler().jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t i) {
+                ModuleApiFileEntry& fileEntry = *fileEntries[i];
+
+                for (const Symbol* symbol : fileEntry.pendingSymbols)
+                {
+                    if (resolvePendingSymbol(workerCtx, *symbol, fileEntry, diagnosticsOnly) == Result::Error)
+                        results[i] = Result::Error;
+                }
+            });
+
+        for (const Result r : results)
+        {
+            if (r != Result::Continue)
+                return Result::Error;
+        }
+
         return Result::Continue;
     }
 }

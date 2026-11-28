@@ -13,7 +13,7 @@ namespace ModuleApi
     bool       tryFindReachableNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef);
     AstNodeRef findSymbolDeclRef(const Ast& ast, const Symbol& symbol);
     bool       isGeneratedSourceDecl(const SourceFile& file, AstNodeRef declRef);
-    AstNodeRef findDocumentedDeclRoot(const SourceFile& file, AstNodeRef declRef);
+    AstNodeRef findExportDeclRoot(const SourceFile& file, AstNodeRef declRef);
 
     bool isModuleApiOpaqueType(const Symbol& symbol);
 
@@ -22,6 +22,7 @@ namespace ModuleApi
     TokenRef          moduleApiFunctionBodyStartTokRef(const Ast& ast, const AstFunctionDecl& functionDecl);
 
     bool tryGetModuleApiSnippetOffsets(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset, uint32_t& outEndOffset);
+    bool tryGetModuleApiSnippetStartOffset(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
     bool tryGetModuleApiSnippet(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, std::string_view& outSnippet);
 
     Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t startOffset, std::string_view snippetText, std::string_view eol);

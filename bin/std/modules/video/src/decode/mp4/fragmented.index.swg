@@ -4,7 +4,7 @@
 //! Role: This file finds video fragment offsets without scanning the movie's media data.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core, Core.Errors
 

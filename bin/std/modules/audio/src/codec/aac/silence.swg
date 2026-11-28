@@ -3,7 +3,7 @@
 //! Role: This file supplies encoded silence while an input device is unavailable.
 //
 #global namespace Aac
-#global public
+#global export
 
 using Core, Core.Errors
 

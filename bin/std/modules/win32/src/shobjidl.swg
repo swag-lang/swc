@@ -1,4 +1,4 @@
-#global public
+#global export
 
 alias SFGAOF = ULONG
 

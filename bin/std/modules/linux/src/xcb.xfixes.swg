@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // XFixes 4 cursor requests; load libxcb-xfixes.so.0 and negotiate version 4 first.
 // Replies and errors use libc free; function pointers borrow their dynamic library.

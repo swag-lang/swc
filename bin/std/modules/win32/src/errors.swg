@@ -1,4 +1,4 @@
-#global public
+#global export
 
 const ERROR_FILE_NOT_FOUND       = 2
 const ERROR_PATH_NOT_FOUND       = 3     // The system cannot find the path specified.

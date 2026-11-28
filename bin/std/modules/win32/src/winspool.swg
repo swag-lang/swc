@@ -1,4 +1,4 @@
-#global public
+#global export
 #global if #os == Swag.TargetOs.Windows
 
 #foreignlib("winspool")

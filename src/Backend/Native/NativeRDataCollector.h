@@ -33,7 +33,8 @@ private:
 
         // An equal interned string reached first, whose emitted bytes this one shares.
         const ReachableRDataAllocation* canonical = nullptr;
-        uint32_t emittedOffset = INVALID_REF;
+        // Index of the emitted entry in the builder's allocation list.
+        uint32_t emittedIndex = INVALID_REF;
     };
 
     struct PendingRDataAllocation

@@ -1,4 +1,4 @@
-#global public
+#global export
 
 alias DepResultWord = u32
 

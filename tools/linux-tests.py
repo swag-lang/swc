@@ -13,7 +13,7 @@ import tempfile
 import time
 
 
-from tool import (SOURCE_SUITES, WORKSPACES, COMPILER_SUITES, Stage, cpp_stage, modules_root,
+from tool import (SOURCE_SUITES, WORKSPACES, COMPILER_SUITES, Stage, cpp_stage,
                   module_names, module_stage, portability_check, source_stages, workspace_stages)
 
 
@@ -27,7 +27,8 @@ def plan(args, scratch, compiler, dev_compiler):
     if args.suite == 'all':
         suites += WORKSPACES
     common = ['--build-cfg', args.build_cfg]
-    # Each campaign starts from a new source snapshot with isolated compiler caches.
+    # Every campaign starts from a new immutable snapshot. Reuse its dependencies
+    # between stages instead of rebuilding the GUI for every example and application.
     campaign = args.suite in ('all', 'compiler') or (args.suite in WORKSPACES and not args.module)
     if not campaign:
         common.append('--rebuild')
@@ -46,13 +47,13 @@ def plan(args, scratch, compiler, dev_compiler):
             elif args.execution == 'native':
                 options.append('--no-test-jit')
             stages += source_stages(compiler, scratch, suite, options, output_root=scratch)
-        elif suite == 'dynamic-library':
-            mode = args.execution or 'native'
-            flags = {'native': ['--no-test-jit'], 'jit': ['--test-jit', '--no-test-native'], 'both': ['--test-jit']}[mode]
-            stages.append(module_stage(compiler, scratch, 'std', 'test', 'core', [*common, *flags, '--test-file', 'nativelibrary.linux.swg', '--test-tag', 'integration.native']))
-        elif suite == 'workspace':
+        elif suite in ('workspace', 'dynamic-library'):
             modules = [args.module] if args.module else None
-            stages += workspace_stages(compiler, scratch, [*common, *filters], modules=modules, script=not args.module)
+            if suite == 'dynamic-library':
+                modules = ['runtime_context_dynamic_consumer']
+            stages += workspace_stages(compiler, scratch, [*common, *filters], modules=modules,
+                                       script=suite == 'workspace' and not args.module,
+                                       execution=args.execution if suite == 'dynamic-library' else None)
         else:
             modules = [args.module] if args.module else module_names(scratch / suite)
             for module in modules:
@@ -182,7 +183,7 @@ def main():
         parser.error('--file-filter needs a nonempty standalone source-suite filter')
     if args.module:
         directory = root / 'bin' / ('unittests/workspace' if args.suite == 'workspace' else args.suite)
-        if Path(args.module).name != args.module or args.module in ('.', '..') or not (modules_root(directory) / args.module / 'module.swg').is_file():
+        if Path(args.module).name != args.module or args.module in ('.', '..') or not (directory / 'modules' / args.module / 'module.swg').is_file():
             parser.error('--module needs an existing module in the selected workspace')
     for executable in (args.compiler, args.dev_compiler):
         if executable and (not executable.is_file() or not os.access(executable, os.X_OK)):
@@ -208,7 +209,7 @@ def main():
     # Keep the installed bin layout, including data and golden fixtures. Exclude only
     # generated workspace output and caches; never select a subset of source files.
     for name in ('runtime', 'unittests', 'std', *(WORKSPACES[1:] if args.suite == 'all' else (args.suite,) if args.suite in WORKSPACES[1:] else ())):
-        shutil.copytree(root / 'bin' / name, scratch / name, ignore=shutil.ignore_patterns('.output', '.tmp', '.dep'))
+        shutil.copytree(root / 'bin' / name, scratch / name, ignore=shutil.ignore_patterns('.output', '.tmp'))
     (scratch / 'temp').mkdir()
     (scratch / 'logs').mkdir()
     environment = os.environ.copy()

@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const G_KEY_FILE_KEEP_COMMENTS     = 1_s32
 const G_KEY_FILE_KEEP_TRANSLATIONS = 2_s32

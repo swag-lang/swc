@@ -1,0 +1,1543 @@
+#include "pch.h"
+
+#if SWC_HAS_UNITTEST
+
+#include "Backend/RuntimeName.h"
+#include "Compiler/ModuleApi/ModuleApi.h"
+#include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
+#include "Support/Os/Os.h"
+#include "Unittest/Compiler/CompilerTestFile.h"
+#include "Unittest/Unittest.h"
+
+SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    constexpr std::string_view K_HOST_OS_ARGUMENT = hostTargetOs() == Runtime::TargetOs::Windows ? "windows" : "linux";
+
+    class ApiPublicationTestDirectory
+    {
+    public:
+        explicit ApiPublicationTestDirectory(const std::string_view name)
+        {
+            path_ = (Os::getTemporaryPath() / "swc_unittest" / "api_publication" / std::format("{}_p{}", name, Os::currentProcessId())).lexically_normal();
+            std::error_code ec;
+            fs::remove_all(path_, ec);
+        }
+
+        ~ApiPublicationTestDirectory()
+        {
+            std::error_code ec;
+            fs::remove_all(path_, ec);
+        }
+
+        const fs::path& path() const { return path_; }
+        fs::path        apiDirectory() const { return path_ / "dep" / "export" / "devmode" / "x86_64"; }
+
+    private:
+        fs::path path_;
+    };
+
+    struct ImportResult
+    {
+        Os::ProcessRunResult process  = Os::ProcessRunResult::StartFailed;
+        uint32_t             exitCode = UINT32_MAX;
+        std::string          output;
+    };
+
+    void runPublicationImporter(const TaskContext& ctx, ImportResult& result, const ApiPublicationTestDirectory& directory)
+    {
+        const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-file", Utf8((directory.apiDirectory() / "value.swg").string())};
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    }
+
+    Result loadScriptCachedApi(fs::path& outPath, std::string& outContent, const TaskContext& ctx, const fs::path& script)
+    {
+        CommandLine command;
+        command.command        = CommandKind::Sema;
+        command.targetOs       = hostTargetOs();
+        command.scriptMode     = true;
+        command.silent         = true;
+        command.numCores       = Unittest::compilerWorkerCount(ctx);
+        command.moduleFilePath = script;
+        command.modulePath     = script.parent_path();
+        command.files.insert(script);
+        CommandLineParser::refreshBuildCfg(command);
+
+        CompilerInstance compiler(ctx.global(), command);
+        TaskContext      importCtx(compiler);
+        SWC_RESULT(compiler.runModuleSetup(importCtx));
+        for (const SourceFile* file : compiler.files())
+        {
+            if (!file->hasFlag(FileFlagsE::ImportedApi) || file->path().filename() != "value.swg")
+                continue;
+            outPath = file->path();
+            FileSystem::IoErrorInfo ioError;
+            return FileSystem::readTextFile(outPath, outContent, ioError);
+        }
+        return Result::Error;
+    }
+
+    constexpr std::string_view API_SOURCE      = "#global public\nconst PublicationValue = 42\n";
+    constexpr std::string_view CONSUMER_SOURCE = "#test\n{\n    const value: s32 = PublicationValue\n}\n";
+}
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WorkspaceSemaBuildsOnlyNativeDependencies)
+{
+    ApiPublicationTestDirectory directory("WorkspaceSemaDependencies");
+    for (const bool filtered : {true, false})
+    {
+        const fs::path workspace = directory.path() / (filtered ? "selected" : "all");
+        const fs::path modules   = workspace / "modules";
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Provider"
+    cfg.backendKind = .SharedLibrary
+}
+)"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#[Swag.NoInline]\npublic func answer()->s32 => 42\n"));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", R"(#import("provider")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Consumer"
+    cfg.backendKind = .Executable
+}
+)"));
+        // No #main: semantic checking must not attempt to link the selected leaf.
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "use.swg", "#run { Swag.assert(Provider.answer() == 42) }\n"));
+        std::vector<Utf8> arguments = {"sema", "--workspace", Utf8(workspace), "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (filtered)
+        {
+            arguments.emplace_back("--workspace-module");
+            arguments.emplace_back("consumer");
+        }
+        ImportResult                result;
+        const Os::ProcessRunOptions options{.capturedOutput = &result.output, .forwardOutput = false};
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), arguments, workspace, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode)
+        {
+            std::println(stderr, "[workspace sema native dependency] {}", result.output);
+            return Result::Error;
+        }
+        const fs::path published  = workspace / ".output";
+        const char*    library    = hostTargetOs() == Runtime::TargetOs::Windows ? "provider.dll" : "provider.so";
+        const char*    executable = hostTargetOs() == Runtime::TargetOs::Windows ? "consumer.exe" : "consumer";
+        if (!fs::is_regular_file(published / "provider" / "shared-library" / "devmode" / "x86_64" / library) ||
+            fs::exists(published / "consumer" / "executable" / "devmode" / "x86_64" / executable))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_MultilineArrayInitializer)
+{
+    ApiPublicationTestDirectory directory("MultilineArrayInitializer");
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+const Values: [3] s32 = [
+    10, 20, 30,
+]
+func read(index: u64)->s32 => Values[index]
+)"));
+
+    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "ArrayApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[multiline array API export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { discard ArrayApi.Values[1] }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[multiline array API consumer] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_UsingAfterDeclarationSurvivesPublication)
+{
+    ApiPublicationTestDirectory directory("UsingAfterDeclaration");
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+namespace Types { struct Value { number: s32 } }
+using Types
+func read(value: Value)->s32 => value.number
+)"));
+    const std::vector<Utf8> exportArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module), "--module-namespace", "UsingApi", "--artifact-kind", "shared-library", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[using API export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { discard UsingApi.read(UsingApi.Types.Value{}) }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[using API import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_IncompletePublicationIsRejectedAndCanBeRebuilt)
+{
+    ApiPublicationTestDirectory directory("Incomplete");
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE));
+
+    Utf8 because;
+    {
+        // Leaving without completePublication models a failed or terminated exporter. Even a
+        // syntactically valid subset is unusable: the missing files may contain declarations.
+        ModuleApi::DirectoryAccess publication;
+        SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
+    }
+
+    ImportResult incomplete;
+    runPublicationImporter(ctx, incomplete, directory);
+    if (incomplete.process != Os::ProcessRunResult::Ok || incomplete.exitCode == 0)
+        return Result::Error;
+    if (incomplete.output.find("module API publication did not complete") == std::string::npos)
+        return Result::Error;
+
+    {
+        ModuleApi::DirectoryAccess publication;
+        SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
+        SWC_RESULT(publication.completePublication(because));
+    }
+    ImportResult complete;
+    runPublicationImporter(ctx, complete, directory);
+    if (complete.process != Os::ProcessRunResult::Ok || complete.exitCode != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_NamedStandardImportUsesWorkspaceOutputRoot)
+{
+    ApiPublicationTestDirectory directory("NamedStandardImport");
+    const fs::path              compilerPath = directory.path() / Os::getExeFullName().filename();
+    const fs::path              runtimePath  = directory.path() / "runtime";
+    const fs::path              apiPath      = directory.path() / "std" / ".output" / "health_import" / "export" / "devmode" / "x86_64";
+
+    std::error_code ec;
+    fs::create_directories(runtimePath, ec);
+    if (ec)
+        return Result::Error;
+    fs::copy_file(Os::getExeFullName(), compilerPath, ec);
+    if (ec)
+        return Result::Error;
+
+    // A private compiler/resource tree tests the actual CLI without publishing anything
+    // into the checkout's standard-library outputs or changing process-wide environment.
+    const fs::path sourceRuntime = FileSystem::compilerResourceRoot(Os::getExeFullName()) / "runtime";
+    for (const auto& entry : fs::directory_iterator(sourceRuntime, ec))
+    {
+        if (!entry.is_regular_file() || entry.path().extension() != ".swg")
+            continue;
+        fs::copy_file(entry.path(), runtimePath / entry.path().filename(), ec);
+        if (ec)
+            return Result::Error;
+    }
+    if (ec)
+        return Result::Error;
+
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    fs::create_directories(apiPath, ec);
+    if (ec)
+        return Result::Error;
+    {
+        Utf8                       because;
+        ModuleApi::DirectoryAccess publication;
+        SWC_RESULT(publication.beginPublication(because, apiPath));
+        SWC_RESULT(CompilerTestFile::writeText(apiPath / "value.swg", API_SOURCE));
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8((directory.path() / "consumer.swg").string()), "--import-api-module", "health_import"};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, compilerPath, args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[named standard import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_AnalyzesImportedFunctionBodiesOnDemand)
+{
+    ApiPublicationTestDirectory directory("LazyBodies");
+    constexpr std::string_view  apiSource       = R"(#global public
+struct ImportedValue
+{
+    public value: s32
+}
+impl ImportedValue
+{
+    mtd read()->s32 => .value
+}
+func importedValue()->s32 => 42
+func importedFailure()->s32 => MissingImportedBodySymbol
+)";
+    constexpr std::string_view  validConsumer   = R"(#main
+{
+    const value = importedValue()
+    Swag.assert(value == 42)
+    var imported: ImportedValue
+    imported.value = value
+    Swag.assert(imported.read() == 42)
+}
+)";
+    constexpr std::string_view  invalidConsumer = R"(#main
+{
+    discard importedFailure()
+}
+)";
+
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", apiSource));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", validConsumer));
+
+    ImportResult unusedInvalidBody;
+    runPublicationImporter(ctx, unusedInvalidBody, directory);
+    if (unusedInvalidBody.process != Os::ProcessRunResult::Ok || unusedInvalidBody.exitCode != 0)
+        return Result::Error;
+
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", invalidConsumer));
+    ImportResult usedInvalidBody;
+    runPublicationImporter(ctx, usedInvalidBody, directory);
+    if (usedInvalidBody.process != Os::ProcessRunResult::Ok || usedInvalidBody.exitCode == 0)
+        return Result::Error;
+    if (usedInvalidBody.output.find("MissingImportedBodySymbol") == std::string::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InlineBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("InlineBodies");
+    struct Case
+    {
+        std::string_view name;
+        std::string_view source;
+        std::string_view because;
+        std::string_view inlineBody;
+        std::string_view artifactKind = "static-library";
+        std::string_view use          = "discard exposed(42)";
+    };
+    const Case cases[] = {
+        {"PrivateHelper", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'helper' is not exposed by the module API"},
+        {"InternalHelper", R"(#global public
+internal func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'InlineApi.helper' is not exposed by the module API"},
+        {"PrivateConstant", R"(#global public
+private const Hidden: [2] s32 = [41, 42]
+#[Swag.Inline]
+func exposed(index: u64)->s32 => Hidden[index]
+)",
+         "symbol 'Hidden' is not exposed by the module API"},
+        {"FoldedPrivateConstant", R"(#global public
+private const Hidden = 42
+#[Swag.Inline]
+func exposed()->s32 => Hidden
+)",
+         "symbol 'Hidden' is not exposed by the module API",
+         {},
+         "static-library",
+         "discard exposed()"},
+        {"FoldedQualifiedConstant", R"(#global public
+namespace Inner { private const Hidden = 42_u8 }
+#[Swag.Inline]
+func exposed(value: s32)->s32 => value + Inner.Hidden
+)",
+         "is not exposed by the module API"},
+        {"FoldedPublicConstant", R"(#global public
+const Visible = 42
+#[Swag.Inline]
+func exposed()->s32 => Visible
+)",
+         {},
+         "=> Visible",
+         "static-library",
+         "discard exposed()"},
+        {"OpaqueMember", R"(#global public
+#[Swag.Opaque]
+struct Hidden { value: s32 }
+impl Hidden
+{
+    #[Swag.Inline]
+    mtd exposed()->s32 => .value
+}
+)",
+         "is not exposed by the module API"},
+        {"ImplicitReceiver", R"(#global public
+struct Value { value = 42 }
+impl Value
+{
+    #[Swag.Inline]
+    mtd read()->s32 => me.value
+    #[Swag.Inline]
+    mtd exposed()->s32 => .read()
+}
+)",
+         {},
+         "=> .read()",
+         "static-library",
+         "var value: Value\n    discard value.exposed()"},
+        {"Intrinsic", R"(#global public
+#[Swag.Inline]
+func exposed()->*Swag.Context => Swag.getContext()
+)",
+         {},
+         "=> Swag.getContext()",
+         "static-library",
+         "discard exposed()"},
+        {"Assertion", R"(#global public
+#[Swag.Inline]
+func exposed(value: s32)->s32
+{
+    Swag.assert(value > 0)
+    return value
+}
+)",
+         {},
+         "Swag.assert(value > 0)"},
+        {"Atomic", R"(#global public
+#[Swag.Inline]
+func exposed(value: *s32)->s32 => Swag.atomicAdd(value, 1)
+)",
+         {},
+         "=> Swag.atomicAdd(value, 1)",
+         "static-library",
+         "var value: s32 = 42\n    discard exposed(&value)"},
+        {"LocalFunctionInExportedBody", R"(#global public
+#[Swag.Inline]
+func exposed(value: s32)->s32
+{
+    func adjust(value: s32)->s32 => value + 1
+    return adjust(value)
+}
+)",
+         {},
+         "func adjust(value: s32)->s32 => value + 1",
+         "static-library",
+         "Swag.require(exposed(41) == 42)"},
+        {"NestedConstExprNamespace", R"(#global public
+namespace DefinitionSpace
+{
+    #[Swag.Inline, Swag.ConstExpr]
+    func helper(value: s32)->s32 => value + 1
+    #[Swag.Inline, Swag.ConstExpr]
+    func nested(value: s32)->s32 => helper(value)
+}
+namespace CallSpace
+{
+    #[Swag.ConstExpr, Swag.Inline]
+    func evaluate(value: s32)->s32 => DefinitionSpace.nested(value)
+}
+func(T) exposed(value: T)->s32
+{
+    discard value
+    const Result = #run CallSpace.evaluate(41)
+    return Result
+}
+)",
+         {},
+         "=> helper(value)",
+         "static-library",
+         "Swag.require(exposed(0) == 42)"},
+        {"PublicHelper", R"(#global public
+func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+        {"QualifiedHelper", R"(#global public
+namespace Nested { func helper(value: s32)->s32 => value + 1 }
+#[Swag.Inline]
+func exposed(value: s32)->s32 => Nested.helper(value)
+)",
+         {},
+         "=> Nested.helper(value)"},
+        {"PublicOverload", R"(#global public
+private func helper(value: f32)->f32 => value + 1
+func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+        {"NoInline", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {}},
+        {"PrivateInline", R"(#global public
+#[Swag.Inline]
+private func helper(value: s32)->s32 => value + 1
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {}},
+        {"SourceApi", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         "symbol 'helper' is not exposed by the module API",
+         {},
+         "export"},
+        {"WholeFile", R"(#global export
+private func helper(value: s32)->s32 => value + 1
+#[Swag.Inline]
+func exposed(value: s32)->s32 => helper(value)
+)",
+         {},
+         "=> helper(value)"},
+    };
+
+    for (const Case& test : cases)
+    {
+        const fs::path module = directory.path() / test.name;
+        const fs::path api    = module / "api";
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", test.source));
+        const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module.string()), "--module-namespace", "InlineApi", "--artifact-kind", Utf8(test.artifactKind), "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
+        {
+            std::println(stderr, "[inline API {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+
+        if (!test.because.empty())
+        {
+            if (result.output.find("cannot export the body of inline function '") == std::string::npos ||
+                result.output.find(test.because) == std::string::npos ||
+                result.output.find("remove 'Swag.Inline' or make the function body exportable") == std::string::npos)
+            {
+                std::println(stderr, "[inline API {}] {}", test.name, result.output);
+                return Result::Error;
+            }
+            continue;
+        }
+
+        std::string             generated;
+        FileSystem::IoErrorInfo ioError;
+        const fs::path          apiFile = api / (test.name == "WholeFile" ? "provider.swg" : std::string(test.name) + ".swg");
+        if (FileSystem::readTextFile(apiFile, generated, ioError) != Result::Continue)
+        {
+            std::println(stderr, "[inline API {}] cannot read '{}'", test.name, apiFile.string());
+            return Result::Error;
+        }
+        if ((generated.find("Swag.Inline") != std::string::npos) != !test.inlineBody.empty() ||
+            (!test.inlineBody.empty() && generated.find(test.inlineBody) == std::string::npos))
+        {
+            std::println(stderr, "[inline API {}] {}", test.name, generated);
+            return Result::Error;
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using InlineApi\n#main\n{{\n    {}\n}}\n", test.use)));
+        const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[inline API consumer {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImplicitBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("ImplicitBodies");
+    for (const std::string_view access : {"private", "internal", "public"})
+    {
+        const fs::path    module = directory.path() / access;
+        const fs::path    api    = module / "api";
+        const std::string source = std::format(R"(#global public
+struct Value {{ public amount: s32 }}
+impl Value
+{{
+    {} mtd const positive()->bool => .amount > 0
+    #[Swag.Implicit]
+    mtd opSet(amount: s32)
+    {{
+        if .positive() {{
+            .amount = 0
+        }}
+        .amount = amount
+    }}
+}}
+)",
+                                               access);
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", source));
+        const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module.string()), "--module-namespace", "ImplicitApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        const bool exported    = access == "public";
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != exported)
+        {
+            std::println(stderr, "[implicit API {}] {}", access, result.output);
+            return Result::Error;
+        }
+        if (!exported)
+        {
+            if (result.output.find("cannot export the body of implicit function '") == std::string::npos ||
+                result.output.find("is not exposed by the module API") == std::string::npos ||
+                result.output.find("keep the operation in the published body") == std::string::npos ||
+                result.output.find("referenced symbol '") == std::string::npos)
+                return Result::Error;
+            continue;
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, "using ImplicitApi\n#main { var value: Value = 42\n discard value }\n"));
+        const fs::path          apiFile    = api / (std::string(access) + ".swg");
+        const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[implicit API consumer] {}", result.output);
+            return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_PublishesSupportingDeclarations)
+{
+    ApiPublicationTestDirectory directory("SupportingDecls");
+    struct Case
+    {
+        std::string_view name;
+        std::string_view source;
+        std::string_view use;
+        // Fragments the generated interface must carry, or of the export error when it cannot.
+        std::vector<std::string_view> published;
+        std::vector<std::string_view> because;
+        std::string_view              helperFile;
+    };
+    const Case cases[] = {
+        {"PrivateHelper", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"private func helper(value: s32)->s32 => value + 1"}},
+        {"TransitiveHelpers", R"(#global public
+private func inner(value: s32)->s32 => value * 2
+private func outer(value: s32)->s32 => inner(value) + 1
+func(T) exposed(value: T)->s32 => outer(cast(s32, value))
+)",
+         "discard exposed(20)",
+         {"private func inner(value: s32)->s32 => value * 2", "private func outer(value: s32)->s32 => inner(value) + 1"}},
+        {"QualifiedHelper", R"(#global public
+namespace Inner { private func helper(value: s32)->s32 => value + 1 }
+func(T) exposed(value: T)->s32 => Inner.helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"private func helper(value: s32)->s32 => value + 1"}},
+        {"InternalMethod", R"(#global public
+struct Reader { public value: s32 }
+impl Reader
+{
+    internal mtd bump() { .value += 1 }
+    mtd(T) read()->T
+    {
+        .bump()
+        return cast(T, .value)
+    }
+}
+)",
+         "var reader: Reader\n    discard reader.read!{s32}()",
+         {"internal mtd bump() { .value += 1 }"}},
+        {"PrivateTypeAndConstant", R"(#global public
+private const Scale = 3
+private struct Pair { a: s32, b: s32 }
+func(T) exposed(value: T)->s32
+{
+    var pair: Pair
+    pair.a = cast(s32, value) * Scale
+    return pair.a + pair.b
+}
+)",
+         "discard exposed(2)",
+         {"private const Scale = 3", "private struct Pair { a: s32, b: s32 }"}},
+        {"OtherFileHelper", R"(#global public
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"internal func helper(value: s32)->s32 => value + 1"},
+         {},
+         "internal func helper(value: s32)->s32 => value + 1\n"},
+        {"HelperReadsGlobal", R"(#global public
+private var counter: s32 = 0
+private func helper(value: s32)->s32 => value + counter
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {},
+         {"cannot export non-public function 'helper', which a published generic body needs", "symbol 'counter' is not exposed by the module API", "export the referenced implementation too"}},
+        {"InternalFieldType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder
+{
+    slot:   Slot
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private struct Slot { a: s32 }"}},
+        {"InternalFieldAlias", R"(#global public
+private alias Handle = const *void?
+struct Holder
+{
+    handle: Handle
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private alias Handle = const *void?"}},
+        {"InternalFieldAnonymousType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder
+{
+    pair:   { first: Slot, second: s32 }
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private struct Slot { a: s32 }"}},
+        {"InternalFieldNamesGlobal", R"(#global public
+private var counter: s32 = 0
+struct Holder
+{
+    slot:   #decltype(counter)
+    public value: s32
+}
+)",
+         "",
+         {},
+         {"cannot export internal field 'slot' of public struct", "symbol 'counter' is not exposed by the module API"}},
+        {"InternalFieldTypeChain", R"(#global public
+private const Empty = 7
+private struct Inner { a: s32 = Empty }
+private struct Outer { inner: Inner }
+struct Holder
+{
+    outer:  [2] Outer
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private const Empty = 7", "private struct Inner { a: s32 = Empty }", "private struct Outer { inner: Inner }"}},
+        {"PublicFieldOfInternalType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder { public slot: Slot }
+)",
+         "",
+         {},
+         {"cannot export public struct 'Holder' because field 'slot' uses non-public type"}},
+        {"PublicFieldForeignGenericOfInternalType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder { public slot: Swag.AtomicValue!{Slot} }
+)",
+         "",
+         {},
+         {"cannot export public struct 'Holder' because field 'slot' uses non-public type"}},
+    };
+
+    for (const Case& test : cases)
+    {
+        const fs::path module = directory.path() / test.name;
+        const fs::path api    = module / "api";
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", test.source));
+        if (!test.helperFile.empty())
+            SWC_RESULT(CompilerTestFile::writeText(module / "src" / "helper.swg", test.helperFile));
+
+        const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(module.string()), "--module-namespace", "GenericApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
+        {
+            std::println(stderr, "[supporting API {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+
+        if (!test.because.empty())
+        {
+            for (const std::string_view fragment : test.because)
+            {
+                if (result.output.find(fragment) == std::string::npos)
+                {
+                    std::println(stderr, "[supporting API {}] {}", test.name, result.output);
+                    return Result::Error;
+                }
+            }
+            continue;
+        }
+
+        std::string             generated;
+        FileSystem::IoErrorInfo ioError;
+        const fs::path          apiFile = api / (std::string(test.name) + ".swg");
+        if (FileSystem::readTextFile(apiFile, generated, ioError) != Result::Continue)
+        {
+            std::println(stderr, "[supporting API {}] cannot read '{}'", test.name, apiFile.string());
+            return Result::Error;
+        }
+        for (const std::string_view fragment : test.published)
+        {
+            if (generated.find(fragment) == std::string::npos)
+            {
+                std::println(stderr, "[supporting API {}] missing '{}' in:\n{}", test.name, fragment, generated);
+                return Result::Error;
+            }
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using GenericApi\n#main\n{{\n    {}\n}}\n", test.use)));
+        const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[supporting API consumer {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
+{
+    ApiPublicationTestDirectory directory("WholeFileBodies");
+    const fs::path              api = directory.path() / "api";
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "provider.swg", "#global export\nfunc exposed(value: s32)->s32 => helper(value)\n"));
+    const fs::path helper = directory.path() / "src" / "helper.swg";
+    SWC_RESULT(CompilerTestFile::writeText(helper, "internal func helper(value: s32)->s32 => value + 1\n"));
+
+    const std::vector<Utf8> args = {"sema", "--os", K_HOST_OS_ARGUMENT, "--module", Utf8(directory.path().string()), "--module-namespace", "WholeApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode == 0 ||
+        result.output.find("cannot export the body of function 'WholeApi.exposed'") == std::string::npos ||
+        result.output.find("symbol 'WholeApi.helper' is not exposed by the module API") == std::string::npos ||
+        result.output.find("referenced symbol 'WholeApi.helper' is declared here") == std::string::npos ||
+        result.output.find("helper.swg:1:") == std::string::npos ||
+        result.output.find("use '#global public' to publish declarations") == std::string::npos)
+    {
+        std::println(stderr, "[whole-file API rejection] {}", result.output);
+        return Result::Error;
+    }
+
+    // An internal dependency can stay internal when its source travels with the API.
+    SWC_RESULT(CompilerTestFile::writeText(helper, "#global export\ninternal func helper(value: s32)->s32 => value + 1\n"));
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), args, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[whole-file API dependency] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, "#main { Swag.assert(WholeApi.exposed(41) == 42) }\n"));
+    const std::vector<Utf8> importArgs = {"sema", "--os", K_HOST_OS_ARGUMENT, "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer.string()), "--import-api-file", Utf8((api / "provider.swg").string()), "--import-api-file", Utf8((api / "helper.swg").string())};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[whole-file API consumer] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ImporterReadsCompletedConcurrentPublication)
+{
+    ApiPublicationTestDirectory directory("Concurrent");
+    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "consumer.swg", CONSUMER_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", "this API is still being written\n"));
+
+    ImportResult importer;
+    std::thread  reader;
+    std::barrier started(2);
+    Result       writeResult = Result::Continue;
+    {
+        ModuleApi::DirectoryAccess publication;
+        Utf8                       because;
+        SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
+        reader = std::thread([&] {
+            started.arrive_and_wait();
+            runPublicationImporter(ctx, importer, directory);
+        });
+        started.arrive_and_wait();
+        writeResult = CompilerTestFile::writeText(directory.apiDirectory() / "value.swg", API_SOURCE);
+        if (writeResult == Result::Continue)
+            writeResult = publication.completePublication(because);
+    }
+    reader.join();
+    if (writeResult != Result::Continue || importer.process != Os::ProcessRunResult::Ok || importer.exitCode != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_RepublishesCapturedSourcesAndMetadata)
+{
+    ApiPublicationTestDirectory directory("Snapshot");
+    const fs::path              source      = directory.apiDirectory();
+    const fs::path              destination = directory.path() / "mirror";
+    SWC_RESULT(CompilerTestFile::writeText(source / "value.swg", API_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(source / ".swc-deps", "#import(\"dependency\")\n"));
+    SWC_RESULT(CompilerTestFile::writeText(destination / "stale.swg", "obsolete\n"));
+    SWC_RESULT(CompilerTestFile::writeText(destination / "artifact.lib", "retained artifact\n"));
+
+    std::vector<ModuleApi::SourceSnapshot> files;
+    FileSystem::IoErrorInfo                ioError;
+    std::error_code                        ec;
+    for (const char* name : {"value.swg", ".swc-deps"})
+    {
+        ModuleApi::SourceSnapshot file;
+        file.path      = source / name;
+        file.writeTime = fs::last_write_time(file.path, ec);
+        if (ec)
+            return Result::Error;
+        std::vector<char8_t> bytes;
+        SWC_RESULT(FileSystem::readBinaryFile(file.path, bytes, ioError, SourceContent::TRAILING_0));
+        file.content = std::make_shared<const SourceContent>(std::move(bytes));
+        files.push_back(std::move(file));
+    }
+
+    // The source generation can disappear before the destination lock is acquired. A mirror
+    // still publishes the complete captured generation, including its dependency metadata.
+    fs::remove_all(source, ec);
+    if (ec)
+        return Result::Error;
+    {
+        ModuleApi::DirectoryAccess publication;
+        Utf8                       because;
+        SWC_RESULT(publication.beginPublication(because, destination));
+        SWC_RESULT(ModuleApi::writeSnapshot(ctx, files, source, destination));
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    for (const ModuleApi::SourceSnapshot& file : files)
+    {
+        const fs::path path = destination / file.path.filename();
+        std::string    content;
+        SWC_RESULT(FileSystem::readTextFile(path, content, ioError));
+        if (content != file.content->view() || fs::last_write_time(path, ec) != file.writeTime || ec)
+            return Result::Error;
+    }
+    if (fs::exists(destination / "stale.swg") || !fs::exists(destination / "artifact.lib"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_SnapshotReplacesEqualSizeAndTimestampContents)
+{
+    ApiPublicationTestDirectory directory("SnapshotSameMetadata");
+    const fs::path              destination = directory.apiDirectory();
+    const fs::path              path        = destination / "value.swg";
+    constexpr std::string_view  oldContent  = "#global public\nconst PublicationValue = 41\n";
+    static_assert(oldContent.size() == API_SOURCE.size());
+    SWC_RESULT(CompilerTestFile::writeText(path, oldContent));
+
+    std::error_code ec;
+    const auto      writeTime = fs::last_write_time(path, ec);
+    if (ec)
+        return Result::Error;
+
+    // Restoring a source tree can preserve both size and timestamp while changing its API.
+    // Publishing the captured bytes must replace a mirror from that previous generation.
+    const fs::path                               source = directory.path() / "source";
+    const std::vector<ModuleApi::SourceSnapshot> files  = {{.path = source / "value.swg", .content = std::make_shared<const SourceContent>(API_SOURCE), .writeTime = writeTime}};
+    {
+        ModuleApi::DirectoryAccess publication;
+        Utf8                       because;
+        SWC_RESULT(publication.beginPublication(because, destination));
+        SWC_RESULT(ModuleApi::writeSnapshot(ctx, files, source, destination));
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(path, content, ioError));
+    if (content != API_SOURCE || fs::last_write_time(path, ec) != writeTime || ec)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestampContents)
+{
+    ApiPublicationTestDirectory directory("ScriptCacheSameMetadata");
+    const fs::path              source = directory.apiDirectory() / "value.swg";
+    const fs::path              script = directory.path() / "consumer.swgs";
+    SWC_RESULT(CompilerTestFile::writeText(source, API_SOURCE));
+    SWC_RESULT(CompilerTestFile::writeText(script, "#import(\"dep\", location: \".\")\n#main {}\n"));
+
+    std::error_code ec;
+    const auto      writeTime = fs::last_write_time(source, ec);
+    if (ec)
+        return Result::Error;
+    fs::path    firstPath;
+    std::string firstContent;
+    SWC_RESULT(loadScriptCachedApi(firstPath, firstContent, ctx, script));
+    if (!fs::exists(directory.path() / ".tmp" / ".swc-setup-devmode"))
+        return Result::Error;
+    if (firstPath == source || firstContent != API_SOURCE)
+        return Result::Error;
+
+    constexpr std::string_view newContent = "#global public\nconst PublicationValue = 43\n";
+    static_assert(newContent.size() == API_SOURCE.size());
+    {
+        ModuleApi::DirectoryAccess publication;
+        Utf8                       because;
+        SWC_RESULT(publication.beginPublication(because, directory.apiDirectory()));
+        SWC_RESULT(CompilerTestFile::writeText(source, newContent));
+        fs::last_write_time(source, writeTime, ec);
+        if (ec)
+            return Result::Error;
+        SWC_RESULT(publication.completePublication(because));
+    }
+
+    // The cache file itself must match the new capture. Importing from the fresh in-memory
+    // snapshot alone would hide reuse of an obsolete on-disk cache generation.
+    fs::path    secondPath;
+    std::string secondContent;
+    SWC_RESULT(loadScriptCachedApi(secondPath, secondContent, ctx, script));
+    if (secondPath == firstPath || secondContent != newContent)
+        return Result::Error;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(firstPath, firstContent, ioError));
+    if (firstContent != API_SOURCE)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+#ifndef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication)
+{
+    ApiPublicationTestDirectory directory("InheritedForeign");
+    constexpr std::string_view  providerSource = R"(#global public
+#[Foreign(module: "libc.so.6", link: "c", callconv: .C)]
+{
+    func read(fd: s32, buffer: *void, count: u64)->s64
+    #[Discardable]
+    func abs(value: s32)->s32
+}
+#[Foreign(module: "libm.so.6", function: "fabs", link: "m", callconv: .C)]
+{
+    func magnitude(value: f64)->f64
+}
+#[CallingConvention(.C)]
+{
+    #[Foreign(module: "libc.so.6", function: "labs", link: "c")]
+    func longMagnitude(value: s64)->s64
+}
+#[Foreign(module: "libc.so.6", function: "strlen", link: "c", callconv: .C)]
+func length(value: const [*] u8)->u64
+)";
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
+#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
+)";
+    constexpr std::string_view  consumerSource = R"(func verify()
+{
+    var byte: u8
+    Swag.assert(Provider.read(-1, &byte, 1) == -1)
+    Swag.assert(Provider.abs(-42) == 42)
+    Provider.abs(-1)
+    Swag.assert(Provider.magnitude(-3.5) == 3.5)
+    Swag.assert(Provider.longMagnitude(-4294967297) == 4294967297)
+    Swag.assert(Provider.length("hello".buffer) == 5)
+}
+#main { verify() }
+#test { verify() }
+)";
+
+    // Export copies declaration snippets; a compiled library emits foreign-only
+    // prefixes. Both must recover attributes inherited outside those snippets.
+    for (const std::string_view backend : {"Export", "StaticLibrary"})
+    {
+        const fs::path workspace = directory.path() / backend;
+        const fs::path modules   = workspace / "modules";
+        const Utf8     setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", setup.view()));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
+
+        const std::vector<Utf8> arguments = {"test", "--os", "linux", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", "3"};
+        Os::ProcessRunOptions   options;
+        std::string             output;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        {
+            std::println(stderr, "inherited foreign attributes failed through {} publication:\n{}", backend, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+#endif
+
+#ifdef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication)
+{
+    ApiPublicationTestDirectory directory("InheritedForeign");
+    constexpr std::string_view  providerSource = R"(#global public
+#[Foreign(module: "kernel32", link: "kernel32", callconv: .C)]
+{
+    func GetCurrentProcessId()->u32
+    #[Discardable]
+    func GetCurrentThreadId()->u32
+}
+#[Foreign(module: "kernel32", function: "GetCurrentProcess", link: "kernel32", callconv: .C)]
+{
+    func currentProcess()->*void
+}
+#[CallingConvention(.C)]
+{
+    #[Foreign(module: "kernel32", function: "GetProcessId", link: "kernel32")]
+    func processId(process: *void?)->u32
+}
+#[Foreign(module: "kernel32", function: "GetCurrentProcessId", link: "kernel32", callconv: .C)]
+func directProcessId()->u32
+)";
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
+#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
+)";
+    constexpr std::string_view  consumerSource = R"(func verify()
+{
+    let processId = Provider.GetCurrentProcessId()
+    Swag.assert(processId != 0)
+    Swag.assert(Provider.GetCurrentThreadId() != 0)
+    Provider.GetCurrentThreadId()
+    Swag.assert(Provider.processId(Provider.currentProcess()) == processId)
+    Swag.assert(Provider.processId(null) == 0)
+    Swag.assert(Provider.directProcessId() == processId)
+}
+#main { verify() }
+#test { verify() }
+)";
+
+    // Export copies declaration snippets; a compiled library emits foreign-only
+    // prefixes. Both must recover attributes inherited outside those snippets.
+    for (const std::string_view backend : {"Export", "StaticLibrary"})
+    {
+        const fs::path workspace = directory.path() / backend;
+        const fs::path modules   = workspace / "modules";
+        const Utf8     setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", setup.view()));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+        SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
+
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        Os::ProcessRunOptions   options;
+        std::string             output;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        {
+            std::println(stderr, "inherited foreign attributes failed through {} publication:\n{}", backend, output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+#endif
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_RebuildModulePreservesCurrentDependencies)
+{
+    ApiPublicationTestDirectory directory("WorkspaceRebuildModule");
+    const fs::path              workspace = directory.path();
+    const fs::path              modules   = workspace / "modules";
+    const char*                 extension = hostTargetOs() == Runtime::TargetOs::Windows ? ".dll" : ".so";
+    const fs::path              provider  = workspace / ".output" / "provider" / "shared-library" / "devmode" / "x86_64" / std::format("provider{}", extension);
+    const fs::path              consumer  = workspace / ".output" / "consumer" / "shared-library" / "devmode" / "x86_64" / std::format("consumer{}", extension);
+
+    constexpr std::string_view providerSetup = R"(#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    constexpr std::string_view consumerSetup = R"(#import("provider")
+#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Consumer"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "value.swg", "#global public\nfunc value()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "value.swg", "#global public\nfunc value()->s32 => Provider.value()\n"));
+
+    auto build = [&](const std::string_view rebuildOption) -> Result {
+        std::vector<Utf8> arguments = {"build", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        if (!rebuildOption.empty())
+            arguments.emplace_back(rebuildOption);
+        std::string           output;
+        Os::ProcessRunOptions options;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, workspace, &options) == Os::ProcessRunResult::Ok && exitCode == 0)
+            return Result::Continue;
+        std::println(stderr, "workspace rebuild {} failed:\n{}", rebuildOption, output);
+        return Result::Error;
+    };
+
+    SWC_RESULT(build({}));
+    std::error_code ec;
+    const auto      providerBefore = fs::last_write_time(provider, ec);
+    if (ec)
+        return Result::Error;
+    const auto consumerBefore = fs::last_write_time(consumer, ec);
+    if (ec)
+        return Result::Error;
+
+    SWC_RESULT(build("--rebuild-module"));
+    const auto providerAfterModule = fs::last_write_time(provider, ec);
+    if (ec || providerAfterModule != providerBefore)
+        return Result::Error;
+    const auto consumerAfterModule = fs::last_write_time(consumer, ec);
+    if (ec || consumerAfterModule <= consumerBefore)
+        return Result::Error;
+
+    SWC_RESULT(build("--rebuild"));
+    const auto providerAfterAll = fs::last_write_time(provider, ec);
+    if (ec || providerAfterAll <= providerAfterModule)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
+{
+    ApiPublicationTestDirectory directory("GuardedTestCache");
+    const fs::path              modules  = directory.path() / "modules";
+    const fs::path              testFile = modules / "consumer" / "src" / "tests" / "test_only.swg";
+
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#import("core", location: "swag@std")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Provider"
+    cfg.backendKind = .SharedLibrary
+}
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#global public\nfunc answer()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", R"(#import("provider", link: "shared-library")
+#import("core", location: "swag@std")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Consumer"
+    cfg.backendKind = .Executable
+}
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "main.swg", "#test { Swag.require(Provider.answer() == 42) }\n#main { Swag.require(Provider.answer() == 42) }\n"));
+
+    auto test = [&](std::string& output) -> Result {
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) == Os::ProcessRunResult::Ok && exitCode == 0)
+            return Result::Continue;
+        std::println(stderr, "guarded workspace test failed:\n{}", output);
+        return Result::Error;
+    };
+
+    std::string output;
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if #command == Swag.CompilerCommand.Test\n#test { Swag.print(\"CACHE_TEST_ONE\\n\") }\n"));
+    SWC_RESULT(test(output));
+
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if #command == Swag.CompilerCommand.Test\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("module up-to-date: provider") == std::string::npos || output.find("module up-to-date: consumer") == std::string::npos || output.find("CACHE_TEST_TWO") == std::string::npos || output.find("CACHE_TEST_ONE") != std::string::npos || output.find("build ok:") == std::string::npos)
+    {
+        std::println(stderr, "guarded test edit rebuilt production or missed the edited native test:\n{}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if true\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("module up-to-date: consumer") != std::string::npos)
+    {
+        std::println(stderr, "changing the file guard failed to invalidate the production module:\n{}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#global public\nfunc answer()->s32 => 40 + 2\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("module up-to-date: provider") != std::string::npos || output.find("module up-to-date: consumer") != std::string::npos)
+    {
+        std::println(stderr, "production source edit failed to invalidate a dependent module:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+#ifdef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
+{
+    ApiPublicationTestDirectory directory("LocalForeignCollision");
+    constexpr std::string_view  providerSetup  = R"(#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .StaticLibrary
+    }
+}
+)";
+    constexpr std::string_view  providerSource = R"(#global export
+func host()->s32
+{
+    func send(_: u64, _: const [*] u8?, _: s32, _: s32)->s32 => 99
+    return send(0, null, 0, 0)
+}
+)";
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
+#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
+)";
+    constexpr std::string_view  consumerSource = R"(#foreignlib("ws2_32")
+#[Foreign("ws2_32", callconv: Swag.CallConv.C)]
+func send(socket: u64, buffer: const [*] u8?, length, flags: s32)->s32
+#main
+{
+    Swag.assert(Provider.host() == 99)
+    Swag.assert(send(Swag.U64.Max, null, 0, 0) == -1)
+}
+)";
+    const fs::path              modules        = directory.path() / "modules";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
+
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    Os::ProcessRunOptions   options;
+    std::string             output;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    uint32_t exitCode      = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "cannot build the local/foreign collision reproducer:\n{}", output);
+        return Result::Error;
+    }
+
+    const fs::path executable = directory.path() / ".output" / "consumer" / "executable" / "devmode" / "x86_64" / "consumer.exe";
+    output.clear();
+    if (Os::runProcess(exitCode, executable, {}, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    {
+        std::println(stderr, "the native import was not resolved independently of the local function:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLink)
+{
+    ApiPublicationTestDirectory directory("WorkspaceParseBeforeLink");
+    constexpr std::string_view  providerSetup  = R"(#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
+#run
+{
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
+    {
+        .moduleNamespace = "Consumer"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    const fs::path              modules        = directory.path() / "modules";
+    const fs::path              consumerSource = modules / "consumer" / "src" / "broken.swg";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "value.swg", "#global public\nfunc value()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(consumerSource, "#global public\nfunc value()->s32 => Provider.value()\n"));
+
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    Os::ProcessRunOptions   options;
+    std::string             output;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    uint32_t exitCode      = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+    {
+        std::println(stderr, "workspace seed did not build:\n{}", output);
+        return Result::Error;
+    }
+
+    // The CRT reader denies deletion on Windows. Hold the previous DLL in place
+    // until the child's link has exhausted its publication retries: a serial
+    // dependency join then fails before the consumer's parser can run.
+    const fs::path library = directory.path() / ".output" / "provider" / "shared-library" / "devmode" / "x86_64" / "provider.dll";
+    std::ifstream  lockedLibrary(library, std::ios::binary);
+    if (!lockedLibrary.is_open())
+        return Result::Error;
+    SWC_RESULT(CompilerTestFile::writeText(consumerSource, "func broken() { let = 1 }\n"));
+    output.clear();
+    exitCode = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || !exitCode)
+        return Result::Error;
+    if (output.find("broken.swg") == std::string::npos)
+    {
+        std::println(stderr, "dependent source was not parsed before the dependency link:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+#endif
+
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_EmptyFunctionAliasesKeepDelimiters)
+{
+    ApiPublicationTestDirectory directory("EmptyFunctionAliases");
+    const fs::path              module = directory.path() / "provider";
+    const fs::path              api    = module / "api";
+    SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+    SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", R"(#global public
+#[Swag.CallingConvention(.C)]
+alias Empty = func()
+alias Closure = func||()
+alias Nested = func(func())
+alias Fallible = func||(value: s32) fail
+alias FallibleResult = func()->s32 fail
+alias EmptyFallible = func() fail
+const Following = 42
+)"));
+    const std::vector<Utf8> exportArgs = {"sema", "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    ImportResult            result;
+    Os::ProcessRunOptions   options;
+    options.capturedOutput = &result.output;
+    options.forwardOutput  = false;
+    result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), exportArgs, module, &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias export] {}", result.output);
+        return Result::Error;
+    }
+
+    const fs::path consumer = directory.path() / "consumer.swg";
+    SWC_RESULT(CompilerTestFile::writeText(consumer, R"(func verify(empty: Callbacks.Empty, closure: Callbacks.Closure, nested: Callbacks.Nested)
+{
+    empty()
+    closure()
+    nested(func() {})
+}
+func fallible() fail
+{
+    let callback: Callbacks.Fallible = func(_: s32) fail {}
+    let result: Callbacks.FallibleResult = func()->s32 fail { return 1 }
+    let empty: Callbacks.EmptyFallible = func() fail {}
+    try callback(1)
+    discard try result()
+    try empty()
+}
+#assert(Callbacks.Following == 42)
+)"));
+    const std::vector<Utf8> importArgs = {"sema", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "-f", Utf8(consumer), "--import-api-file", Utf8(api / "provider.swg")};
+    result.output.clear();
+    result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, directory.path(), &options);
+    if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+    {
+        std::println(stderr, "[empty function alias import] {}", result.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_END_NAMESPACE();
+
+#endif

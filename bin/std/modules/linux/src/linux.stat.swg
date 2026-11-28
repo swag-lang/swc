@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const STATX_TYPE            = 0x1_u32
 const STATX_MODE            = 0x2_u32

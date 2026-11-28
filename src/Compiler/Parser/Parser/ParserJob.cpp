@@ -18,7 +18,9 @@ Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJob
 
     LexerFlags lexerFlags = LexerFlagsE::Default;
 
-    if (options.emitTrivia && !file.sourceOwner())
+    // Imported declarations participate in lookup, while documentation owns only
+    // the current module and the runtime. Their trivia has no documentation consumer.
+    if (options.emitTrivia && !file.isImportedApi())
         lexerFlags.add(LexerFlagsE::EmitTrivia);
     if (options.ignoreGlobalCompilerIfSkip)
         lexerFlags.add(LexerFlagsE::IgnoreGlobalCompilerIfSkip);

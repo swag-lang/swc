@@ -871,9 +871,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::CompilerCommand, typeRef, codeRef()));
 
-            const SourceFile* file = sema.compiler().sourceViewFile(codeRef().srcViewRef);
-            const CommandKind command = file && file->sourceOwner() ? CommandKind::Build : ctx.cmdLine().command;
-            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(compilerCommandFromKind(command)));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(compilerCommandFromKind(sema.ctx().cmdLine().command)));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
 
@@ -918,6 +916,7 @@ Result AstCompilerGlobal::semaPreDecl(Sema& sema) const
 {
     switch (mode)
     {
+        case Mode::Export:
         case Mode::AccessPublic:
             sema.frame().setCurrentAccess(SymbolAccess::Public);
             break;

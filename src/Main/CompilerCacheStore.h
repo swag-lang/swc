@@ -22,7 +22,8 @@ public:
     ~CompilerCacheStore();
     Record                     read(const Utf8& key) const;
     void                       write(const Utf8& key, ByteArray bytes);
-    static CompilerCacheStore& get();
+    static CompilerCacheStore& get(bool rebuild);
+    static void                invalidateAll();
     static void                flushAll();
 
 private:
@@ -63,11 +64,12 @@ private:
     static Archive                load(const fs::path& path);
     static bool                   publish(Archive& outArchive, const fs::path& path, const std::vector<EntryView>& entries);
 
-    CompilerCacheStore();
+    explicit CompilerCacheStore(bool rebuild);
     explicit CompilerCacheStore(fs::path directory);
     std::vector<fs::path> listSegments() const;
     void                  ensureLoaded() const;
     PendingShard&         pendingFor(const Utf8& key) const;
+    void                  invalidateOnce();
     void                  flush();
     void                  compact() const;
 
@@ -77,6 +79,8 @@ private:
     mutable std::vector<Segment>                       segments_;
     mutable std::array<PendingShard, K_PENDING_SHARDS> pending_;
     std::mutex                                         flushMutex_;
+    std::once_flag                                     invalidated_;
+    std::atomic<bool>                                  replace_ = false;
 };
 
 SWC_END_NAMESPACE();

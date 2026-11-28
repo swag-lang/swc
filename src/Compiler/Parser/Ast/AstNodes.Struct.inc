@@ -104,6 +104,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
 {
     enum class Mode
     {
+        Export,
         AttributeList,
         AccessPublic,
         AccessPrivate,
@@ -131,6 +132,8 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
 {
     TokenRef tokModuleNameRef;
     TokenRef tokLocationRef;
+    TokenRef tokLinkRef;
+    TokenRef tokVersionRef;
 
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

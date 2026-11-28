@@ -4,7 +4,7 @@
 //! Role: This file writes an initialization movie followed by bounded `moof`/`mdat` pairs.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core, Core.Errors
 

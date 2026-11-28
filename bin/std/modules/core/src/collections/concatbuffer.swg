@@ -1,4 +1,4 @@
-#global public
+#global export
 
 // One memory block in the bucket chain of a [[Core.ConcatBuffer]].
 struct ConcatBufferBucket

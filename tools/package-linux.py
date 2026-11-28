@@ -24,6 +24,7 @@ def prefix_path(value: str) -> PurePosixPath:
 
 
 def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, checkout: Path) -> None:
+    build_root = build_dir.resolve()
     binary = build_dir / app
     if not binary.is_file() or not binary.stat().st_mode & 0o111:
         raise SystemExit(f'Expected an executable Linux ELF at {binary}')
@@ -52,6 +53,23 @@ def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, chec
         destination = stage / str(program_dir)
         destination.mkdir(parents=True)
         shutil.copy2(binary, destination / app)
+        for dependency in sorted(build_dir.iterdir()):
+            if dependency.name.startswith('.') or '.so' not in dependency.name:
+                continue
+            if dependency.is_symlink():
+                link_target = dependency.readlink()
+                try:
+                    target = dependency.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    raise SystemExit(f'Dependency symlink has no usable target: {dependency}') from None
+                if (link_target.is_absolute() or len(link_target.parts) != 1 or
+                        link_target.name.startswith('.') or '.so' not in link_target.name or not target.is_file() or
+                        target.parent != build_root or '.so' not in target.name):
+                    raise SystemExit(f'Dependency symlink target is not a packaged sibling library: {dependency}')
+                (destination / dependency.name).symlink_to(link_target)
+            elif dependency.is_file():
+                shutil.copy2(dependency, destination / dependency.name)
+
         desktop_file = stage / str(desktop_path)
         desktop_file.parent.mkdir(parents=True)
         desktop_file.write_text(desktop)
@@ -89,7 +107,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('app', choices=APPLICATIONS)
     parser.add_argument('--configuration', choices=('release', 'devmode'), default='release')
-    parser.add_argument('--build-dir', type=Path, help='directory containing the built executable')
+    parser.add_argument('--build-dir', type=Path, help='directory containing the built executable and published dependencies')
     parser.add_argument('--output', type=Path, required=True, help='new .tar.gz archive to write')
     parser.add_argument('--prefix', type=prefix_path, default=PurePosixPath('/usr/local'))
     args = parser.parse_args()

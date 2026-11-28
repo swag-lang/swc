@@ -1,4 +1,4 @@
-#global public
+#global export
 #global namespace Slice
 
 // Applies `action` to the address of every element.

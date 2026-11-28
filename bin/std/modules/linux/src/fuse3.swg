@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // High-level libfuse 3 ABI, from the upstream 3.17.2 headers.
 //

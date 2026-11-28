@@ -53,9 +53,13 @@ module has initialized but before '#main' begins.
 
 # Shutdown
 
-'#drop' hooks run at program shutdown. Use them to release resources acquired
-by '#init'. Within each source group, drop hooks execute in reverse source-location
-order. A source group shuts down after every group that imports it.
+'#drop' hooks run when a module unloads. Use them to release resources acquired
+by '#init'. Multiple module drop hooks execute in reverse source-location order.
+Dependency modules unload after modules that import them.
+
+Loading a Swag shared library dynamically acquires its dependencies first. All dependency
+and library '#init' hooks finish before their '#premain' hooks begin. Closing the last
+dynamic reference runs the library's '#drop' hooks before its dependencies' hooks.
 
 A script still drops initialized dependencies after a recoverable failure in its '#main',
 '#init', or '#premain'. A recoverable failure during '#drop' allows the remaining hooks to

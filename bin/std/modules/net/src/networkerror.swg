@@ -1,4 +1,4 @@
-#global public
+#global export
 
 // Reports a network operation failure with the host's diagnostic code.
 struct NetworkError

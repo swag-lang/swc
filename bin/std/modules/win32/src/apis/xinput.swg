@@ -1,4 +1,4 @@
-#global public
+#global export
 #global namespace XInput
 
 #foreignlib("xinput")

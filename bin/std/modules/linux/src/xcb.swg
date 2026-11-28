@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // Raw XCB/X11 protocol layouts and C function-pointer types, based on libxcb 1.17 headers.
 // Load the optional libxcb.so.1 / libxcb-randr.so.0 libraries before resolving these functions.

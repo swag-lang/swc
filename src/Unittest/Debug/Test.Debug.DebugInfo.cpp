@@ -1317,7 +1317,7 @@ func incrementForDebugInfo(value: *s32)
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
     cmdLine.buildCfg    = "devmode";
-    cmdLine.backendKind = Runtime::BuildCfgBackendKind::None;
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_test_debug";
     cmdLine.files.insert(sourcePath);
@@ -1402,7 +1402,7 @@ func debugInfoRuntimeStorageLeft(value: *DebugInfoRuntimeStoragePair)->s32
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
     cmdLine.buildCfg    = "devmode";
-    cmdLine.backendKind = Runtime::BuildCfgBackendKind::None;
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_runtime_storage_debug";
     cmdLine.files.insert(sourcePath);
@@ -1516,7 +1516,7 @@ var GValue: s32 = 7
     CommandLine cmdLine;
     cmdLine.command     = CommandKind::Test;
     cmdLine.buildCfg    = "devmode";
-    cmdLine.backendKind = Runtime::BuildCfgBackendKind::None;
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
     cmdLine.debugInfo   = true;
     cmdLine.name        = "compiler_private_global_debug";
     cmdLine.files.insert(sourcePath);

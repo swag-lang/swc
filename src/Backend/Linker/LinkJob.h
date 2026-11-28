@@ -24,6 +24,7 @@ struct LinkJob
     {
         Executable,
         SharedLibrary,
+        StaticLibrary,
     };
 
     // Inputs filled by prepareLink.
@@ -33,17 +34,27 @@ struct LinkJob
     fs::path          pdbPath; // debug-info sidecar; empty when debug info is disabled
     fs::path          buildDir;
 
-    LinkImage                      image;                     // PE image
-    std::vector<LinkArchiveMember> archiveMembers;            // Prepared ELF link objects
+    LinkImage                      image;                     // Executable / SharedLibrary
+    std::vector<LinkArchiveMember> archiveMembers;            // Static libraries, or prepared ELF link objects
     std::vector<fs::path>          elfLibraries;              // Ordered static/shared ELF library inputs
-    std::vector<fs::path>          elfSearchDirs;             // Foreign-library search
+    std::vector<fs::path>          elfSearchDirs;             // Module dependency and foreign-library search
+    Utf8                           elfRuntimeHook;            // Scoped definition exported by a shared module
     bool                           elfStripSymbols   = false; // Omit non-loaded static symbols; dynamic symbols stay available.
     bool                           elfRuntimeSymbols = true;  // Emit the non-loaded .swagdbg runtime trace table.
     LinkDebugInfo                  debugInfo;                 // self-contained debug records lowered by prepareLink
 
-    // Best-effort cached function data for the next build. It is published only after
-    // the executable links successfully. Cache write failures leave the executable usable.
+    // The archive a shared library publishes beside its DLL, holding the very same code one
+    // function per member so an executable links only what it reaches. Empty path when the build
+    // publishes the image alone.
+    fs::path                       staticLibraryPath;
+    std::vector<LinkArchiveMember> staticLibraryMembers;
+
+    // Best-effort persistent inputs for a later incremental relink. They are published only after
+    // the primary artifact succeeds, and never make an otherwise successful build fail.
+    std::vector<IncrementalObject> incrementalObjects;
     std::vector<IncrementalObject> incrementalCacheFiles;
+    std::vector<Utf8>              incrementalLibraries;
+    bool                           incrementalCachePublished = false;
 
     // Outputs filled by executeLink. On failure, error carries a ready-to-report diagnostic built off
     // the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink

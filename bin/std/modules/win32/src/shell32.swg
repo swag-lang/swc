@@ -1,4 +1,4 @@
-#global public
+#global export
 
 #foreignlib("shell32")
 using Swag

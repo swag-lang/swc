@@ -3,7 +3,7 @@
 //! Role: This file turns non-silent capture PCM into AAC access units without a runtime codec dependency.
 //
 #global namespace Aac
-#global public
+#global export
 
 using Core, Core.Errors, Core.Math
 

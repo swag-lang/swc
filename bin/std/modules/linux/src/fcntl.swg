@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const AT_FDCWD            = -100_s32
 const AT_SYMLINK_NOFOLLOW = 0x100_s32

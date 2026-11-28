@@ -15,7 +15,7 @@ portable resource owners and error contracts. EGL declarations follow the
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Linux"
-    cfg.backendKind     = .None
+    cfg.backendKind     = .Export
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/linux"
 
     cfg.genDoc.kind       = .Api

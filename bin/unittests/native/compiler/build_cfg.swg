@@ -36,7 +36,9 @@ else
 {
     #assert(not Cfg.backend.math.noNaN and not Cfg.backend.math.noInf)
 }
-#assert(Cfg.backendKind == Swag.Build.BackendKind.Executable)
+#assert(Cfg.backendKind == Swag.Build.BackendKind.Executable or
+        Cfg.backendKind == Swag.Build.BackendKind.SharedLibrary or
+        Cfg.backendKind == Swag.Build.BackendKind.StaticLibrary)
 #assert(Cfg.backendSubKind == Swag.Build.BackendSubKind.Default or
         Cfg.backendSubKind == Swag.Build.BackendSubKind.Console)
 

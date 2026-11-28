@@ -198,6 +198,7 @@ Examples (write these as top-level directives):
 #global namespace Example                        // Put declarations in 'Example'.
 #global if DEBUG == true                          // Select the file from a constant.
 #global #[Swag.Safety(.All, true)]                 // Apply the attribute file-wide.
+#global export                                   // Export the file into the module API.
 ```
 
 These are alternatives, not one file's preamble. A named aggregate's members

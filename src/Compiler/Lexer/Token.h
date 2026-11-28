@@ -23,7 +23,8 @@ enum class TokenIdKindE : uint32_t
     Modifier  = 1 << 10,
     Reserved  = 1 << 11,
 
-    // Operand-only intrinsics cannot observe application storage through external state.
+    // Operand-only intrinsics retain their meaning when module APIs re-emit a body
+    // in a consumer. Module state and runtime queries do not.
     Portable            = 1 << 12,
     ArgumentStorageOnly = 1 << 21, // Intrinsic cannot observe application storage outside its operands.
 

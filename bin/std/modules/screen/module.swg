@@ -36,7 +36,7 @@ the caller may reopen it after a display change.
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Screen"
-    cfg.backendKind     = .None
+    cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen"
 
     cfg.genDoc.kind         = .Api

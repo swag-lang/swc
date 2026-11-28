@@ -44,26 +44,12 @@ before relying on them.
 
 ### compiler.build.030 — Skip repeated runtime IR generation
 
-- Evidence: the shared `MachineCodeCache` preserves compatible machine code, unwind data and
-  relocations across script and application builds, with consumer-owned reference fixups.
+- Evidence: automatic `MachineCodeCache` archives preserve runtime/API machine code,
+  unwind data and relocations across executables, with consumer-owned reference fixups.
   Lookup still follows fresh semantic analysis and unoptimized IR generation. Conservative
   global-distance and source-context differences can also produce misses for unchanged sources.
-- Keep per-function machine records shared when their code-generation contracts agree. On
-  the same PNG script with a fresh compiler cache namespace for each order, the second
-  backend reused 1,932 of 1,961 functions in either direction. First runs reused 121–122.
-  Use separate products for a relocatable JIT image and native ELF/COFF objects or executables.
 - Next: move eligible lookup ahead of IR generation using stable body and semantic dependency
   identities, preserving configuration, target, ABI, constants, effects and source provenance.
-  A scalar leaf whitelist covers too little work. Functions with call dependencies account for
-  about 95% of lowering CPU in both a warm `gui1` edit and the PNG script. Use the resolved body
-  representation in compiler.optimization.107 with explicit call targets, frame storage and
-  memory operations. Validate callee ABI and effects, storage layouts and referenced constants
-  before loading emitted code.
-- The machine key covers directly referenced allocations, including readable bytes, pointer
-  slots and allocation identities. Native layout and JIT patching rebind the current pointer
-  graph. This increased warm `gui1` reuse from 9,399 to 9,730 of 9,813 functions in a
-  three-pair Release comparison. The remaining lookup still pays for fresh semantic analysis
-  and Micro lowering.
 - Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
   preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
   fingerprinting and reference fixups.
@@ -226,14 +212,14 @@ before relying on them.
   `NativeBackendBuilder.cpp`) admits only non-debug functions with at least 64
   micro-instructions and no code relocation. Ordinary functions outside that policy still
   regenerate; this per-function incremental cache has no JIT path. The separate automatic
-  `MachineCodeCache` shares compatible non-debug machine code for application, runtime and
-  imported source functions across native and JIT builds, including relocations (compiler.build.030). Lookup still follows
+  `MachineCodeCache` reuses supported non-debug module, runtime and imported-API machine code
+  in native and JIT builds, including relocations (compiler.build.030). Lookup still follows
   fresh IR generation.
   `NativeObjFileWriter` already writes one function per archive member, and the integrated
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.
 - Next: extend reuse to debug information, and move lookup ahead of IR generation using the
-  compiler.build.119 fingerprints rather than a second dependency graph. Measure an
+  compiler.build.120 and compiler.build.119 fingerprints rather than a second dependency graph. Measure an
   adaptive size threshold so that hashing and archiving a small function never costs more
   than its micro passes.
 - Done when: a body-only edit regenerates only the changed function and the functions whose
@@ -241,7 +227,7 @@ before relying on them.
   and warm builds produce byte-identical cache entries and reject compiler, target,
   configuration, ABI, API and optimization changes. The compiler.build.004 edit-build
   workloads show a material win with no measurable clean-build regression.
-- Related: compiler.build.119, compiler.build.004, compiler.build.030.
+- Related: compiler.build.120, compiler.build.119, compiler.build.004, compiler.build.030.
 
 ### compiler.build.041 — Reduce parallel dependency registration to a workspace-suite witness
 
@@ -272,33 +258,43 @@ before relying on them.
 
 ### compiler.build.016 — Tool scripts recompile on every invocation
 
-- Evidence: every `.swgs` invocation lexes, parses and analyzes the script, its `#load` closure
-  and integrated source dependencies. The shared compiler store reuses compatible module setup
-  snapshots and machine code, with code lookup after building the current IR.
+- Evidence: every `.swgs` invocation lexes, parses, analyzes and generates code for the
+  script and its `#load` closure before launching it. Only imported dependency builds are
+  shared, under `<temp>/swag/dep/<hash>/` (`WorkspaceLayout.h`).
 - Next: persist the compiled script artifact under a dependency-complete key (loaded
-  sources, transitive source dependencies, compiler build, target, relevant configuration), and
+  sources, imported public interfaces, compiler build, target, relevant configuration), and
   make cache population atomic.
-- The PNG script spends about 3.27 of 3.62 seconds in sema on a warm run with 1,931 of 1,961
-  machine functions reused. Probe before parsing, after enumerating the source closure. Use
-  the existing native artifact runner for a first `smoke` experiment. Ordinary script runs
-  need a relocatable JIT image containing code, data and lifecycle entry points, with imports,
-  TLS and process addresses rebound at invocation time.
-- Eligibility: attempt the lookup before parsing the full source closure. Include tracked inputs
-  from setup and compiler-time execution. Fall back to the current JIT pipeline when an effect
-  depends on an input that the compiler cannot track. On a hit, bind the current runtime context
-  and forward this invocation's arguments and environment.
-- A warm PNG trace counted 438 explicit `#run` expressions and 2,626 calls to two OGL
-  compiler-message listeners. Four expression closures referenced foreign symbols or globals.
-  Certify actual effects and pointer inputs for expression replay. The listeners also produce
-  compiler-visible state and source. Investigate reusing OGL's generated source by owner and
-  observed extension signatures before treating it as covered by an artifact manifest.
 - Done when: a second unchanged invocation skips lexing, parsing, semantic analysis and code
-  generation. Changes to the script, `#load` inputs, transitive source dependencies, compiler version,
+  generation. Changes to the script, `#load` inputs, imported public APIs, compiler version,
   target or configuration invalidate the artifact. Cached and fresh paths preserve
   diagnostics, forwarded arguments, environment, output and exit code. Tests cover
   transitive loads, imports, configuration changes, corrupt entries and concurrent
   population.
-- Related: compiler.build.119, compiler.build.121, platform.portability.080.
+- Related: compiler.build.120, compiler.build.119, compiler.build.121, platform.portability.080.
+
+### compiler.build.027 — A run-time loaded shared library cannot share the host's runtime
+
+- Evidence: an executable links its whole import closure in, which gives the process one copy of
+  each module and one runtime state. A shared library it loads at run time through
+  `Core.NativeLibrary.load` was built against the shared libraries instead, so it brings a second
+  `core` with it: two allocators, two runtime contexts, and memory that cannot cross between them.
+  Nothing the compiler sees says the load will happen — the library is named by a path the program
+  computes while it runs.
+- Evidence: `runtime_context_dynamic_consumer` faulted with `0xC0000005` after its `#test` passed,
+  at shutdown, once its `core` import resolved to the archive. Pinning that import with
+  `link: "shared-library"` — which the all-or-nothing rule then propagates to the whole closure —
+  makes it pass again, and is now what the module states.
+- Next: decide whether a loaded module can adopt its host's runtime instead. The
+  `__swc_rt_stage` hook already hands an imported module the host's TLS slot and context, and
+  `NativeLibrary.load` could call it the same way; that leaves the loaded module's own `core.dll`
+  allocator as the remaining split, so the question is whether the hook can also install the host's
+  allocator. Until then the rule is the pin, and it is documented on the reference's dependency
+  page.
+- Done when: either a loaded shared library provably shares the host's allocator and context in
+  a workspace test that links its dependencies in, or the backlog records why it cannot and the
+  compiler diagnoses the combination it can see.
+
+---
 
 ### compiler.build.083 — Define an embeddable compiler driver boundary
 
@@ -420,59 +416,84 @@ before relying on them.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
 
-### compiler.build.119 — Invalidate front-end work at source-file granularity
+### compiler.build.119 — Front-end invalidation is module-wide
 
-- Evidence: front-end state is not persisted. Semantic analysis replaces expressions and
-  appends generated nodes to the per-file AST, and `SourceFile::setContent` rejects a change
-  once an AST owns the source view. Append-only symbol maps keep retired declaration ASTs
-  alive. Read, lex and parse jobs used 405 ms of worker time for `gui1` and 247 ms for the PNG
-  script in four-worker DevMode compiler runs targeting Release. The warm `gui1` sample placed
-  parsing below 1% of CPU.
-- Next: separate immutable per-file parse results from semantic substitutions. Key disk
-  entries by source content and parse configuration, and measure file read, decode, AST
-  reconstruction, and peak memory on the integrated source graph. Start with offset-based
-  token records. Typed AST reconstruction must bind the current source view and rerun the
-  module-wide inlining policy. Equivalent token streams can share syntax when spacing and
-  line-boundary flags agree.
-- Done when: adding, removing, or renaming files, and changing configuration or compiler
-  version, give fresh and reused builds the same inputs and diagnostics. Reuse measurably
-  reduces parse costs in a representative executable build.
-- Related: compiler.build.122, compiler.build.004, compiler.build.003,
-  compiler.build.016.
+- Evidence: front-end state is not persisted, so editing one private function rebuilds
+  every file of its module. The AST is not an immutable parse cache. Semantic
+  analysis replaces expressions and appends generated nodes to the per-file AST, and
+  `SourceFile::setContent` rejects a change once an AST owns the source view. Invalidation needs the dependencies each file observed.
+  Append-only symbol maps also keep retired declaration ASTs alive.
+- Next: separate an immutable per-file parse result from semantic substitutions. Then persist
+  lexical, parsed and semantic state per file, keyed by source content, relevant
+  configuration and fingerprints of the imported public symbols the file observed.
+- Done when: a private-body edit reanalyzes only the changed file and its semantic
+  dependents. A public-signature change invalidates every consumer that observed it.
+  Adding, removing or renaming a file, or changing configuration or compiler version,
+  invalidates the correct state. Editing one private function is measurably cheaper than a
+  clean module rebuild, and equivalent-result tests cover both builds.
+- Related: compiler.build.120, compiler.build.004, compiler.build.003, compiler.build.016.
+
+### compiler.build.120 — Replace generated dependency source with a reusable module interface
+
+- Evidence: `CompilerInstance::appendImportedApiSnapshot` creates an `ImportedApi` source
+  file for every published API source. `Command::sema` sends those files through
+  `parseSourceFiles`, declaration sema, and full sema in each consumer. Dependency source
+  snapshots and native artifact reuse do not preserve the resolved interface for a consumer
+  that needs recompilation. `canDelayImportedFunctionBody` already defers eligible free
+  function bodies, but excludes methods, interface implementations and other
+  context-sensitive cases. Restoring methods' declaration contexts is insufficient by itself:
+  delayed `ConcatBuffer.addBytes` and `reserveInPlace` can remain unresolved when native/JIT
+  preparation waits on their semantic completion through allocation-failure reporting.
+  Repeated closure application remains a local lead: a per-consumer capture set improves
+  a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
+  overall in Release despite neutral setup timing.
+  Parse-image prototypes still required original source loading and a fresh semantic pass;
+  their read and reconstruction costs did not establish a whole-command gain.
+  `MachineCodeCache` preserves supported compiled bodies, while imported declaration and
+  type resolution remain fresh.
+- Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
+  work separately from consumer sources on a small consumer, a large module graph, and a
+  diamond dependency, including consumers of the core, pixel and gui API closures. Compare
+  cold and warm imports with both compiler executables. Use
+  that baseline to prototype a versioned binary interface for resolved non-generic
+  declarations; retain the source import path for unsupported declarations while expanding
+  coverage. Before widening lazy imported methods, close body materialization across cyclic
+  method/free-function calls, then verify both compile-time execution and native presolve.
+  Account for whole-command effects before adopting per-capture closure deduplication.
+- Interface contract: preserve namespace and overload membership, exported and supporting
+  symbols, canonical type identity, layouts, constants and default arguments, attributes
+  including safety/borrow contracts, interface implementations, ABI/link identities, and
+  source provenance. Index declarations for selective materialization without hiding
+  overloads or implementations from lookup. Keep generic templates and required
+  inline/macro/mixin bodies in separately indexed sections; instantiate or expand them in
+  the consumer context when required. Resolved ordinary bodies can later use the typed-body
+  representation from compiler.optimization.107. Importing metadata must not replay module
+  setup or compile-time side effects; requested compile-time calls retain their execution
+  behavior. Keep readable `.swg` export for inspection and compatibility.
+- Ownership: compiler instances own their identifier, type and constant managers, and symbols
+  point into mutable ASTs. Serialize stable interface-local identities and remap them into
+  the consumer; do not persist raw pointers or share live semantic state across consumers.
+  Reuse immutable interface bytes within a workspace invocation, with consumer-owned
+  materialization and generic-instance state.
+- Cache/publication: validate format and compiler identity, target/ABI, relevant configuration,
+  exported content including required bodies, and transitive interface fingerprints. Publish
+  the interface with the matching API/native artifact generation under the existing
+  publication protocol. Reject partial, corrupt or incompatible entries; use a complete
+  matching source API or rebuild rather than mixing generations.
+- Done when: supported workspace imports skip API lexing, parsing and declaration sema;
+  complete coverage removes the generated-source import path from ordinary builds. Warm
+  imports show lower wall time and peak memory on the measured consumers. Fresh and reused
+  paths preserve diagnostics, source locations, overload resolution, generic/inline/macro
+  behavior, compile-time execution and native behavior. Workspace regressions cover diamond
+  dependencies, configuration and transitive API/body changes, stale/corrupt entries and
+  concurrent publication under both compiler executables with real parallelism.
+- Related: compiler.build.119, compiler.build.121, compiler.query.001, compiler.build.030, compiler.optimization.107.
 
 ### compiler.build.121 — Reuse analyzed prelude state
 
-- Evidence: each compiler process analyzes the unchanged runtime prelude before compiling
-  an application or script. Machine-code archives amortize backend emission, while
-  loading, parsing, and analyzing runtime sources still repeat for each instance.
-- Next: apply the source and semantic disk caches to the prelude, with source, compiler,
-  target, and relevant configuration in the keys.
-- Done when: warm executable builds and script launches skip reusable prelude analysis
-  and agree with fresh builds on diagnostics and artifacts.
-- Related: compiler.build.119, compiler.build.122, compiler.build.004,
-  compiler.build.016.
-
-### compiler.build.122 — Compile source dependencies into executables
-
-- Evidence: application builds resolve standard dependencies from their original sources.
-  Explicit binary imports and legacy library targets still use generated API publication.
-  The standard workspace still describes its namespace groups as separately buildable artifacts.
-- Next: replace the standard workspace's library targets with one source distribution.
-  Keep namespace entry points, explicit source dependencies, target selection, resources, and
-  documentation metadata. Convert the remaining binary-import fixtures to source imports or
-  to native foreign-library fixtures where they exercise the platform ABI.
-- Migration: remove Swag library output modes, generated API imports and publication,
-  and cross-artifact Swag runtime glue after migrating the remaining commands and packaging.
-  Keep filtering test cases by their owning source group and loading external native libraries.
-- Incremental builds: persist reusable data on disk between independent compiler invocations.
-  Start with exact input tracking for no-op builds and native code reuse. Extend reuse to
-  parsed files and semantic work as measurements justify it. Track symbol lookup and
-  overload sets, layouts, generic instances, inlined bodies, and compiler hook inputs
-  wherever reuse depends on them. Bring prelude caching under the same source model.
-- Done when: Swag builds only executables, each with one runtime and its transitive source
-  dependencies. The standard library, official applications, tools, and tests build on
-  Linux and Windows, including native foreign imports, compiler hooks and safety checks.
-  Fresh and incremental builds agree on behavior and diagnostics. Paired cold, no-op,
-  application edit, private standard source edit, and second-application runs report wall
-  time, peak memory, and artifact size on identical sources and isolated caches.
-- Related: compiler.build.119, compiler.build.121, compiler.build.004.
+- Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
+  a module or script. Machine-code archives amortize backend emission, but original runtime
+  source loading, lexing, parsing and semantic analysis still repeat for each instance.
+- Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
+- Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
+- Related: compiler.build.120, compiler.build.004, compiler.build.016.

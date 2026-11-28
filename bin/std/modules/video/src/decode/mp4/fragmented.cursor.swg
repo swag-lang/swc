@@ -4,7 +4,7 @@
 //! Role: This file walks compressed MP4 packets with memory independent of recording duration.
 //
 #global namespace Mp4
-#global public
+#global export
 
 using Core, Core.Errors
 

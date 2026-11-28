@@ -1,4 +1,4 @@
-#import("artifact_name_provider")
+#import("artifact_name_provider", link: "static-library")
 
 #run
 {

@@ -55,7 +55,7 @@ before parsing; WOFF2 containers remain unsupported.
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "TrueType"
-    cfg.backendKind     = .None
+    cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype"
 
     cfg.genDoc.kind       = .Api

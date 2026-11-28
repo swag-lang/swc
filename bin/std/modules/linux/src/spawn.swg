@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const POSIX_SPAWN_RESETIDS   = 0x01_s16
 const POSIX_SPAWN_SETPGROUP  = 0x02_s16

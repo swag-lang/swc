@@ -1,14 +1,14 @@
 # Getting started
 
-The Swag toolchain runs on Windows and Linux and targets x86-64. The compiler is
-named `swc`, and the language is named Swag.
+The current Swag toolchain runs on Windows and targets x86-64. The compiler is
+named `swc`; `Swag` is the language name.
 
 > NOTE:
 > The current `swc` repository does not publish binary releases. Build the
 > compiler from source, then keep the repository's `bin` directory with its
 > runtime and standard workspace.
 
-## Install the compiler on Windows
+## Install the compiler
 
 1. Clone [swag-lang/swc](https://github.com/swag-lang/swc).
 2. Follow [Build Swag from source](how-to-build-swag.html). The project pins the
@@ -21,8 +21,9 @@ The setup script adds the repository's `bin` directory to the user
 `swc.exe` finds `bin/runtime` and `bin/std` beside itself,
 so `SWAG_PATH` matters only for a compiler installed away from its library.
 
-Keep the Windows SDK and Visual Studio libraries installed for native linking.
-On Linux, follow the [Linux compiler build](https://github.com/swag-lang/swc/blob/master/tools/README.md#linux-compiler-build) instructions.
+The compiler invokes the Microsoft x64 linker and Windows SDK tools when it
+produces native artifacts, so keep the Visual Studio C++ workload installed
+after building `swc`.
 
 ## Run a first script
 
@@ -45,11 +46,12 @@ overwrites an existing path. The generated source is:
 
 A script is compiled and executed through the JIT. It does not leave an
 executable beside the source. See [Scripting with Swag](swag-as-script.html)
-for imports, additional files, and arguments.
+for imports, additional files, arguments, and the script cache.
 
 ## Create a workspace module
 
-Use a workspace to group executable targets and their reusable sources.
+Use a workspace when the program has modules, produces a native artifact, or
+will be consumed by another module:
 
 ```text
 swc new module hello
@@ -71,12 +73,13 @@ hello/
 selects an executable backend; `src/main.swg` contains the same `#main` hook as
 the script example.
 
-Compilation writes two directories at the workspace root.
+Compilation owns three generated directories at the workspace root:
 
 | Directory | Contents |
 |---|---|
-| `.output/` | Executables and optional debug information, grouped by configuration |
-| `.tmp/` | Compilation intermediates and caches |
+| `.output/` | Native artifacts and exported module APIs, grouped by configuration |
+| `.tmp/` | Intermediate compiler and native-tool files |
+| `.dep/` | Materialized APIs and native artifacts for dependencies outside the workspace |
 
 Add another module without replacing the workspace:
 
@@ -109,9 +112,8 @@ the standard `core` module:
 #import("core", location: "swag@std")
 ```
 
-The executable's compilation includes Core and its source dependencies. Source
-files can use qualified names such as `Core.String` or bring names into scope with
-`using Core`.
+Source files can then use qualified names such as `Core.String`, or bring
+selected names into scope with `using Core`.
 
 ## Continue learning
 

@@ -10,7 +10,7 @@ func editExplorerLocation(journey: *ScopeJourney)
     let first = Path.combine(journey.root, "First")
     let next  = Path.combine(journey.root, "Next folder")
     expect Directory.create(first)
-    expect Directory.create(Path.combine(next, "Destination child"), recurse: true)
+    expect Directory.create(next)
     journey.window.openExplorer(first)
     let explorer = unwrap journey.window.explorer
     journey.waitFor("first folder", func|explorer, first = first.toString()|()->bool => not explorer.load.started and Path.equals(explorer.listing.path, first))
@@ -41,11 +41,7 @@ func editExplorerLocation(journey: *ScopeJourney)
     Swag.require(Path.equals(explorer.listing.path, first))
     address.edit.setText("../Next folder")
     input.shortcut(.Return, .None)
-
-    // The listing identifies the destination even when the native path keeps its '..' component.
-    journey.waitFor("edited folder", func|explorer|()->bool => not explorer.load.started and
-                                                               explorer.entries.count == 1 and
-                                                               explorer.entries[0].name == "Destination child")
+    journey.waitFor("edited folder", func|explorer, next = next.toString()|()->bool => not explorer.load.started and Path.equals(explorer.listing.path, next))
     Swag.require(not address.edit.isLocallyVisible())
 }
 

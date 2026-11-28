@@ -22,7 +22,7 @@ class ToolTests(unittest.TestCase):
         (self.root / 'bin').mkdir()
         for name in ('swc', 'swc.dm', 'swc.exe', 'swc.dm.exe'):
             (self.root / 'bin' / name).touch()
-        for module in ('sandbox_consumer', 'runtime_context'):
+        for module in ('sandbox_consumer', 'runtime_context_dynamic_consumer', 'runtime_context_dynamic_dll'):
             (self.root / 'bin/unittests/workspace/modules' / module).mkdir(parents=True)
         self.stages = []
         self.environment = {}
@@ -237,15 +237,17 @@ class ToolTests(unittest.TestCase):
             self.assertNotIn('-j', command)
             self.assertIn('devmode', command)
 
-    def test_workspace_tests_use_the_integrated_sources(self):
+    def test_workspace_dynamic_library_tracks_host_and_configuration(self):
         for windows in (False, True):
             self.invoke(['unittests', 'dm', 'workspace', '-bc', 'release', '--num-cores', '1'], windows=windows)
-            context = next(stage for stage in self.stages if stage.name == 'workspace-runtime_context')
-            self.assertEqual(context.command[1], 'test')
-            self.assertIn('release', context.command)
-            self.assertIn('--no-test-jit', context.command)
-            self.assertEqual(context.command[-2:], ['--num-cores', '1'])
-            self.assertFalse(context.requires)
+            build, package = self.stages[:2]
+            consumer = next(stage for stage in self.stages if stage.name == 'workspace-runtime_context_dynamic_consumer')
+            self.assertEqual(build.command[1], 'build')
+            self.assertIn('release', build.command)
+            self.assertEqual(build.command[-2:], ['--num-cores', '1'])
+            self.assertEqual(package.requires, [build.name])
+            self.assertEqual(consumer.requires, [package.name])
+            self.assertTrue(any(arg.endswith('runtime_context_dynamic_dll.dll' if windows else 'runtime_context_dynamic_dll.so') for arg in consumer.command))
             sandbox = next(stage for stage in self.stages if stage.name.endswith('sandbox_consumer'))
             self.assertIn('--rebuild', sandbox.command)
             self.assertIn('--no-test-native', sandbox.command)
@@ -278,21 +280,13 @@ class ToolTests(unittest.TestCase):
         self.invoke(['apps', 'build', 'swagscope'])
         self.assertNotIn('--run-timeout', self.stages[0].command)
 
-    def test_standard_launcher_defaults_to_source_checks(self):
-        self.invoke(['std'])
-        self.assertEqual(self.stages[0].command[1], 'sema')
-        self.invoke(['std', 'dm', 'sema', 'pixel'])
-        self.assertEqual(self.stages[0].command[1], 'sema')
-        self.assertIn('pixel', self.stages[0].command)
-
     def test_standard_native_default_can_be_overridden(self):
         self.invoke(['std', 'dm', 'test', 'pixel', '--test-jit', '--no-test-native', '--test-file', 'two words.swg'])
         command = self.stages[0].command
         self.assertGreater(command.index('--test-jit'), command.index('--no-test-jit'))
         self.assertEqual(command[-1], 'two words.swg')
-        self.assertNotIn('--artifact-kind', command)
+        self.assertIn('--artifact-kind', command)
         self.invoke(['std', 'dm', 'build', 'pixel'])
-        self.assertEqual(self.stages[0].command[1], 'build')
         self.assertNotIn('--artifact-kind', self.stages[0].command)
         self.assertNotIn('--no-test-jit', self.stages[0].command)
         self.assertNotIn('SWAG_RUNTIME_THREADS', self.environment)

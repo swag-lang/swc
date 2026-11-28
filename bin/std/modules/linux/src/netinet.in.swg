@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const IPPROTO_TCP        = 6_s32
 const IPPROTO_UDP        = 17_s32

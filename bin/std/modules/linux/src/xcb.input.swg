@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // Core X11 input-event layouts from xcb/xproto.h. Coordinates are signed client or root
 // pixels; timestamps and state masks retain their native protocol meanings. Events returned

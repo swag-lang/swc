@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // RandR 1.5 monitor queries; load libxcb-randr.so.0 and negotiate the version first.
 // Replies and errors use libc free; function pointers borrow their dynamic library.

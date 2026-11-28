@@ -1,4 +1,4 @@
-#global public
+#global export
 
 #foreignlib("kernel32")
 using Swag

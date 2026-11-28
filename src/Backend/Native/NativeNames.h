@@ -15,8 +15,10 @@ inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
 Utf8 nativeArtifactScopeName(const CompilerInstance& compiler);
 Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, std::string_view baseName);
 Utf8 nativeScopedSectionBaseSymbol(uint32_t scopeHash, std::string_view baseName);
+Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, uint32_t emittedOffset);
 inline constexpr std::string_view K_TYPE_METADATA_SYMBOL_PREFIX = "__swc_rdata_type_";
 inline constexpr std::string_view K_TYPE_IDENTITY_SYMBOL_PREFIX = "__swc_rdata_type_identity_";
+Utf8                              nativeScopedRDataAllocationSymbol(uint32_t scopeHash, uint32_t emittedOffset, DataSegmentAllocationKind kind);
 // The first relocation of a sealed identity is its compiler-defined runtime
 // layout (e.g. Swag.TypeInfoStruct). A layout is the same across modules even
 // when their private initializers have different addresses.

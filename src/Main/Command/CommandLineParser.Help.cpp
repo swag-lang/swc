@@ -179,9 +179,9 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     {
         entries.clear();
         addInfoEntry(entries, "Installation", "Show the executable, resource folders, standard modules, and SWAG_PATH");
-        addInfoEntry(entries, "Caches", "Show absolute paths for the shared compilation cache and legacy script cache");
+        addInfoEntry(entries, "Caches", "Show absolute paths for dependency copies, machine code, and legacy script caches");
         addInfoEntry(entries, "Native toolchain", "Show the MSVC and Windows SDK libraries selected by the compiler");
-        addInfoEntry(entries, "--workspace <path>", "Also show this workspace's source, output, and intermediate folders");
+        addInfoEntry(entries, "--workspace <path>", "Also show this workspace's output, intermediate, and dependency folders");
         addInfoEntry(entries, "--workspace-module <name>", "Show output and intermediate folders for one workspace module");
         addInfoEntry(entries, "--module <path>", "Also show this module's output and intermediate folders");
         addInfoEntry(entries, "Inspection", "Read the installation without compiling sources or creating folders");

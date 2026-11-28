@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 // XCB image, visual and window-query layouts from libxcb 1.17 and XFixes headers.
 // Function pointers borrow the loaded library; reply/error buffers use libc free.

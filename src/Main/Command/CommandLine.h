@@ -208,6 +208,7 @@ struct CommandLine
 
     // Internal dependency builds select several roots at once and keep reusable nodes out of the
     // normal report. No command-line option writes either field.
+    bool workspaceDependencyBuild = false;
 
 #if SWC_HAS_UNITTEST
     bool verboseUnittest = false;
@@ -264,16 +265,25 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
+    std::set<Utf8>     importApiModules;
+    std::set<fs::path> importApiDirs;
+    std::set<fs::path> importApiFiles;
 
     fs::path configFile;
     fs::path newScriptPath;
     fs::path moduleFilePath;
     fs::path modulePath;
     fs::path workspacePath;
+    fs::path exportApiDir;
     fs::path docOutputDir;
     fs::path outDir;
     fs::path workDir;
 
+    // Where a shared-library module also publishes the static archive built from the very same
+    // objects, so an executable can link its code in instead of importing it from the DLL. The
+    // DLL still ships: it is what the compiler loads to run this module's code at compile time.
+    // Empty for every build that publishes one artifact only.
+    fs::path          staticLibraryOutDir;
     Runtime::BuildCfg defaultBuildCfg{};
     NewProjectKind    newProjectKind = NewProjectKind::Invalid;
 };
@@ -317,8 +327,6 @@ inline Runtime::BuildCfgBackendKind effectiveBackendKind(const CommandLine& cmdL
 {
     if (cmdLine.artifactKindExplicit)
         return cmdLine.backendKind;
-    if (cmdLine.command == CommandKind::Test)
-        return Runtime::BuildCfgBackendKind::Executable;
     return currentKind;
 }
 

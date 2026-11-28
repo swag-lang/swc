@@ -64,8 +64,8 @@ on.
 The rule is not confined to one function body. Each function carries a summary of what
 it does with the storage its parameters view: whether the result borrows a parameter,
 whether the callee keeps one, whether it frees one, whether it can move what a parameter
-owns. The compiler infers and follows these summaries through wrappers, including calls
-into source dependencies.
+owns. Summaries are inferred, never written, they chain through wrappers, and they cross
+module boundaries in the generated module API (the 'Swag.BorrowSummary' attribute).
 
 The call site is then judged against what was really passed in. Wrapping a borrowing
 function does not hide the borrow.

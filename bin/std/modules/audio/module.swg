@@ -78,7 +78,7 @@ encodings fail instead of being guessed.
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Audio"
-    cfg.backendKind     = .None
+    cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio"
 
     cfg.genDoc.kind         = .Api

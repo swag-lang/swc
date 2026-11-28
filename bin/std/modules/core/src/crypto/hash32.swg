@@ -92,11 +92,11 @@ public func(T) hash32(value: T)->u32
     }
     else if Reflection.isStruct(T) and #defined(T.IHash32)
     {
-        return T.IHash32.compute(value)
+        #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
     }
     else if Reflection.isStruct(T) and #defined(T.IHash64)
     {
-        return cast(u32, T.IHash64.compute(value))
+        #ast("return cast(u32, ", #typeof(T).fullname, ".IHash64.compute(value))")
     }
     else if Reflection.hasDynamicStorage(T) or containsContentString(T)
     {

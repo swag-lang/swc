@@ -1,4 +1,4 @@
-#run { Swag.assert(TransitiveMiddle.value() == 5) }
+#run { Swag.assert(TransitiveMiddle.value() == 12) }
 #main
 {
     Swag.assert(TransitiveMiddle.value() == 12)

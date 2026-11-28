@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const POLLIN   = 0x001_s16
 const POLLOUT  = 0x004_s16

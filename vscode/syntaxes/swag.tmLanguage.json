@@ -315,7 +315,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor",
-          "match": "(#)(global)\\s+(using|namespace|public|private|internal)\\b",
+          "match": "(#)(global)\\s+(using|export|namespace|public|private|internal)\\b",
           "captures": {
             "3": {
               "name": "constant.character.escape"

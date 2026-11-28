@@ -1,4 +1,4 @@
-#global public
+#global export
 
 // Identifies which Internet Protocol address family an address uses.
 enum AddressFamily

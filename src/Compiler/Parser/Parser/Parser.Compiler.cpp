@@ -415,11 +415,18 @@ AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
 AstNodeRef Parser::parseCompilerGlobal()
 {
     auto [nodeRef, nodePtr]       = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
+    const std::string_view tokStr = tok().string(ast_->srcView());
 
     nodePtr->spanNameRef.setInvalid();
     nodePtr->nodeModeRef.setInvalid();
 
-    if (is(TokenId::SymAttrStart))
+    if (tokStr == Token::toName(TokenId::KwdExport))
+    {
+        nodePtr->mode        = AstCompilerGlobal::Mode::Export;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
+        consume();
+    }
+    else if (is(TokenId::SymAttrStart))
     {
         nodePtr->mode             = AstCompilerGlobal::Mode::AttributeList;
         nodePtr->nodeModeRef      = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
@@ -486,20 +493,29 @@ AstNodeRef Parser::parseCompilerImport()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokModuleNameRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokLocationRef   = TokenRef::invalid();
+    nodePtr->tokLinkRef       = TokenRef::invalid();
+    nodePtr->tokVersionRef    = TokenRef::invalid();
 
-    if (consumeIf(TokenId::SymComma).isValid())
+    while (consumeIf(TokenId::SymComma).isValid())
     {
-        if (tok().string(ast_->srcView()) == Token::toName(TokenId::KwdLocation))
-        {
-            consume();
-            expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->tokLocationRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-        }
+        TokenRef*              targetRef = nullptr;
+        const std::string_view tokStr    = tok().string(ast_->srcView());
+        if (tokStr == Token::toName(TokenId::KwdLocation))
+            targetRef = &nodePtr->tokLocationRef;
+        else if (tokStr == Token::toName(TokenId::KwdLink))
+            targetRef = &nodePtr->tokLinkRef;
+        else if (tokStr == Token::toName(TokenId::KwdVersion))
+            targetRef = &nodePtr->tokVersionRef;
         else
         {
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
-            skipTo({TokenId::SymRightParen});
+            skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            continue;
         }
+
+        consume();
+        expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+        *targetRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

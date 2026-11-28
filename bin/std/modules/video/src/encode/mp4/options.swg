@@ -3,7 +3,7 @@
 //! Not supported: H.264 encoding, audio tracks, fragmented/encrypted media, edit lists, and metadata beyond the emitted core boxes.
 //! Role: This file owns public MP4 Motion JPEG encoder options.
 //
-#global public
+#global export
 #global namespace Mp4
 
 // Configures the Motion JPEG samples of an encoded MP4 stream.

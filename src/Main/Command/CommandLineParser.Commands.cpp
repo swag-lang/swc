@@ -69,10 +69,23 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Input, "info new clean sema doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Use modules/<name> source groups from this workspace. Store outputs and intermediates under .output and .tmp");
+        "Use modules/<name>/module.swg and modules/<name>/src in this workspace; new creates it when absent, info reports its folders, and compilation writes .output/.tmp; excludes --module, --module-file, --directory, and --file");
     add(HelpOptionGroup::Input, "info clean sema doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
-        "With --workspace, select the named target and its transitive source dependencies");
+        "With --workspace, select this module and its internal workspace dependencies; info reports its folders");
+
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-module", nullptr,
+        &cmdLine_->importApiModules,
+        "Resolve a generated public API dependency by module name through <compiler-root>/std/.output/<module>/<matching-config>");
+    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-dir", nullptr,
+        &cmdLine_->importApiDirs,
+        "Add a read-only dependency root containing generated public API files (.swg/.swgs) under <module>/<backend>/<build-cfg>/<arch>");
+    add(HelpOptionGroup::Input, "syntax sema doc test build run smoke", "--import-api-file", nullptr,
+        &cmdLine_->importApiFiles,
+        "Add one generated public API file (.swg/.swgs) to the compilation input");
+    add(HelpOptionGroup::Input, "sema doc build run smoke", "--export-api-dir", nullptr,
+        &cmdLine_->exportApiDir,
+        "Write the module public API to this directory after a successful semantic pass");
 
     addEnum(HelpOptionGroup::Target, "syntax sema doc test build run smoke", "--os", nullptr,
             &cmdLine_->targetOs,
@@ -97,9 +110,11 @@ void CommandLineParser::registerCommands()
             &cmdLine_->backendKind,
             {
                 {"executable", Runtime::BuildCfgBackendKind::Executable},
-                {"source", Runtime::BuildCfgBackendKind::None},
+                {"shared-library", Runtime::BuildCfgBackendKind::SharedLibrary},
+                {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
+                {"export", Runtime::BuildCfgBackendKind::Export},
             },
-            "Select an executable or a source-only group",
+            "Select the backend kind exposed through Swag.compiler().getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
 
@@ -164,17 +179,17 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
-        "Recompile each selected target and its source dependencies without reusing cached results");
+        "Recompile selected modules and their dependencies even when their outputs are up to date");
     add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--rebuild-module", nullptr,
         &cmdLine_->rebuildModule,
-        "Recompile the selected target while reusing eligible source dependency setups");
+        "Recompile only the module named by '--workspace-module'; rebuild stale dependencies as usual");
 
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,
-        "Remove compiler caches kept outside workspaces, including legacy dependency copies");
+        "Remove dependency copies and binary compiler caches kept outside workspaces");
     add(HelpOptionGroup::Input, "clean", "--cache-days", nullptr,
         &cmdLine_->cleanCacheDays,
-        "Remove only legacy dependency copies unused for at least this many days");
+        "Restrict --cache to the copies no run has used for at least this many days");
 
     add(HelpOptionGroup::Compiler, "doc", "--output-doc", nullptr,
         &cmdLine_->outputDoc,

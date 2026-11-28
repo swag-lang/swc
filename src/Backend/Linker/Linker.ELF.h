@@ -13,6 +13,7 @@ public:
     {
     }
     Result      prepareLink(LinkJob& outJob) override;
+    Result      tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
     static void execute(LinkJob& job);
 
 private:

@@ -198,6 +198,19 @@ namespace
         addPersistedUsingSymMaps(lookup, symMap, priority);
     }
 
+    const SymbolMap* importedApiModuleRoot(Sema& sema, const SymbolMap* importRoot)
+    {
+        const SourceFile* file = sema.file();
+        if (!file || !file->isImportedApi() || !importRoot)
+            return nullptr;
+
+        const auto nsPath = sema.frame().nsPath();
+        if (nsPath.empty())
+            return nullptr;
+
+        return followNamespacePath(importRoot, nsPath.first(1));
+    }
+
     // Most structs have no using field. Avoid walking fields or filling the visited set
     // until there is a using target to follow.
     Result addUsingMemberSymMaps(Sema& sema, SymMapLookup& lookup, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
@@ -359,8 +372,9 @@ namespace
             addPersistedUsingSymMaps(lookup, fileNamespace, fileRootPriority);
         }
 
-        // Source groups have their own namespace root. Qualified dependencies are
-        // available through the application-wide import root.
+        // Imported modules keep their namespace hierarchy under the import root.
+        // Imported API files resolve relative names there too, so walk their current
+        // namespace path from that root (for example, Lib.Math.Point in lib.swg).
         const SymbolNamespace* importRoot = sema.compiler().importRootNamespace();
         if (importRoot == &sema.moduleNamespace())
             importRoot = nullptr;
@@ -370,7 +384,14 @@ namespace
         if (importRoot)
             addNamespacePathSymMap(sema, lookup, importRoot, modulePathPriority);
 
-        const uint16_t moduleRootDepth = static_cast<uint16_t>(scopeDepth + 2);
+        uint16_t moduleRootDepth = static_cast<uint16_t>(scopeDepth + 2);
+        if (const SymbolMap* importedModuleRoot = importedApiModuleRoot(sema, importRoot))
+        {
+            const MatchPriority importedModuleRootPriority{.scopeDepth = moduleRootDepth++, .visibility = VisibilityTier::ModuleNamespace};
+            addSymMap(lookup, importedModuleRoot, importedModuleRootPriority);
+            addPersistedUsingSymMaps(lookup, importedModuleRoot, importedModuleRootPriority);
+        }
+
         if (!atNamespaceRoot)
         {
             const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
@@ -388,14 +409,9 @@ namespace
         return Result::Continue;
     }
 
-    void lookup(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
+    void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         lookUpCxt.resetCandidates();
-        if (sema.compiler().hasSourceDependencies())
-        {
-            const SourceFile* site = sema.compiler().sourceViewFile(lookUpCxt.codeRef.srcViewRef);
-            lookUpCxt.setSourceAccess(sema.compiler(), site ? site : sema.file());
-        }
 
         for (const auto& [symMap, priority] : lookUpCxt.symMaps)
         {
@@ -456,15 +472,7 @@ void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::v
     if (collect(sema, lookUpCxt, IdentifierRef::invalid()) != Result::Continue)
         return;
 
-    if (sema.compiler().hasSourceDependencies())
-    {
-        const SourceFile* site = sema.compiler().sourceViewFile(codeRef.srcViewRef);
-        lookUpCxt.setSourceAccess(sema.compiler(), site ? site : sema.file());
-    }
-
     const auto append = [&](const Symbol& symbol) {
-        if (!lookUpCxt.canSeeSourceSymbol(symbol))
-            return;
         const std::string_view name = symbol.name(sema.ctx());
         if (!name.empty() && !name.starts_with("__"))
             out.emplace_back(name);
@@ -492,7 +500,7 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 
     while (true)
     {
-        lookup(sema, lookUpCxt, idRef);
+        lookup(lookUpCxt, idRef);
         preferOwnModuleNamespace(sema, lookUpCxt, idRef);
         if (lookUpCxt.blockedByIgnored())
             return Result::Error;
@@ -587,7 +595,7 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
     lookUpCxt.noWaitOnEmpty = true;
 
     SWC_RESULT(collect(sema, lookUpCxt, idRef));
-    lookup(sema, lookUpCxt, idRef);
+    lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
         return Result::Continue;
 
@@ -624,7 +632,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         lookUpCxt.symMapHint = sym.ownerSymMap();
 
     collect(sema, lookUpCxt, sym.idRef());
-    lookup(sema, lookUpCxt, sym.idRef());
+    lookup(lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
         return sema.waitIdentifier(sym.idRef(), sym.codeRef());
 

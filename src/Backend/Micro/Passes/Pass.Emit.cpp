@@ -269,7 +269,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             }
 
             const CompilerInstance& compiler = context.builder->ctx().compiler();
-            if (compiler.cmdLine().targetOs == Runtime::TargetOs::Linux &&
+            if (compiler.cmdLine().targetOs == Runtime::TargetOs::Linux && !compiler.cmdLine().scriptMode &&
+                Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind) &&
                 (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress))
             {
                 // A GOT load keeps external pointer identity; the ELF linker may relax
@@ -344,20 +345,34 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             else
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
 
-            // The linker and JIT both resolve direct branches. The JIT supplies a nearby
-            // thunk for a target outside rel32 reach.
-            const uint32_t callStart = encoder.size();
-            relocation.form          = MicroRelocation::Form::Relative32;
-            if (inst.op == MicroInstrOpcode::TailCall)
+            const bool              tail           = inst.op == MicroInstrOpcode::TailCall;
+            const CompilerInstance& compiler       = context.builder->ctx().compiler();
+            const bool              nativeArtifact = !compiler.cmdLine().scriptMode && Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind);
+            if (nativeArtifact)
             {
-                MicroJump jump;
-                encoder.encodeJump(jump, MicroCond::Unconditional, MicroOpBits::B32);
+                const uint32_t callStart = encoder.size();
+                relocation.form          = MicroRelocation::Form::Relative32;
+                if (tail)
+                {
+                    MicroJump jump;
+                    encoder.encodeJump(jump, MicroCond::Unconditional, MicroOpBits::B32);
+                }
+                else
+                {
+                    encoder.encodeCallRelative(relocation.targetSymbol, ops[0].callConv);
+                }
+                bindRel32RelocationOffset(context, instructionRef, callStart, encoder.size());
+                break;
             }
+
+            const CallConv& conv      = CallConv::get(ops[0].callConv);
+            const uint32_t  loadStart = encoder.size();
+            encoder.encodeLoadRegImm(conv.intReturn, ApInt(relocation.targetAddress, 64), MicroOpBits::B64);
+            bindAbs64RelocationOffset(context, relocationIndex, loadStart, encoder.size());
+            if (tail)
+                encoder.encodeJumpReg(conv.intReturn);
             else
-            {
-                encoder.encodeCallRelative(relocation.targetSymbol, ops[0].callConv);
-            }
-            bindRel32RelocationOffset(context, instructionRef, callStart, encoder.size());
+                encoder.encodeCallReg(conv.intReturn, ops[0].callConv);
             break;
         }
         case MicroInstrOpcode::CallIndirect:

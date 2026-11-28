@@ -41,8 +41,10 @@ func largerByteCount(left, right: u64)->u64 => Swag.max(left, right)
 }
 
 /**
-These private examples become eligible for documentation when their declarations
-are public. Use '#global public' to set the default access for a source file.
+These declarations are private examples. In a reusable API source file, write
+'#global export' for a uniformly exported surface, or use the visibility required
+by each declaration. Public visibility and documentation are separate decisions:
+a comment does not publish a private declaration.
 
 # Fields, Enum Cases, and Methods
 
@@ -173,11 +175,13 @@ automatically when the target is known.
 
 # Choosing What Appears
 
-API mode documents public declarations. Use '#[Swag.NoDoc]' to omit a public
-declaration from the reference while keeping it available to callers.
+API mode documents the public surface. '#[Swag.NoDoc]' excludes a declaration
+that must remain public but is intentionally outside the reader-facing reference.
+It does not change visibility, linkage, or the exported API. Use it for a deliberate
+exclusion, not as a replacement for a missing contract.
 
-'#[Swag.Opaque]' omits a struct's aggregate member table from the generated reference.
-Document the public type and its operations.
+'#[Swag.Opaque]' hides a struct's representation from consumers and from generated
+field documentation. Its public type and operations still need documentation.
 
 # Choosing a Documentation Mode
 

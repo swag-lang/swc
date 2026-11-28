@@ -16,7 +16,7 @@ The current commands are:
 |---|---|
 | 'new' | Create a runnable script or an executable workspace module |
 | 'clean' | Remove what a build produced, and the caches kept between runs |
-| 'build' | Check source groups or build executables |
+| 'build' | Compile and emit native artifacts without running them |
 | 'run' | Build, then run emitted executables |
 | 'smoke' | Build and run emitted executables for a bounded number of frames |
 | 'test' | Run source-driven tests and '#test' functions |
@@ -106,8 +106,8 @@ configuration name followed by '-debug', as in 'devmode-debug'. Alternating
 between the two rebuilds neither.
 
 The target architecture currently exposed by '--arch' is 'x86_64'. Select the
-artifact with '--artifact-kind' ('-ak'). 'executable' requests an executable and
-'source' selects a source-only compilation.
+artifact with '--artifact-kind' ('-ak'): 'executable', 'shared-library',
+'static-library', or 'export'.
 
 # Common Workflows
 
@@ -126,15 +126,20 @@ swc format -mf <workspace>/modules/app --dry-run
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
 
-Workspace builds reuse the executable when the selected sources, transitive
-dependencies, compiler and build settings are unchanged. After a source edit,
-the front end checks the application and its dependencies. Eligible unchanged
-functions reuse their cached native code. Use '--rebuild' to bypass the setup,
-artifact and native-code caches for the selected compilation.
-
-With '--workspace-module NAME', '--rebuild-module' forces a fresh build of the
-selected target while retaining eligible dependency setup caches. The two rebuild
-options cannot be combined.
+Workspace builds reuse every compatible result by default. A module remains current
+while its inputs and the dependency API it consumed are unchanged. An executable
+keeps its existing image when only a private implementation inside a dynamically
+linked library changed, and the fresh library is published before the executable
+runs. When code incorporated from a static library changes, a non-debug executable
+reuses its stored module object and only links again. After a source edit,
+sufficiently large unchanged native leaf functions without external references reuse
+their cached object members instead of repeating microcode optimization and encoding.
+Debug executables and results obtained by executing imported code at compile time
+remain strict invalidation boundaries. Use '--rebuild' to recompile every selected
+module and its dependencies without consuming these cached compilation results.
+With '--workspace-module NAME', use '--rebuild-module' to force just that module;
+dependencies are still checked and rebuilt if stale. The two rebuild options cannot
+be combined.
 
 # Cleaning
 
@@ -143,11 +148,11 @@ so it still answers on a tree that no longer builds.
 
 | Option | Removes |
 |---|---|
-| '--workspace PATH' | The workspace's '.output', '.tmp', and legacy '.dep' directories |
-| '--workspace-module NAME' | That module's artifacts alone |
-| '--module PATH' | The '.output' and '.tmp' directories under the module root, plus explicit output and work directories |
-| '--cache' | Compiler caches outside workspaces, including older binary dependency caches |
-| '--cache-days N' | With '--cache', only legacy binary dependency copies unused for at least N days |
+| '--workspace PATH' | The '.output', '.tmp', and '.dep' directories of that workspace |
+| '--workspace-module NAME' | That module's artifacts alone, keeping the '.dep' directory the workspace shares |
+| '--module PATH' | The '.output' directory under that module root, and '--out-dir' and '--work-dir' when they are set |
+| '--cache' | Every dependency copy a script filled outside a workspace |
+| '--cache-days N' | With '--cache', only the copies unused for at least N days |
 
 ```text
 swc clean -w <workspace>
@@ -160,6 +165,19 @@ swc clean -w <workspace> --dry-run
 The command needs at least one of those targets, and never chooses one on its
 own. A directory that is not there counts as already clean, and '--dry-run'
 reports what each target holds while removing nothing.
+
+A script reads its dependencies from a copy rather than from where they were
+built, because the compiler loads their shared libraries into its own process:
+'tools/std.bat' rebuilds the very library it is running on, and could not
+replace a file the run has locked. Each copy is named after what it holds, so
+every script importing the same build shares one, a rebuilt dependency lands
+beside the copy a running script is reading instead of replacing it, and no run
+can observe a copy while it is being filled.
+
+Nothing invalidates a copy, because nothing can make one wrong: a dependency
+built again is different bytes, and different bytes are a different copy. What
+the old ones cost is disk. Publishing a copy removes the ones no run has used
+for a week, and '--cache' gives back the rest on demand.
 
 # Formatting
 

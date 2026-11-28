@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/ImageWriter.PE.h"
+#include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/Linker.ELF.h"
 #include "Backend/Linker/Linker.PE.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeObjectFormat.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Support/Report/Assert.h"
@@ -14,10 +16,10 @@ namespace
 {
     // Writes the produced bytes through the shared FileSystem helper, recording a ready-to-report
     // diagnostic on the job if the write fails (finishLink reports it on the foreground thread).
-    bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes)
+    bool writeJobArtifact(LinkJob& job, const fs::path& path, const ByteArray& bytes, FileSystem::FileReplacement replacement = FileSystem::FileReplacement::Ordinary)
     {
         FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
+        if (FileSystem::writeBinaryFileAtomic(path, bytes.data(), bytes.size(), ioError, replacement) != Result::Continue)
         {
             job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
             job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));
@@ -33,31 +35,58 @@ namespace
 
     void publishIncrementalCache(LinkJob& job)
     {
-        for (LinkJob::IncrementalObject& object : job.incrementalCacheFiles)
-        {
-            // Another linker may still be reading the previous cache entry.
-            std::error_code ec;
-            fs::create_directories(object.path.parent_path(), ec);
-            if (ec)
-                return;
+        if (job.incrementalObjects.empty() && job.incrementalCacheFiles.empty())
+            return;
 
-            FileSystem::IoErrorInfo ioError;
-            if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError, FileSystem::FileReplacement::Mapped) != Result::Continue)
-                return;
-        }
-        job.incrementalCacheFiles.clear();
+        const auto publish = [](std::vector<LinkJob::IncrementalObject>& objects, FileSystem::FileReplacement replacement) {
+            for (LinkJob::IncrementalObject& object : objects)
+            {
+                std::error_code ec;
+                fs::create_directories(object.path.parent_path(), ec);
+                if (ec)
+                    return false;
+
+                FileSystem::IoErrorInfo ioError;
+                if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError, replacement) != Result::Continue)
+                    return false;
+            }
+
+            return true;
+        };
+
+        // Cached function archives can still be mapped by another linker.
+        if (!publish(job.incrementalObjects, FileSystem::FileReplacement::Ordinary) || !publish(job.incrementalCacheFiles, FileSystem::FileReplacement::Mapped))
+            return;
+
+        job.incrementalCachePublished = true;
+        for (LinkJob::IncrementalObject& object : job.incrementalObjects)
+            object.bytes.clear();
+        for (LinkJob::IncrementalObject& object : job.incrementalCacheFiles)
+            object.bytes.clear();
     }
 
     // Build and publish the artifact, leaving a diagnostic in job.error on failure.
     // executePreparedLink records the outcome in job.ok.
-    bool writePeExecutable(LinkJob& job)
+    bool runInternalLink(LinkJob& job, ImageWriter& writer)
     {
-        PEWriter  writer;
         ByteArray bytes;
         ByteArray pdbBytes;
-        if (!writer.writeImage(bytes, pdbBytes, job.error, job.image, job.debugInfo, job.pdbPath))
-            return false;
-        if (!writeJobArtifact(job, job.outputPath, bytes))
+        switch (job.output)
+        {
+            case LinkJob::Output::Executable:
+            case LinkJob::Output::SharedLibrary:
+                if (!writer.writeImage(bytes, pdbBytes, job.error, job.image, job.debugInfo, job.pdbPath))
+                    return false;
+                break;
+
+            case LinkJob::Output::StaticLibrary:
+                if (!writer.buildStaticArchive(bytes, job.error, job.archiveMembers))
+                    return false;
+                break;
+        }
+
+        const auto replacement = job.output == LinkJob::Output::StaticLibrary ? FileSystem::FileReplacement::Mapped : FileSystem::FileReplacement::Ordinary;
+        if (!writeJobArtifact(job, job.outputPath, bytes, replacement))
             return false;
 
         // Replace the PDB when generated; otherwise remove debug data from an earlier build.
@@ -87,6 +116,35 @@ namespace
             }
         }
 
+        // A shared library also produces an import library next to it so dependents can link by name.
+        if (job.output == LinkJob::Output::SharedLibrary)
+        {
+            std::vector<Utf8> exportNames;
+            exportNames.reserve(job.image.exports.size());
+            for (const LinkExport& exported : job.image.exports)
+                exportNames.push_back(exported.name);
+
+            ByteArray libBytes;
+            if (!writer.buildImportLibrary(libBytes, job.error, Utf8(job.outputPath.filename()).view(), exportNames))
+                return false;
+
+            const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
+            if (!writeJobArtifact(job, libPath, libBytes, FileSystem::FileReplacement::Mapped))
+                return false;
+        }
+
+        // Publish the same code as a static archive in its own directory, separate
+        // from the DLL's import library with the same file name.
+        if (!job.staticLibraryPath.empty())
+        {
+            ByteArray archiveBytes;
+            if (!writer.buildStaticArchive(archiveBytes, job.error, job.staticLibraryMembers))
+                return false;
+
+            if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes, FileSystem::FileReplacement::Mapped))
+                return false;
+        }
+
         publishIncrementalCache(job);
 
         return true;
@@ -103,9 +161,26 @@ namespace
                 publishIncrementalCache(job);
             return;
         }
-        SWC_ASSERT(job.targetOs == Runtime::TargetOs::Windows);
-        job.ok = writePeExecutable(job);
+        const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);
+        SWC_ASSERT(writer != nullptr);
+        job.ok = runInternalLink(job, *writer);
     }
+}
+
+std::unique_ptr<ImageWriter> ImageWriter::create(const Runtime::TargetOs targetOs)
+{
+    const auto format = getNativeObjFormat(targetOs);
+    SWC_ASSERT(format.has_value());
+
+    switch (*format)
+    {
+        case NativeObjectFormat::LinuxElf:
+            return nullptr; // Linux final-image linking is handled separately from PE serialization.
+        case NativeObjectFormat::WindowsCoff:
+            return std::make_unique<PEWriter>();
+    }
+
+    SWC_UNREACHABLE();
 }
 
 Linker::Linker(NativeBackendBuilder& builder) :
@@ -162,6 +237,7 @@ Result Linker::finishLink(const LinkJob& job) const
     if (!fs::exists(builder_->artifactPath))
         return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->artifactPath));
 
+    SWC_RESULT(builder_->publishExecutableDependencies());
     return Result::Continue;
 }
 

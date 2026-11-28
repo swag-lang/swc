@@ -269,7 +269,7 @@ func assertDialogCharter(dlg: *Dialog)
     expect Directory.create(folder.toString(), recurse: true)
     defer discard catch Directory.delete(folder.toString(), recurse: true)
 
-    let missingPath      = Path.combine(folder, "capture.png")
+    let missingPath      = Path.combine(folder.toString(), "capture.png").toString()
     var missingInspected = false
     host.app.sigFrame += func|host = &host, &missingInspected|(app)
     {

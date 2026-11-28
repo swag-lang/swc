@@ -46,6 +46,7 @@ namespace FileSystem
     fs::path compilerResourceRoot(const fs::path& exeFullName);
     fs::path standardLibraryWorkspaceRoot(const fs::path& exeFullName);
     fs::path currentPathNoThrow();
+    fs::path generatedDependencyApiDir(const fs::path& exeFullName, std::string_view moduleName);
     fs::path normalizePath(const fs::path& path);
     fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs);
     Result   normalizeAbsolutePath(fs::path& path, Utf8& because);

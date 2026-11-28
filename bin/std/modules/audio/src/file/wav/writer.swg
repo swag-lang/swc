@@ -4,7 +4,7 @@
 //! Role: This file writes a sound-only recording without retaining its samples in memory.
 //
 #global namespace Wav
-#global public
+#global export
 
 using Core, Core.Errors
 

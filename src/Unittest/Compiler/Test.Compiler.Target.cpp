@@ -78,7 +78,7 @@ SWC_TEST_BEGIN(Compiler_TargetWindowsO0AllowsDeadIndirectCallTargetInClobberedRe
         "--os",
         "windows",
         "--artifact-kind",
-        "source",
+        "export",
         "--optim-level",
         "0",
         "--num-cores",

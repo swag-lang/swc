@@ -1,5 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
-#global public
+#global export
 
 const UTIME_NOW  = 1_073_741_823_s64
 const UTIME_OMIT = 1_073_741_822_s64

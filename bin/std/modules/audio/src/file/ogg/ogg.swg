@@ -300,10 +300,14 @@ private func identify(body: const [..] u8)->StreamInfo fail
 
         var probe: Flac.Codec
         try probe.readStreamInfo(body[9 to])
-        result.kind          = .Flac
-        result.channels      = probe.info.channels
-        result.sampleRate    = probe.info.sampleRate
-        result.headerPackets = 1 + (cast(u32, body[7]) << 8) + cast(u32, body[8])
+        result.kind       = .Flac
+        result.channels   = probe.info.channels
+        result.sampleRate = probe.info.sampleRate
+        let following = (cast(u32, body[7]) << 8) | body[8]
+        if following or (body[13] & 0x80)
+        {
+            result.headerPackets = following + 1
+        }
     }
 
     return result
@@ -406,9 +410,78 @@ private struct HeaderEnd
     audioStart: u64     // Start of that page when audio follows its headers; otherwise `configEnd`.
 }
 
+// A zero Ogg FLAC header count leaves the last-block flag to identify the end of metadata.
+private func countFlacHeaders(walker: *Walker, serial: u32)->u32 fail
+{
+    let start = walker.offset
+    defer walker.offset = start
+
+    var headers       = 0_u32
+    var packetBytes   = 0_u64
+    var metadataBytes = 0_u64
+    var last          = false
+    var page: PageHeader
+    while try walker.nextStreamPage(serial, &page)
+    {
+        let body   = walker.body(&page)
+        var offset = 0_u64
+        for segment in page.segments
+        {
+            let size = page.lacing[segment]
+            if headers
+            {
+                if not packetBytes
+                {
+                    if size < 4
+                    {
+                        fail InvalidFormatError{"Ogg FLAC metadata packet has no complete block header"}
+                    }
+
+                    let kind = body[offset] & 0x7F
+                    if not kind or kind == 127 or (headers == 1 and kind != 4)
+                    {
+                        fail InvalidFormatError{"Ogg FLAC metadata packet has an invalid block type"}
+                    }
+
+                    metadataBytes = 4 + Math.make32(0, body[offset + 1], body[offset + 2], body[offset + 3])
+                    last = (body[offset] & 0x80) != 0
+                }
+
+                packetBytes += size
+                if packetBytes > metadataBytes or (size < 255 and packetBytes != metadataBytes)
+                {
+                    fail InvalidFormatError{"Ogg FLAC metadata packet size differs from its block header"}
+                }
+            }
+
+            if size < 255
+            {
+                headers += 1
+                if last
+                {
+                    return headers
+                }
+
+                packetBytes = 0
+            }
+
+            offset += size
+        }
+
+        walker.offset += page.totalBytes()
+    }
+
+    fail InvalidFormatError{"Ogg FLAC stream ends before its last metadata block"}
+}
+
 // Advances past the pages holding the codec's header packets and returns where the sound starts.
 private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
 {
+    if not info.headerPackets
+    {
+        info.headerPackets = try countFlacHeaders(walker, info.serial)
+    }
+
     var completed         = 0_u32
     var sequence          = 0_u32
     var hasSequence       = false
@@ -692,6 +765,64 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
 // Opens an Ogg file as a streamed packet sound.
 //
+// FLAC Ogg places its Vorbis comment block in the second packet. The setup pages
+// have already been checked, and a comment contained in one page can be read in place.
+private func readFlacQuadSpeakerMask(config: const [..] u8, serial: u32)->u32 fail
+{
+    const MaxMetadataPacket = 0xFF_FFFF_u64 + 4
+    var comment: Array!{u8}
+    var packets = 0_u32
+    var offset  = 0_u64
+    while offset < config.count
+    {
+        let page = try readPageHeader(config, offset)
+        let end  = offset + page.totalBytes()
+        if end > config.count
+        {
+            return 0
+        }
+
+        if page.serial == serial
+        {
+            var at = offset + page.headerBytes
+            for segment in page.segments
+            {
+                let size = page.lacing[segment]
+                let last = size < 255
+                if packets == 1
+                {
+                    let part = config[at until at + size]
+                    if last and comment.isEmpty()
+                    {
+                        return try Flac.readQuadSpeakerMask(part)
+                    }
+
+                    if comment.count + size > MaxMetadataPacket
+                    {
+                        return 0
+                    }
+
+                    comment.add(part)
+                    if last
+                    {
+                        return try Flac.readQuadSpeakerMask(comment.toSlice())
+                    }
+                }
+
+                at += size
+                if last
+                {
+                    packets += 1
+                }
+            }
+        }
+
+        offset = end
+    }
+
+    return 0
+}
+
 // The audio stays in the file: opening verifies every page and records where each run of pages
 // starts and how many sample frames it completes. The codec receives the header pages as its
 // configuration and the runs as its packets.
@@ -715,6 +846,11 @@ func openFile(path: string)->SoundFile fail
     walker.source.seek(0)
     walker.source.readExact(config.toSlice())
     walker.source.close()
+
+    if info.kind == .Flac and info.channels == 4 and info.headerPackets > 1
+    {
+        info.speakerMask = catch readFlacQuadSpeakerMask(config.toSlice(), info.serial) orelse 0
+    }
 
     var encoding: SoundFileEncoding
     switch info.kind

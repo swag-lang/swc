@@ -64,6 +64,36 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// A future reference can be indexed in one cluster and its B pictures in the next.
+// Crossing the wrapping codec clock must preserve display order and the final reference.
+#test
+{
+    let reference = expect File.readAllBytes(Path.combine(testSourceRoot(#curlocation), "goldens/rv40-slices.yuv"))
+    var reader    = expect Reader.open(videoFixturePath("rv40-cluster-wrap.mkv"), pictureOnly: true)
+    realVideoCompareFrame(&reader, reference.toSlice(), 0)
+    Swag.require(reader.frameCount() == 0)
+
+    const FrameCount = 13_u64
+    for index in 1_u64 until FrameCount
+    {
+        realVideoCompareFrame(&reader, reference.toSlice(), index)
+        Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(index), cast(f64, index) / 25, 0.000001))
+    }
+
+    Swag.require(reader.frameCount() == FrameCount)
+    Swag.require(reader.syncFrameAt(1) == 8 and reader.syncFrameAt(9) == FrameCount)
+
+    var frame:   PlanarFrame
+    var pastEnd: Swag.Error
+    catch reader.decodeFramePlanesInto(&frame, FrameCount) as pastEnd
+    Swag.require(pastEnd.value() is BadParameterError)
+
+    for index in [7_u64, 8, 3, 12, 0]
+    {
+        realVideoCompareFrame(&reader, reference.toSlice(), index)
+    }
+}
+
 // Motion uses the visible edges even when a whole partition lies outside the picture.
 #test
 {

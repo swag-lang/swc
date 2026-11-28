@@ -516,15 +516,27 @@ impl Decoder
     }
 
     // Computes the picture order count of the picture starting here, clause 8.3.1.
-    mtd computePoc(nalType: u32, header: const *SliceHeader, sps: const *Sps)
+    mtd updatePictureOrder(nalType, temporalId, pocLsb: u32, sps: const *Sps)
     {
         if isIdrNal(nalType)
         {
             .pocMsb   = 0
             .pocValue = 0
-            return
+        }
+        else
+        {
+            .computePictureOrder(nalType, pocLsb, sps)
         }
 
+        if isReferenceNal(nalType) and temporalId == 0
+        {
+            .prevPocLsb = pocLsb
+            .prevPocMsb = .pocMsb
+        }
+    }
+
+    private mtd computePictureOrder(nalType, pocLsb: u32, sps: const *Sps)
+    {
         let maxPocLsb = 1_u32 << sps.log2MaxPocLsb
         if isIrapNal(nalType) and .noRaslOutput
         {
@@ -532,7 +544,7 @@ impl Decoder
         }
         else
         {
-            let lsb  = header.pocLsb
+            let lsb  = pocLsb
             let half = maxPocLsb / 2
             if lsb < .prevPocLsb and .prevPocLsb - lsb >= half
             {
@@ -548,7 +560,7 @@ impl Decoder
             }
         }
 
-        .pocValue = .pocMsb + cast(s32, header.pocLsb)
+        .pocValue = .pocMsb + cast(s32, pocLsb)
     }
 
     // Finds a decoded picture by its order count.

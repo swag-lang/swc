@@ -849,7 +849,8 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.atomicOr  <span class="SNsp">Swag</span>.atomicStore  <span class="SNsp">Swag</span>.atomicXor
 <span class="SNsp">Swag</span>.memcmp  <span class="SNsp">Swag</span>.memcpy  <span class="SNsp">Swag</span>.memmove  <span class="SNsp">Swag</span>.memset  <span class="SNsp">Swag</span>.prefetch</span></div>
 <p>Packed vector intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecAlign  <span class="SNsp">Swag</span>.vecAll  <span class="SNsp">Swag</span>.vecAny  <span class="SNsp">Swag</span>.vecAvgRound  <span class="SNsp">Swag</span>.vecCarrylessMul  <span class="SNsp">Swag</span>.vecGather
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecAlign  <span class="SNsp">Swag</span>.vecAll  <span class="SNsp">Swag</span>.vecAny  <span class="SNsp">Swag</span>.vecAvgRound  <span class="SNsp">Swag</span>.vecCarrylessMul
+<span class="SNsp">Swag</span>.vecCarrylessProductSum16  <span class="SNsp">Swag</span>.vecGather
 <span class="SNsp">Swag</span>.vecInterleaveHi  <span class="SNsp">Swag</span>.vecInterleaveLo  <span class="SNsp">Swag</span>.vecMask  <span class="SNsp">Swag</span>.vecMulAddPairs
 <span class="SNsp">Swag</span>.vecMulAddPairsSat  <span class="SNsp">Swag</span>.vecMulHigh  <span class="SNsp">Swag</span>.vecNarrowSatS  <span class="SNsp">Swag</span>.vecNarrowSatU  <span class="SNsp">Swag</span>.vecPermute
 <span class="SNsp">Swag</span>.vecReduceAdd  <span class="SNsp">Swag</span>.vecReduceAnd  <span class="SNsp">Swag</span>.vecReduceMax  <span class="SNsp">Swag</span>.vecReduceMin  <span class="SNsp">Swag</span>.vecReduceOr
@@ -4169,6 +4170,25 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Read as unsigned, the same bits give a different half above the lane.</span>
     <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecMulHigh</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, x), <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, y)))
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(unsignedHigh[<span class="SNum">2</span>] == <span class="SNum">0x03C9</span>)
+}</span></div>
+<p><span class="code-inline">Swag.vecCarrylessProductSum16</span> multiplies sixteen pairs of 128-bit polynomials and XORs their full products into one 256-bit value. For each 16-byte input lane, the low four bits of each shuffle byte select an input byte and its high bit selects zero. The first shuffled lane is XORed with the low two words of the destination before multiplication. Input, factor, and result ranges may overlap. Guard it with <span class="code-inline">.CarrylessMultiply512</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SLgc">if</span> <span class="SNsp">Swag</span>.<span class="SFct">hasCpuFeature</span>(.<span class="SCst">CarrylessMultiply512</span>)
+    {
+        <span class="SKwd">var</span> input: [<span class="SNum">256</span>] <span class="STpe">u8</span>
+        <span class="SKwd">var</span> factors: [<span class="SNum">32</span>] <span class="STpe">u64</span>
+        <span class="SKwd">var</span> result: [<span class="SNum">4</span>] <span class="STpe">u64</span> = [<span class="SNum">5</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>]
+        <span class="SKwd">let</span> shuffle = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0_</span><span class="STpe">u8</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>])
+
+        input[<span class="SNum">0</span>] = <span class="SNum">2</span>
+        input[<span class="SNum">240</span>] = <span class="SNum">8</span>
+        factors[<span class="SNum">0</span>] = <span class="SNum">4</span>
+        factors[<span class="SNum">30</span>] = <span class="SNum">2</span>
+        <span class="SNsp">Swag</span>.<span class="SFct">vecCarrylessProductSum16</span>(&amp;result, &amp;input, &amp;factors, shuffle)
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result[<span class="SNum">0</span>] == (((<span class="SNum">5</span> ^ <span class="SNum">2</span>) &lt;&lt; <span class="SNum">2</span>) ^ (<span class="SNum">8</span> &lt;&lt; <span class="SNum">1</span>)))
+        <span class="SNsp">Swag</span>.<span class="SFct">require</span>(result[<span class="SNum">1</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> result[<span class="SNum">2</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> result[<span class="SNum">3</span>] == <span class="SNum">0</span>)
+    }
 }</span></div>
 <h3 id="_004_009_simd_swg_Lane_Permutation">Lane Permutation</h3>
 <p><span class="code-inline">Swag.vecShuffle</span> rearranges the lanes of a vector: result lane <span class="code-inline">i</span> takes the lane its pattern lane names, the index reduced modulo the lane count so no pattern is out of range. <span class="code-inline">Swag.vecShuffle2</span> does the same over two vectors, an index below the lane count reading the first and one above it reading the second at the index minus that count. <span class="code-inline">Swag.vecAlign</span> takes sixteen bytes of the concatenation of two vectors starting at a byte offset, and answers zero past the thirty-two.</p>

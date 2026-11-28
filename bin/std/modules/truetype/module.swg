@@ -23,11 +23,13 @@ let bitmap = &face.glyph.bitmap
 // bitmap.buffer remains valid until this face loads or renders another glyph.
 ```
 
-The module covers TrueType `glyf` outlines, OpenType and bare CFF programs,
-Type 1 programs, `ttcf` collections, Unicode character
-maps including variation sequences, kerning from `GPOS` and from the legacy
-`kern` table, source-over RGBA rendering for COLR v0 / CPAL v0 color glyphs,
-grayscale rasterization, and single- or multi-channel signed-distance fields. Faces with
+The module covers TrueType `glyf` outlines, OpenType and bare CFF1 programs,
+OpenType CFF2 at the default variation coordinates, Type 1 programs, `ttcf`
+collections, Unicode character maps including variation sequences,
+kerning from `GPOS` and from the legacy
+`kern` table, source-over RGBA rendering for COLR v0 and v0 fallback layers with
+CPAL v0 or v1 palettes, grayscale rasterization, and single- or multi-channel
+signed-distance fields. Faces with
 `vhea` and `vmtx` expose optional vertical glyph
 advances and top side bearings. [[TrueType.Face.loadSubset]] also accepts rendering-only
 document subsets whose family identity is supplied outside the font program.

@@ -110,4 +110,9 @@ func kmacHexBytes(text: string)->Array!{u8}
     let xof = kmacHexBytes("73ecc264d279c2b3441fba81ae8d6b5906cb98e6c256d2f70cbff15072acc7fa")
     expect Crypto.kmacXof256(keys[1 until 133], message[1 until 2], customs[1 until 127], output)
     Swag.require(Crypto.constantTimeEqual(output, xof.toSlice()))
+
+    // The encoded output length crosses the SHAKE256 rate boundary after its first byte.
+    let crossing = kmacHexBytes("0f90218c53b13a30ea88b95054f74c11fd571fab85e85afedb498594ec525df2")
+    expect Crypto.kmac256(keys[1 until 33], message[1 until 136], "", output)
+    Swag.require(Crypto.constantTimeEqual(output, crossing.toSlice()))
 }

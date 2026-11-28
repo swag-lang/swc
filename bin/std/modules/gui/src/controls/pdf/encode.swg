@@ -6,6 +6,8 @@ private const CatalogObject = 1_u32
 private const PagesObject   = 2_u32
 private const InfoObject    = 3_u32
 
+private const MinBorrowedStreamSize = 65536
+
 private struct ImageObject
 {
     number:   u32
@@ -21,9 +23,10 @@ private struct ImageSource
 
 private struct ImageSources
 {
-    byChecksum:   HashTable!{u32, ImageSource}
-    byImage:      HashTable!{u64, u32}
-    encodedBytes: u64
+    byChecksum:    HashTable!{u32, ImageSource}
+    byImage:       HashTable!{u64, u32}
+    encodedBytes:  u64
+    borrowStreams: bool
 }
 
 private struct PageObjects
@@ -42,12 +45,35 @@ private struct EncodedImage
     isGray:  bool
 }
 
+private struct BorrowedStream
+{
+    bufferOffset: u64
+    bytes:        const [..] u8
+}
+
+private struct CidFontUse
+{
+    resource: const *FontResource
+    object:   u32
+}
+
+private struct WrittenFontProgram
+{
+    object:   u32
+    resource: const *FontResource
+}
+
 private struct Writer
 {
-    bytes:   Array!{u8}
-    offsets: Array!{u64}
-    flushed: u64
-    zlib:    Compress.ZLib
+    fontPrograms:      HashTable!{String, WrittenFontProgram}
+    shareFontPrograms: bool
+    bytes:             Array!{u8}
+    offsets:           Array!{u64}
+    streams:           Array!{BorrowedStream}
+    streamBytes:       u64
+    flushed:           u64
+    zlib:              Compress.ZLib
+    borrowStreams:     bool
 }
 
 private impl Writer
@@ -57,13 +83,24 @@ private impl Writer
         .bytes.add(cast(const [..] u8, text))
     }
 
-    mtd const position()->u64 => .flushed + .bytes.count
+    mtd const position()->u64 => .flushed + .bytes.count + .streamBytes
 
     mtd flush(file: *File.FileStream) fail
     {
-        try file.writeAll(.bytes.toSlice())
-        .flushed += .bytes.count
+        let buffered = .bytes.toSlice()
+        var offset: u64
+        for stream in .streams
+        {
+            try file.writeAll(buffered[offset until stream.bufferOffset])
+            try file.writeAll(stream.bytes)
+            offset = stream.bufferOffset
+        }
+
+        try file.writeAll(buffered[offset until buffered.count])
+        .flushed     += buffered.count + .streamBytes
+        .streamBytes = 0
         .bytes.clear()
+        .streams.clear()
     }
 
     mtd beginObject(number: u32)
@@ -82,7 +119,7 @@ private impl Writer
         .append("endobj\n")
     }
 
-    mtd streamObject(number: u32, data: const [..] u8, dictionary: string)
+    mtd streamObject(number: u32, data: const [..] u8, dictionary: string, borrow = false)
     {
         .beginObject(number)
         .append("<< ")
@@ -93,7 +130,16 @@ private impl Writer
         }
 
         .append(Format.toString("/Length % >>\nstream\n", data.count).toString())
-        .bytes.add(data)
+        if borrow
+        {
+            .streams.add({.bytes.count, data})
+            .streamBytes += data.count
+        }
+        else
+        {
+            .bytes.add(data)
+        }
+
         .append("\nendstream\n")
         .endObject()
     }
@@ -191,19 +237,19 @@ private func appendPdfMatrix(result: *String, transform: Transform2)
     appendPdfPoint(result, {-transform.m21, transform.m22}, " ")
 }
 
-private func windows1252Byte(c: rune)->u8 fail
+private func windows1252Byte(c: rune)->s32
 {
     if c <= 0x7F or (c >= 0xA0 and c <= 0xFF)
     {
-        return cast(u8, c)
+        return cast(s32, c)
     }
 
     for value in 0x80_u32 to 0x9F where Text.windows1252Rune(cast(u8, value)) == c
     {
-        return cast(u8, value)
+        return cast(s32, value)
     }
 
-    fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
+    return -1
 }
 
 private func appendPdfString(result: *String, text: string) fail
@@ -247,7 +293,13 @@ private func appendPdfString(result: *String, text: string) fail
 
         default:
             let {c, eat} = Utf8.decodeRune(text[offset until text.count])
-            result[] += try windows1252Byte(c)
+            let encoded  = windows1252Byte(c)
+            if encoded < 0
+            {
+                fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
+            }
+
+            result[] += cast(u8, encoded)
             offset   += eat
         }
 
@@ -443,7 +495,7 @@ private func fontSlot(fonts: const [..] StandardFont, font: StandardFont)->u64
     return 0
 }
 
-private func pageContent(page: const *Page, fonts: const [..] StandardFont)->String fail
+private func pageContent(page: const *Page, fonts: const [..] StandardFont, cidFonts: *Array!{CidFontUse})->String fail
 {
     var result: #returntype
     var imageIndex = 0_u32
@@ -454,7 +506,16 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
         case .Text:
             appendColor(&result, item.fillColor, false)
             let baseline = item.transform.transformPoint(Math.Vector2{0, item.fontSize})
-            result.appendFormat("BT\n/F% ", fontSlot(fonts, item.standardFont))
+            let cidFont  = cidFontSlot(page, item, cidFonts)
+            if cidFont != InvalidCidFont
+            {
+                result.appendFormat("BT\n/C% ", cidFont)
+            }
+            else
+            {
+                result.appendFormat("BT\n/F% ", fontSlot(fonts, item.standardFont))
+            }
+
             appendPdfNumber(&result, item.fontSize)
             result += " Tf\n"
             appendPdfMatrix(&result, item.transform)
@@ -464,8 +525,17 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
                 result += "3 Tr\n"
             }
 
-            try appendPdfString(&result, item.text.toString())
-            result += item.invisibleText ? " Tj\n0 Tr\nET\n" : " Tj\nET\n"
+            if cidFont != InvalidCidFont
+            {
+                appendCidRun(&result, item, cidFonts[cidFont].resource)
+            }
+            else
+            {
+                try appendPdfString(&result, item.text.toString())
+                result += " Tj\n"
+            }
+
+            result += item.invisibleText ? "0 Tr\nET\n" : "ET\n"
 
         case .Path:
             appendPath(&result, page, item)
@@ -695,10 +765,14 @@ private func sameEncodedImage(first, second: const *EncodedImageStream, image, p
            first.channels == second.channels and
            first.bits == second.bits and
            first.predictor == second.predictor and
+           first.invertedSamples == second.invertedSamples and
            first.interpolate == second.interpolate and
            image.width == prior.width and
            image.height == prior.height and
            (first.filter != .Ccitt or sameFaxParameters(&first.fax, &second.fax)) and
+           first.paletteChannels == second.paletteChannels and
+           Slice.equals(first.palette.toSlice(), second.palette.toSlice()) and
+           Slice.equals(first.colorKey.toSlice(), second.colorKey.toSlice()) and
            Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
 }
 
@@ -719,7 +793,17 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
     }
 
     let encoded = item.image.encoded()
-    let key     = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
+    var key     = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
+    if encoded.colorKey.count
+    {
+        // A JPEG can appear with several different masks, each independently reusable.
+        var checksum: Hash.Crc32
+        checksum.reset(key)
+        let bounds = cast(const [*] u8, encoded.colorKey.storage())
+        checksum.update(Swag.makeSlice(bounds, encoded.colorKey.count * #sizeof(s64)))
+        checksum.update([encoded.invertedSamples, encoded.interpolate ? 1_u8 : 0_u8])
+        key = checksum.value()
+    }
 
     // Compare contents and metadata too, since separate image owners may hold the same data.
     if let source = sources.byChecksum.tryFind(key)
@@ -739,7 +823,11 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
     }
 
     let result = ImageObject{nextObject[], true}
-    sources.encodedBytes += encoded.bytes.count
+    if not sources.borrowStreams or encoded.bytes.count < MinBorrowedStreamSize
+    {
+        sources.encodedBytes += encoded.bytes.count
+    }
+
     sources.byImage.add(identity, result.number)
     nextObject[] += 1
     return result
@@ -807,19 +895,32 @@ private impl Writer
             .bytes.add(cast(const [..] u8, entry))
         }
 
-        .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n%%EOF\n", nextObject, CatalogObject, InfoObject, xref).toString())
+        .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n", nextObject, CatalogObject, InfoObject, xref).toString())
+        .append("%%EOF\n")
     }
 
     mtd writePage(page: const *Page, objects: const *PageObjects, fonts: const [..] StandardFont, fontObjects: const [..] u32, nextObject: *u32) fail
     {
+        var cidFonts: Array!{CidFontUse}
+        let content = #move try pageContent(page, fonts, &cidFonts)
+        for &font in cidFonts
+        {
+            font.object = try .writeCidFont(font.resource, nextObject)
+        }
+
         .beginObject(objects.page)
         .append(Format.toString("<< /Type /Page /Parent % 0 R /MediaBox [0 0 % %] /Resources <<", PagesObject, pdfNumber(page.width), pdfNumber(page.height)).toString())
-        if fontObjects.count
+        if fontObjects.count or cidFonts.count
         {
             .append(" /Font <<")
             for fontObject, fontIndex in fontObjects
             {
                 .append(Format.toString(" /F% % 0 R", fontIndex, fontObject).toString())
+            }
+
+            for font, fontIndex in cidFonts
+            {
+                .append(Format.toString(" /C% % 0 R", fontIndex, font.object).toString())
             }
 
             .append(" >>")
@@ -839,7 +940,6 @@ private impl Writer
         .append(Format.toString(" >> /Contents % 0 R >>\n", objects.content).toString())
         .endObject()
 
-        let content    = #move try pageContent(page, fonts)
         let compressed = #move try .zlib.compress(cast(const [..] u8, content))
         .streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
 
@@ -857,9 +957,48 @@ private impl Writer
             let source = item.image.encoded()
             if source.bytes.count
             {
-                let space      = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
-                let filter     = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
-                var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                let filter = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
+                var dictionary: String
+                if source.paletteChannels
+                {
+                    let base  = source.paletteChannels == 1 ? "Gray" : (source.paletteChannels == 4 ? "CMYK" : "RGB")
+                    let hival = source.palette.count / source.paletteChannels - 1
+                    dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /BitsPerComponent % /Filter /% /ColorSpace [/Indexed /Device% % <", image.width, image.height, source.bits, filter, base, hival)
+                    for byte in source.palette
+                    {
+                        appendHexByte(&dictionary, byte)
+                    }
+
+                    dictionary += ">]"
+                }
+                else
+                {
+                    let space = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
+                    dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                }
+
+                if source.invertedSamples
+                {
+                    dictionary += " /Decode ["
+                    for component in source.channels
+                    {
+                        dictionary += (source.invertedSamples & (1_u8 << component)) ? "1 0 " : "0 1 "
+                    }
+
+                    dictionary += ']'
+                }
+
+                if source.colorKey.count
+                {
+                    dictionary += " /Mask ["
+                    for bound in source.colorKey
+                    {
+                        dictionary.appendFormat("% ", bound)
+                    }
+
+                    dictionary += ']'
+                }
+
                 if source.filter == .Ccitt
                 {
                     let fax = &source.fax
@@ -906,7 +1045,9 @@ private impl Writer
                     dictionary += " /Interpolate true"
                 }
 
-                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString())
+                // The editable document owns these immutable bytes through the final write.
+                let borrow = .borrowStreams and source.bytes.count >= MinBorrowedStreamSize
+                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString(), borrow)
                 continue
             }
 
@@ -990,7 +1131,7 @@ internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source:
     try writer.flush(file)
 }
 
-func encodeDocument(document: const *Document)->Array!{u8} fail
+private func prepareDocumentWriter(document: const *Document, borrowStreams: bool)->Writer fail
 {
     if not document.pages.count
     {
@@ -1007,17 +1148,17 @@ func encodeDocument(document: const *Document)->Array!{u8} fail
         nextObject += 1
     }
 
-    var layout:       Array!{PageObjects}
-    var imageSources: ImageSources
+    var layout: Array!{PageObjects}
+    var imageSources = ImageSources{borrowStreams: borrowStreams}
     for page in document.pages
     {
         let objects = #move try allocatePageObjects(page, &nextObject, &imageSources)
         layout.add(#move objects)
     }
 
-    var writer: Writer
+    var writer = Writer{borrowStreams: borrowStreams, shareFontPrograms: true}
 
-    // Reserve the preserved streams plus room for their dictionaries and the page tree.
+    // Reserve the copied streams plus room for their dictionaries and the page tree.
     if imageSources.encodedBytes >= 65536
     {
         let overhead = Math.min(65536_u64, cast(u64, nextObject) * 512)
@@ -1055,5 +1196,25 @@ func encodeDocument(document: const *Document)->Array!{u8} fail
     }
 
     writer.writeTrailer(nextObject)
+    return #move writer
+}
+
+func encodeDocument(document: const *Document)->Array!{u8} fail
+{
+    let writer = #move try prepareDocumentWriter(document, borrowStreams: false)
     return #move writer.bytes
+}
+
+internal func saveDocument(document: const *Document, fileName: string) fail
+{
+    // Finish encoding all fallible content before opening the destination.
+    var writer = #move try prepareDocumentWriter(document, borrowStreams: true)
+    if writer.streams.isEmpty()
+    {
+        discard try File.writeAllBytes(fileName, writer.bytes.toSlice())
+        return
+    }
+
+    var file = try File.openWrite(fileName)
+    try writer.flush(&file)
 }

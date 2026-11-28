@@ -23,6 +23,8 @@ struct SliceHeader
     ppsId:          u32
     frameNum:       u32
     isIdr:          bool
+    noPriorOutput:  bool
+    idrPicId:       u16
     pocLsb:         u32
     deltaPocBottom: s32
     deltaPoc0:      s32
@@ -161,8 +163,14 @@ impl Slice
 
         if isIdr
         {
-            discard .bits.ue()
-        }     // idr_pic_id.
+            let pictureId = .bits.ue()
+            if pictureId > Swag.U16.Max
+            {
+                fail InvalidFormatError{"H.264 slice declares an out-of-range IDR picture identifier"}
+            }
+
+            .header.idrPicId = cast(u16, pictureId)
+        }
 
         if sps.pocType == 0
         {
@@ -281,8 +289,8 @@ impl Slice
             dec.idrLongTerm     = false
             if isIdr
             {
-                discard .bits.bit()     // no_output_of_prior_pics_flag.
-                dec.idrLongTerm = .bits.bit() != 0
+                .header.noPriorOutput = .bits.bit() != 0
+                dec.idrLongTerm       = .bits.bit() != 0
             }
             else if .bits.bit()
             {

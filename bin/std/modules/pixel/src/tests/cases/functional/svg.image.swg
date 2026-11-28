@@ -65,6 +65,45 @@ using Swag, Core
     Swag.require(Math.abs(cast(s32, mirrored.a) - 128) <= 2)
 }
 
+// Equal-length data URIs sharing a tail can still identify different bitmaps.
+#test
+{
+    var red       = Image.create(2, 1, .RGBA8)
+    var blue      = Image.create(2, 1, .RGBA8)
+    let redPixel  = Color.fromArgb(Argb.Red)
+    let bluePixel = Color.fromArgb(Argb.Blue)
+    red.fill(redPixel)
+    blue.fill(bluePixel)
+
+    let redBytes  = expect red.encodeToBytes("red.qoi")
+    let blueBytes = expect blue.encodeToBytes("blue.qoi")
+    var redData   = Base64.encode(redBytes.toSlice())
+    var blueData  = Base64.encode(blueBytes.toSlice())
+    for 64
+    {
+        redData.append(' '_u8)
+        blueData.append(' '_u8)
+    }
+
+    Swag.require(redData.count == blueData.count and redData != blueData)
+
+    let source = Format.toString("""\
+        <svg width='10' height='1'>\
+        <image width='2' height='1' href='data:image/qoi;base64,%'/>\
+        <image x='2' width='2' height='1' href='data:image/qoi;base64,%'/>\
+        <image x='4' width='2' height='1' href='data:image/qoi;base64,%'/>\
+        <image x='6' width='2' height='1' href='data:image/qoi;base64,%'/>\
+        <image x='8' width='2' height='1' href='data:image/qoi;base64,%'/></svg>""",
+        redData, redData, blueData, redData, blueData)
+
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    let image   = drawing.rasterize(10, 1, 1)
+    Swag.require(drawing.rasterImages.count == 2)
+    Swag.require(image.pixelColor(0, 0) == redPixel and image.pixelColor(2, 0) == redPixel)
+    Swag.require(image.pixelColor(4, 0) == bluePixel and image.pixelColor(6, 0) == redPixel)
+    Swag.require(image.pixelColor(8, 0) == bluePixel)
+}
+
 // Relative raster references are decoded through Pixel only inside the configured resource root.
 #test
 {
@@ -161,4 +200,40 @@ using Swag, Core
         Swag.require(shared.pixelColor(100, 25).a < 255)
         Swag.require(Memory.compare(shared.pixels.storage(), separate.pixels.storage(), separate.byteCount) == 0)
     }
+}
+
+// Raster images default to centered meet. An explicit alignment moves the letterbox, and slice
+// crops before the transform. An authored none stretches all the way to the viewport edges.
+#test
+{
+    let path    = getTestDataPath("svg.image.aspect-ratio.svg")
+    let source  = expect File.readAllText(path.toString())
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    let image   = drawing.rasterize(144, 32, 1)
+
+    let red   = Color.fromArgb(Argb.Red)
+    let green = Color.fromArgb(Argb.Lime)
+    let blue  = Color.fromArgb(Argb.Blue)
+
+    Swag.require(image.pixelColor(6, 8).a == 0)
+    Swag.require(image.pixelColor(6, 11) == red)
+    Swag.require(image.pixelColor(26, 20) == blue)
+    Swag.require(image.pixelColor(26, 23).a == 0)
+
+    Swag.require(image.pixelColor(34, 14).a == 0)
+    Swag.require(image.pixelColor(34, 17) == red)
+    Swag.require(image.pixelColor(54, 27) == blue)
+
+    Swag.require(image.pixelColor(59, 12).a == 0)
+    Swag.require(image.pixelColor(62, 8) == green)
+    Swag.require(image.pixelColor(82, 23) == blue)
+    Swag.require(image.pixelColor(84, 12).a == 0)
+
+    Swag.require(image.pixelColor(87, 12).a == 0)
+    Swag.require(image.pixelColor(90, 8) == green)
+    Swag.require(image.pixelColor(110, 23) == red)
+    Swag.require(image.pixelColor(112, 12).a == 0)
+
+    Swag.require(image.pixelColor(118, 4) == red)
+    Swag.require(image.pixelColor(138, 27) == blue)
 }

@@ -79,27 +79,27 @@ impl Document
     // Appends one filled shape built from every contour of `paths`.
     mtd addPath(paths: LinePathList, color: Color, rule = FillRule.NonZero, quality = PaintQuality.Normal)
     {
-        var data: String
+        var data: ConcatBuffer
         for path in paths.paths
         {
             appendContour(&data, path, quality)
         }
 
-        .addShape(data.toString(), color, rule)
+        .addShape(&data, color, rule)
     }
 
     // Appends one filled shape built from a single contour.
     mtd addPath(path: LinePath, color: Color, rule = FillRule.NonZero, quality = PaintQuality.Normal)
     {
-        var data: String
+        var data: ConcatBuffer
         appendContour(&data, &path, quality)
-        .addShape(data.toString(), color, rule)
+        .addShape(&data, color, rule)
     }
 
     // Assembles one shape element from its already formatted commands.
-    private mtd addShape(data: string, color: Color, rule: FillRule)
+    private mtd addShape(data: const *ConcatBuffer, color: Color, rule: FillRule)
     {
-        if data.count == 0
+        if data.count() == 0
         {
             return
         }
@@ -112,10 +112,16 @@ impl Document
 
         if color.a != 255
         {
-            .body.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, color.a) / 255.0)
+            .body.appendFormat(" fill-opacity=\"%\"", opacityText(color.a))
         }
 
-        .body.appendFormat(" d=\"%\"/>\n", data)
+        .body += " d=\""
+        for bucket in data
+        {
+            .body += Swag.makeString(bucket.data, bucket.count)
+        }
+
+        .body += "\"/>\n"
     }
 
     // Returns only the shape elements, without the enclosing `svg` element.
@@ -132,7 +138,10 @@ impl Document
     mtd const toString()->String
     {
         var result: #returntype
-        result.appendFormat("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 % %\" width=\"%\" height=\"%\"", num(.width), num(.height), num(.width), num(.height))
+        let width  = coordinateText(.width)
+        let height = coordinateText(.height)
+        result.appendFormat("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 % %\" width=\"%\" height=\"%\"",
+                            width, height, width, height)
         if .title.isEmpty()
         {
             result += " aria-hidden=\"true\">\n"
@@ -144,10 +153,10 @@ impl Document
 
         if .hasBackground
         {
-            result.appendFormat("<rect width=\"%\" height=\"%\" fill=\"%\"", num(.width), num(.height), hex(.background))
+            result.appendFormat("<rect width=\"%\" height=\"%\" fill=\"%\"", width, height, hex(.background))
             if .background.a != 255
             {
-                result.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, .background.a) / 255.0)
+                result.appendFormat(" fill-opacity=\"%\"", opacityText(.background.a))
             }
 
             result += "/>\n"
@@ -169,7 +178,7 @@ impl Document
 }
 
 // Appends the SVG commands of one path.
-private func appendContour(data: *String, path: const *LinePath, quality: PaintQuality)
+private func appendContour(data: *ConcatBuffer, path: const *LinePath, quality: PaintQuality)
 {
     if usesExactCommands(path)
     {
@@ -195,27 +204,44 @@ private func usesExactCommands(path: const *LinePath)->bool
     return true
 }
 
-private func appendExactContour(data: *String, path: const *LinePath)
+private func appendExactContour(data: *ConcatBuffer, path: const *LinePath)
 {
-    data.appendFormat("M% %", num(path.startPoint.x), num(path.startPoint.y))
+    data.addNative('M'_u8)
+    appendPoint(data, path.startPoint)
     for &element in path.elements
     {
         switch element.type
         {
-        case .Line:    data.appendFormat("L% %", num(element.position.x), num(element.position.y))
-        case .Bezier1: data.appendFormat("Q% % % %", num(element.p1.x), num(element.p1.y), num(element.position.x), num(element.position.y))
-        case .Bezier2: data.appendFormat("C% % % % % %", num(element.p1.x), num(element.p1.y), num(element.p2.x), num(element.p2.y), num(element.position.x), num(element.position.y))
-        default:       break
+        case .Line:
+            data.addNative('L'_u8)
+            appendPoint(data, element.position)
+
+        case .Bezier1:
+            data.addNative('Q'_u8)
+            appendPoint(data, element.p1)
+            data.addNative(' '_u8)
+            appendPoint(data, element.position)
+
+        case .Bezier2:
+            data.addNative('C'_u8)
+            appendPoint(data, element.p1)
+            data.addNative(' '_u8)
+            appendPoint(data, element.p2)
+            data.addNative(' '_u8)
+            appendPoint(data, element.position)
+
+        default:
+            break
         }
     }
 
     if path.isClosed
     {
-        data[] += "Z"
+        data.addNative('Z'_u8)
     }
 }
 
-private func appendFlattenedContour(data: *String, path: const *LinePath, quality: PaintQuality)
+private func appendFlattenedContour(data: *ConcatBuffer, path: const *LinePath, quality: PaintQuality)
 {
     var copy = path[]
     copy.flatten(quality)
@@ -227,35 +253,52 @@ private func appendFlattenedContour(data: *String, path: const *LinePath, qualit
 
     for &point, i in polygon.points
     {
-        data.appendFormat("%% %", i == 0 ? "M" : "L", num(point.x), num(point.y))
+        data.addNative(i == 0 ? 'M'_u8 : 'L'_u8)
+        appendPoint(data, point[])
     }
 
-    data[] += "Z"
+    data.addNative('Z'_u8)
 }
 
-// Formats a coordinate with the shortest exact spelling: a whole number loses its fraction and
-// a fraction loses its trailing zeros, which keeps a generated document readable and small.
-private func num(value: f32)->String
+private func appendPoint(data: *ConcatBuffer, point: Vector2)
 {
-    var result: #returntype
+    appendCoordinate(data, point.x)
+    data.addNative(' '_u8)
+    appendCoordinate(data, point.y)
+}
+
+// SVG coordinates always use a decimal point. The shortest fixed spelling preserves
+// integral zeros as well as the digits needed to reconstruct a fractional value.
+private func appendCoordinate(data: *ConcatBuffer, value: f32)
+{
     if value == Math.trunc(value) and Math.abs(value) < 1e9
     {
-        result.appendFormat("%", cast(s64, value))
-        return result
+        let integer = cast(s64, value)
+        if integer < 0
+        {
+            data.addNative('-'_u8)
+        }
+
+        StrConv.convertInt(data, cast(u64, Math.abs(integer)), {})
+        return
     }
 
-    result.appendFormat("%", value)
-    while result.endsWith("0")
-    {
-        result.removeBack(1)
-    }
+    StrConv.Dtoa.appendInvariant(data, value, 'f'_u8, -1, false)
+}
 
-    if result.endsWith(".")
-    {
-        result.removeBack(1)
-    }
+private func coordinateText(value: f32)->String
+{
+    var data: ConcatBuffer
+    appendCoordinate(&data, value)
+    return data.toString()
+}
 
-    return result
+private func opacityText(alpha: u8)->String
+{
+    let value = cast(f32, alpha) / 255.0
+    var data: ConcatBuffer
+    StrConv.Dtoa.appendInvariant(&data, value, 'f'_u8, 3, false)
+    return data.toString()
 }
 
 private func hex(color: Color)->String => Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)

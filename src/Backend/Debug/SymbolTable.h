@@ -54,6 +54,8 @@ namespace SymbolTable
     void build(ByteArray& outBytes, std::vector<Relocation>& outRelocations, std::span<const Entry> entries);
     // Lays out an image table when the caller writes its relocations directly to the image.
     void build(ByteArray& outBytes, std::span<const Entry> entries);
+    // Lays out the final image table with its source paths together for compression.
+    void buildImage(ByteArray& outBytes, std::span<const Entry> entries);
 
     // Packs a relocated plain image table, or returns an empty array when packing does not save space.
     // Packed headers carry the original table size and the exact payload size. Legacy ELF v4

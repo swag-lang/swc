@@ -19,6 +19,7 @@ private const Eac3FrameExponentStrategies: [32, 6] u32 = [
     3, 3, 3, 2, 0, 0, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 2, 0, 3, 3, 3, 3, 3, 3]
 
 private const MaxEac3ChannelBandwidthCode = 60_u32
+private const MaxEac3FrameBytes = 2 * (1 << 11)
 
 private struct Eac3Bsi
 {
@@ -56,15 +57,17 @@ private struct Eac3Codec
 {
     using base: Codec
 
-    sampleRate:    u32
-    channels:      u32
-    block:         Ac3Block
-    imdct:         [MaxChannels] Imdct
-    stereoImdct:   StereoImdct
-    surroundImdct: SurroundImdct
-    mantissaGains: PreparedMantissaGains
-    coefficients:  [MaxChannels, SamplesPerBlock] f64
-    dither:        DitherGenerator
+    sampleRate:      u32
+    channels:        u32
+    block:           Ac3Block
+    imdct:           [MaxChannels] Imdct
+    stereoImdct:     StereoImdct
+    surroundImdct:   SurroundImdct
+    mantissaGains:   PreparedMantissaGains
+    coefficients:    [MaxChannels, SamplesPerBlock] f64
+    dither:          DitherGenerator
+    packetCopy:      [MaxEac3FrameBytes + MantissaReadPadding] u8
+    packetCopyBytes: u64
 }
 
 internal func eac3BitAllocationFscod(fscod, reducedFscod: u32)->u32 => fscod == 3 ? reducedFscod : fscod
@@ -737,11 +740,10 @@ private impl Eac3Codec
 
     mtd sourceChannel(destination: u32, bsi: const *Eac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
 
-    mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
+    mtd decodeFrame(parsed: BitReader, bsi: Eac3Bsi, destination: [*] s16) fail
     {
-        var reader = BitReader.create(packet.buffer, packet.count)
-        let bsi    = try parseEac3Bsi(&reader)
-        if bsi.frameSize != packet.count
+        var reader = parsed
+        if bsi.frameSize != reader.size
         {
             fail InvalidFormatError{"E-AC-3 packet size does not match its sync-frame header"}
         }
@@ -755,6 +757,18 @@ private impl Eac3Codec
         {
             fail InvalidFormatError{"E-AC-3 packet channel layout differs from its container track"}
         }
+
+        // Keep the logical limit on the reader while reserving space for
+        // unaligned reads from the mantissa decoder.
+        let buffer = cast([*] u8, &.packetCopy[0])
+        Memory.copy(buffer, reader.data, reader.size)
+        if .packetCopyBytes > reader.size
+        {
+            Memory.set(buffer + reader.size, 0, .packetCopyBytes - reader.size)
+        }
+
+        .packetCopyBytes = reader.size
+        reader.data      = buffer
 
         let frame = try parseEac3Frame(&reader, &bsi)
         var firstCoordinates: [MaxFullBandwidthChannels] bool
@@ -832,7 +846,16 @@ private impl Eac3Codec
                                   previousStart != .block.couplingStart or
                                   previousEnd != .block.couplingEndMantissa
             try .readAllocation(&reader, &bsi, &frame, blockIndex, &previousChannelEnd, couplingChanged)
-            readPreparedMantissas!{true, false}(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients[0, 0], &.mantissaGains, &.dither)
+            // Check the logical limit at the end of a block before synthesis.
+            if not reader.overrun
+            {
+                readPreparedMantissas!{false, true}(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients[0, 0], &.mantissaGains, &.dither)
+                reader.overrun = reader.bitPos > reader.size * 8
+            }
+            else
+            {
+                readPreparedMantissas!{true, true}(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients[0, 0], &.mantissaGains, &.dither)
+            }
             if reader.overrun
             {
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
@@ -897,7 +920,7 @@ impl IPacketCodec for Eac3Codec
             fail BadParameterError{"E-AC-3 destination buffer is too small"}
         }
 
-        try .decodeFrame(packet, cast([*] s16, destination))
+        try .decodeFrame(header, bsi, cast([*] s16, destination))
         return required
     }
 }

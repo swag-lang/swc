@@ -340,6 +340,8 @@ impl Encoder
 
     func collectChannels(pixels: const [..] u32, hasAlphaChannel: bool, channels: *EncodeChannels)->bool
     {
+        using Math.Simd
+
         if not hasAlphaChannel
         {
             channels.alpha.values[0] = 0xFF
@@ -347,10 +349,12 @@ impl Encoder
         }
 
         var previous: u32
-        for index in pixels.count
+        var index:    u64
+        while index < pixels.count
         {
             let pixel = pixels[index]
-            if index and pixel == previous
+            index += 1
+            if index > 1 and pixel == previous
             {
                 continue
             }
@@ -372,11 +376,27 @@ impl Encoder
                 channels.alpha.add(cast(u8, (pixel >> 24)))
             }
 
-            if channels.red.count == 3 and
-               channels.blue.count == 3 and
-               (not hasAlphaChannel or channels.alpha.count == 3)
+            if channels.red.count == 3 and channels.blue.count == 3
             {
-                break
+                if not hasAlphaChannel or channels.alpha.count == 3
+                {
+                    break
+                }
+
+                // Once RGB use full trees, only new alpha values can change the result.
+                let mask   = splat(0xFF000000_u32)
+                let first  = splat(cast(u32, channels.alpha.values[0]) << 24)
+                let second = channels.alpha.count == 2 ? splat(cast(u32, channels.alpha.values[1]) << 24) : first
+                while pixels.count - index >= 4
+                {
+                    let values = load(pixels.buffer + index) & mask
+                    if not allTrue((values == first) | (values == second))
+                    {
+                        break
+                    }
+
+                    index += 4
+                }
             }
         }
 
@@ -579,7 +599,7 @@ impl Encoder
         return length > candidate.length ? EncodePixelMatch{length, true} : candidate
     }
 
-    func(RESIDUAL: bool, ROWS: bool) writePixels(writer: *EncodeBitWriter, pixels: Array!{u32}, channels: EncodeChannels, rowWidth: u32 = 0)
+    func(RESIDUAL: bool, ROWS: bool, ALPHA: bool = false) writePixels(writer: *EncodeBitWriter, pixels: Array!{u32}, channels: EncodeChannels, rowWidth: u32 = 0)
     {
         #static if not RESIDUAL
         {
@@ -590,9 +610,16 @@ impl Encoder
         }
 
         let data = cast(const [*] u32, pixels.storage())
+        #static if not ROWS
+        {
+            // The first pixel has no previous pixel to match.
+            var previous = ~data[0]
+        }
+
         var index: u64
         while index < pixels.count
         {
+            let pixel = data[index]
             #static if ROWS
             {
                 let limit = cast(u32, Math.min(4096_u64, pixels.count - index))
@@ -607,27 +634,33 @@ impl Encoder
             }
             else
             {
-                if index and data[index] == data[index - 1]
+                if pixel == previous
                 {
                     let limit  = cast(u32, Math.min(4096_u64, pixels.count - index))
-                    let length = repeatedPixelCount(data + index, data[index - 1], limit)
+                    let length = repeatedPixelCount(data + index, previous, limit)
                     writeLength!{RESIDUAL}(writer, length)
                     index += length
                     continue
                 }
+
+                previous = pixel
             }
 
-            let pixel = data[index]
             let red   = cast(u8, (pixel & 0xFF))
             let green = cast(u8, ((pixel >> 8) & 0xFF))
             let blue  = cast(u8, ((pixel >> 16) & 0xFF))
             let alpha = cast(u8, (pixel >> 24))
             #static if RESIDUAL
             {
-                let greenCode  = WEBP_ENCODE_RESIDUAL_GREEN_CODES[green]
-                let redCode    = WEBP_ENCODE_RESIDUAL_COLOR_CODES[red]
-                let blueCode   = WEBP_ENCODE_RESIDUAL_COLOR_CODES[blue]
-                let alphaCode  = channels.alpha.count == 1 ? 0 : WEBP_ENCODE_RESIDUAL_COLOR_CODES[alpha]
+                let greenCode = WEBP_ENCODE_RESIDUAL_GREEN_CODES[green]
+                let redCode   = WEBP_ENCODE_RESIDUAL_COLOR_CODES[red]
+                let blueCode  = WEBP_ENCODE_RESIDUAL_COLOR_CODES[blue]
+                #static if not ALPHA
+                {
+                    discard alpha
+                }
+
+                let alphaCode  = ALPHA ? WEBP_ENCODE_RESIDUAL_COLOR_CODES[alpha] : 0
                 let redShift   = greenCode >> 16
                 let blueShift  = redShift + (redCode >> 16)
                 let alphaShift = blueShift + (blueCode >> 16)
@@ -1006,7 +1039,14 @@ impl Encoder
         writeDistanceTree(writer)
 
         applyVerticalPrediction(cast([*] u32, pixels.storage()), width, height)
-        writePixels!{true, false}(writer, pixels[], channels)
+        if hasAlpha
+        {
+            writePixels!{true, false, true}(writer, pixels[], channels)
+        }
+        else
+        {
+            writePixels!{true, false}(writer, pixels[], channels)
+        }
     }
 
     func writePalette(writer: *EncodeBitWriter, palette: *EncodePalette)
@@ -1088,10 +1128,24 @@ impl Encoder
         var indices: [256] u8
         let channel = bits == 3 ? -1 : paletteIndexChannel(palette, &indices)
 
+        let reuseRows = bits != 3 and width >= 32
+        let rowBytes  = cast(u64, width) * 4
         for y in height
         {
             let inputRow  = pixels.buffer + cast(u64, y) * width
             let outputRow = output + cast(u64, y) * packedWidth
+            if reuseRows and y
+            {
+                let above = inputRow - width
+                if inputRow[0] == above[0] and
+                   inputRow[width - 1] == above[width - 1] and
+                   Memory.compare(inputRow, above, rowBytes) == 0
+                {
+                    Memory.copy(outputRow, outputRow - packedWidth, packedWidth)
+                    continue
+                }
+            }
+
             if bits == 3
             {
                 var x:     s32

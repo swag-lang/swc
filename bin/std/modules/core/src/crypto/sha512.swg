@@ -38,18 +38,30 @@ private const Sha512Constants: [80] u64 = [
     0x28DB77F523047D84, 0x32CAAB7B40C72493, 0x3C9EBE0A15C9BEBC, 0x431D67C49C100D4C,
     0x4CC5D4BECB3E42B6, 0x597F299CFC657E2A, 0x5FCB6FAB3AD6FAEC, 0x6C44198C4A475817]
 
+// Retaining one schedule window keeps the dependencies close to each round.
+private const Sha512ScheduleWords = 16
+
+#[Swag.Inline]
+private func loadSha512SchedulePair(schedule: [*] u64, index: u64)->Math.Simd.U64x2
+{
+    return Math.Simd.load(schedule + (index & (Sha512ScheduleWords - 1)))
+}
+
 // Both words depend on earlier pairs, so they can share the packed rotations.
 #[Swag.Inline]
 private func sha512ExtendPair(schedule: [*] u64, index: u64)->Math.Simd.U64x2
 {
     using Math
 
-    let x        = Simd.load(schedule + index - 15)
-    let y        = Simd.load(schedule + index - 2)
+    let x        = loadSha512SchedulePair(schedule, index - 15)
+    let y        = loadSha512SchedulePair(schedule, index - 2)
     let sigma0   = Swag.ror(x, 1_u8) ^ Swag.ror(x, 8_u8) ^ (x >> 7)
     let sigma1   = Swag.ror(y, 19_u8) ^ Swag.ror(y, 61_u8) ^ (y >> 6)
-    let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
-    Simd.store(schedule + index, expanded)
+    let expanded = loadSha512SchedulePair(schedule, index - 16) + sigma0 + loadSha512SchedulePair(schedule, index - 7) + sigma1
+    let offset = index & (Sha512ScheduleWords - 1)
+
+    Simd.store(schedule + offset, expanded)
+    Simd.store(schedule + offset + Sha512ScheduleWords, expanded)
     return expanded
 }
 
@@ -70,15 +82,19 @@ private func(Extend: bool) sha512SchedulePair(index: u64, schedule: [*] u64)->Ma
 }
 
 #[Swag.Inline]
-private func sha512Round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
+private func sha512RoundFirst(e, f, g, h, scheduled: u64)->u64
 {
-    let sum1     = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
-    let choice   = (e & f) ^ (~e & g)
-    let temp1    = h[] + sum1 + choice + scheduled
-    let sum0     = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
+    let sum    = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
+    let choice = (e & f) ^ (~e & g)
+    return h + sum + choice + scheduled
+}
+
+#[Swag.Inline]
+private func sha512RoundSecond(a, b, c: u64)->u64
+{
+    let sum      = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
     let majority = (a & b) ^ (a & c) ^ (b & c)
-    d[] += temp1
-    h[] = temp1 + sum0 + majority
+    return sum + majority
 }
 
 private struct Sha512Core
@@ -181,6 +197,40 @@ impl Sha512Core
         return .state
     }
 
+    // A fresh context leaves its block zero-initialized.
+    #[Swag.Inline]
+    mtd computeFresh(data: const [..] u8)
+    {
+        if data.count < 112
+        {
+            if data.count
+            {
+                Swag.memcpy(.data.buffer, data.buffer, data.count)
+            }
+
+            .data[data.count] = 0x80
+            let lowLength = cast([*] u64, .data.buffer + 120)
+            lowLength[0] = Math.nativeToBigEndian(data.count * 8)
+            .transformBlocks(.data)
+        }
+        else
+        {
+            let blocks = data.count / Sha512BlockSize
+            if blocks
+            {
+                .transformBlocks(data.buffer, blocks)
+            }
+
+            let consumed = blocks * Sha512BlockSize
+            .dataLength = data.count - consumed
+            if .dataLength
+            {
+                Swag.memcpy(.data.buffer, data.buffer + consumed, .dataLength)
+            }
+            .finalizeBlocks()
+        }
+    }
+
     #[Swag.Inline]
     mtd finalizeBlocks()
     {
@@ -230,15 +280,18 @@ impl Sha512Core
     private mtd transformBlocks(buf: const [*] u8, blockCount = 1_u64)
     {
         using Math
-        var words: [80] u64
+        // Mirror the window so an odd pair spanning its boundary stays contiguous.
+        var words: [Sha512ScheduleWords * 2] u64
         let schedule = words.buffer
         for block in blockCount
         {
             let input = cast(const [*] u64, buf + block * Sha512BlockSize)
-            for pair in 8
+            for pair in Sha512ScheduleWords / 2
             {
                 let index = pair * 2
-                Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
+                let converted = Math.bigEndianToNative(Simd.load(input + index))
+                Simd.store(schedule + index, converted)
+                Simd.store(schedule + index + Sha512ScheduleWords, converted)
             }
 
             var a = .state[0]
@@ -250,40 +303,56 @@ impl Sha512Core
             var g = .state[6]
             var h = .state[7]
 
-            // Rotate the roles of the local variables through all eight positions.
-            #[Swag.Inline]
-            func(Extend: bool) compressGroup(index: u64, schedule: [*] u64, a, b, c, d, e, f, g, h: *u64)
+            // Rotate the roles of the locals through all eight positions.
+            #[Swag.Mixin]
+            func(Index: u64, Extend: bool) compressGroup()
             {
-                let pair0 = sha512SchedulePair!{Extend}(index, schedule)
+                scope
+                {
+                    let pair0 = sha512SchedulePair!{Extend}(Index, schedule)
+                    let first0 = sha512RoundFirst(e, f, g, h, pair0[0])
+                    d += first0
+                    h = first0 + sha512RoundSecond(a, b, c)
+                    let first1 = sha512RoundFirst(d, e, f, g, pair0[1])
+                    c += first1
+                    g = first1 + sha512RoundSecond(h, a, b)
 
-                sha512Round(a[], b[], c[], d, e[], f[], g[], h, pair0[0])
-                sha512Round(h[], a[], b[], c, d[], e[], f[], g, pair0[1])
+                    let pair1 = sha512SchedulePair!{Extend}(Index + 2, schedule)
+                    let first2 = sha512RoundFirst(c, d, e, f, pair1[0])
+                    b += first2
+                    f = first2 + sha512RoundSecond(g, h, a)
+                    let first3 = sha512RoundFirst(b, c, d, e, pair1[1])
+                    a += first3
+                    e = first3 + sha512RoundSecond(f, g, h)
 
-                let pair1 = sha512SchedulePair!{Extend}(index + 2, schedule)
-                sha512Round(g[], h[], a[], b, c[], d[], e[], f, pair1[0])
-                sha512Round(f[], g[], h[], a, b[], c[], d[], e, pair1[1])
+                    let pair2 = sha512SchedulePair!{Extend}(Index + 4, schedule)
+                    let first4 = sha512RoundFirst(a, b, c, d, pair2[0])
+                    h += first4
+                    d = first4 + sha512RoundSecond(e, f, g)
+                    let first5 = sha512RoundFirst(h, a, b, c, pair2[1])
+                    g += first5
+                    c = first5 + sha512RoundSecond(d, e, f)
 
-                let pair2 = sha512SchedulePair!{Extend}(index + 4, schedule)
-                sha512Round(e[], f[], g[], h, a[], b[], c[], d, pair2[0])
-                sha512Round(d[], e[], f[], g, h[], a[], b[], c, pair2[1])
-
-                let pair3 = sha512SchedulePair!{Extend}(index + 6, schedule)
-                sha512Round(c[], d[], e[], f, g[], h[], a[], b, pair3[0])
-                sha512Round(b[], c[], d[], e, f[], g[], h[], a, pair3[1])
+                    let pair3 = sha512SchedulePair!{Extend}(Index + 6, schedule)
+                    let first6 = sha512RoundFirst(g, h, a, b, pair3[0])
+                    f += first6
+                    b = first6 + sha512RoundSecond(c, d, e)
+                    let first7 = sha512RoundFirst(f, g, h, a, pair3[1])
+                    e += first7
+                    a = first7 + sha512RoundSecond(b, c, d)
+                }
             }
 
-            // The first two groups consume the original sixteen words. Each later
-            // group extends the schedule just before consuming its words.
-            compressGroup!{false}(0, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{false}(8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(16, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(24, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(32, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(40, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(48, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(56, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(64, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup!{true}(72, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{0, false}()
+            compressGroup!{8, false}()
+            compressGroup!{16, true}()
+            compressGroup!{24, true}()
+            compressGroup!{32, true}()
+            compressGroup!{40, true}()
+            compressGroup!{48, true}()
+            compressGroup!{56, true}()
+            compressGroup!{64, true}()
+            compressGroup!{72, true}()
 
             .state[0]     += a
             .state[1]     += b
@@ -300,6 +369,31 @@ impl Sha512Core
             }
         }
     }
+}
+
+#[Swag.Inline]
+private func(Words: u64) truncateSha512Digest(state: const [*] u64)->[Words] u64
+{
+    var digest: #returntype
+    for index in Words
+    {
+        digest[index] = state[index]
+    }
+
+    return digest
+}
+
+#[Swag.Inline]
+private func truncateSha512_224Digest(state: const [*] u64)->[7] u32
+{
+    var digest: #returntype
+    for index in digest.count
+    {
+        let shift = (index & 1) == 0 ? 32 : 0
+        digest[index] = cast(u32, state[index / 2] >> shift)
+    }
+
+    return digest
 }
 
 // Computes a SHA-512 digest incrementally.
@@ -370,8 +464,8 @@ public impl Sha512
     {
         var hash: Sha512
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return hash.core.state
     }
 }
 
@@ -427,14 +521,8 @@ public impl Sha384
             .reset()
         }
 
-        let state = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            result[index] = state[index]
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512Digest!{6}(.core.state.buffer)
     }
 
     // Computes the SHA-384 digest of `data` in one operation.
@@ -442,8 +530,8 @@ public impl Sha384
     {
         var hash: Sha384
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512Digest!{6}(hash.core.state.buffer)
     }
 }
 
@@ -483,15 +571,8 @@ public impl Sha512_224
             .reset()
         }
 
-        let fullDigest = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            let shift = (index & 1) == 0 ? 32 : 0
-            result[index] = cast(u32, fullDigest[index / 2] >> shift)
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512_224Digest(.core.state.buffer)
     }
 
     // Computes the SHA-512/224 digest of `data` in one operation.
@@ -499,8 +580,8 @@ public impl Sha512_224
     {
         var hash: Sha512_224
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512_224Digest(hash.core.state.buffer)
     }
 }
 
@@ -540,14 +621,8 @@ public impl Sha512_256
             .reset()
         }
 
-        let fullDigest = .core.finalize()
-        var result: #returntype
-        for index in result.count
-        {
-            result[index] = fullDigest[index]
-        }
-
-        return result
+        .core.finalizeBlocks()
+        return truncateSha512Digest!{4}(.core.state.buffer)
     }
 
     // Computes the SHA-512/256 digest of `data` in one operation.
@@ -555,7 +630,7 @@ public impl Sha512_256
     {
         var hash: Sha512_256
         hash.reset()
-        hash.update(data)
-        return hash.finalize()
+        hash.core.computeFresh(data)
+        return truncateSha512Digest!{4}(hash.core.state.buffer)
     }
 }

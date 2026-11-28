@@ -943,6 +943,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecSha256Rounds2:
             return parseIntrinsicCallExpr(3);
 
+        case TokenId::IntrinsicVecCarrylessProductSum16:
+            return parseIntrinsicCallExpr(4);
+
         case TokenId::IntrinsicVecClmul2XorPair:
         case TokenId::IntrinsicVecClmul2XorQuad:
             return parseIntrinsicCallExpr(5);

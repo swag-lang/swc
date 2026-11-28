@@ -76,6 +76,33 @@ The luma and chroma probes come from FFmpeg's planar decode of the file.
 - License: same as this repository.
 
 
+`ffmpeg-h264-annexb.h264` contains twelve synthetic 80×50 pictures at 30000/1001.
+The stream has three slices per picture, two IDR groups and reordered B pictures.
+FFmpeg 7.1.5 generated it without access unit delimiters.
+
+```sh
+ffmpeg -f lavfi -i 'testsrc2=size=80x50:rate=30000/1001' -frames:v 12 -an \
+  -c:v libx264 -threads 1 -profile:v high -pix_fmt yuv420p \
+  -x264-params 'keyint=6:min-keyint=6:scenecut=0:open-gop=0:bframes=2:b-adapt=0:slices=3:aud=0' \
+  source.mp4
+ffmpeg -i source.mp4 -map 0:v:0 -an -c:v copy -bsf:v h264_mp4toannexb \
+  -f h264 ffmpeg-h264-annexb.h264
+```
+
+In `ffmpeg-h264-annexb-no-vui.h264`, the two copies of the SPS have
+`vui_parameters_present_flag` cleared, with a new RBSP stop bit and emulation
+prevention where needed. The slice bytes are unchanged. FFmpeg 9.1's AVC parser
+and decoder read both raw streams to the same 72,000-byte 4:2:0 picture sequence
+in display order, recorded as `ffmpeg-h264-annexb.yuv`.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-h264-annexb.h264` | 3,642 | `24cf670e0317288791335e765077b95c86524e5946b4d30f307032f6a6c6ab4f` |
+| `ffmpeg-h264-annexb-no-vui.h264` | 3,614 | `afc266478de75e0a101533bb33a1043dfc52c0f354fd753010c8faa4ba54b61e` |
+| `ffmpeg-h264-annexb.yuv` | 72,000 | `07c10342ee781be3aca4b55630dfcb228b56a0f3008cc629f70af3e35f045a19` |
+
+The fixture and reference use the same license as this repository.
+
 ## Written by ffmpeg, then edited
 
 `edited-two-pcm-record-group.avi` uses two frames of synthetic grey video and two synthetic tones.
@@ -153,6 +180,16 @@ the same six pictures.
 | `edited-absolute-index.avi` | The index offsets are counted from the start of the file rather than from the frame list, which some writers do and nothing in the format distinguishes |
 | `edited-record-groups.avi` | Every frame is wrapped in a `rec ` list and the index removed, as an OpenDML file groups its frames |
 | `edited-dropped-frames.avi` | The payloads of frames 3 and 4 are emptied and the index updated, which is how the container says a frame repeats the picture before it |
+
+`synthetic-opendml.avi` remuxes the six synthetic `ffmpeg-rawvideo-bgr24.avi` pictures
+with their original payloads and timeline. The first `RIFF AVI ` holds three pictures
+and an `idx1` for those pictures. A `RIFF AVIX` continuation holds the last three in a
+`rec ` list. The video `indx` refers to one `ix00` standard index in each RIFF and
+`dmlh` declares the complete picture count. A separately generated mono 8,000 Hz
+signed 16-bit PCM track holds samples −1,000 through −985 in the first RIFF and
+1,000 through 1,015 in the continuation. The fixture is distributed under the
+repository's licence. Its 14,812 bytes have SHA-256
+`9a993c84e1f8cd0dbd96340993ae139d6186c3ac9ba2e1400c2ce4b2df4566f9`.
 
 `edited-truncated-tail.mkv` is `ffmpeg-h264-two-aac.mkv` with everything from its second cluster
 onward replaced by zeros, which is what a write that stopped part way leaves behind, and what two
@@ -364,6 +401,69 @@ to 23,219,954 ns by MKVToolNix. At 44.1 kHz this removes exactly 1,024 decoded A
 - SHA-256: `f015d034f3226285f969b6c3f15bd0f79b7985494f07ecb56c6c810940b3f560`
 - License: same as `ffmpeg-h264-two-aac.mkv`.
 
+The `ffmpeg-hevc-annexb-*` fixtures are synthetic 96×64 elementary streams made with FFmpeg
+7.1.5 and libx265. The common encoder options are `-c:v libx265 -threads 1 -preset fast` and
+`frame-threads=1:log-level=error:keyint=6:min-keyint=6:scenecut=0:repeat-headers=1:info=0`
+in `-x265-params`. For each stream, use `-an -f hevc` and the following settings.
+
+| Stream suffix | Input, profile and duration | Additional x265 parameters |
+| --- | --- | --- |
+| `main10` | `testsrc2=size=96x64:rate=30000/1001,format=yuv420p10le`, Main 10, 12 pictures | `pools=none:open-gop=0:bframes=2:b-adapt=0:aud=0` |
+| `main` | `testsrc2=size=96x64:rate=24`, Main, 5 pictures | `pools=1:ctu=32:wpp=1:slices=2:open-gop=0:bframes=0:aud=1:vui-timing-info=0:sao=0` |
+| `open-gop` | `testsrc2=size=96x64:rate=24`, Main, 9 pictures | `pools=none:open-gop=1:bframes=2:b-adapt=0:aud=0` |
+
+The Main 10 stream contains two IDR groups and reordered B pictures. The Main stream uses
+two slices per picture, disables SAO, and carries no VUI timing. The open-GOP stream contains a CRA and
+leading RASL pictures. FFmpeg 9.1's HEVC parser and decoder read the closed streams to the
+reference 4:2:0 YUV planes in display order. The Main 10 reference keeps the original
+ten-bit samples in little-endian words. Reader tests compare after rounding those samples
+to the eight bits the planar API returns.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-hevc-annexb-main10.hevc` | 3,755 | `a7249e53dd6f1e136934af593da00acc3830c43b49759454e59c535a0eb4da60` |
+| `ffmpeg-hevc-annexb-main10.yuv` | 221,184 | `9b2fd1324b1a59aa2c2e3bd7529e5fbf2b7ed7763a29e7b59599f351a1b578ce` |
+| `ffmpeg-hevc-annexb-main.hevc` | 1,993 | `e949cc955e856578df36bf3d46b9cd27d36362189499a1dc128c8e7ae9455e81` |
+| `ffmpeg-hevc-annexb-main.yuv` | 46,080 | `f65b6b8692e2f82b2d58def341d582674d7609fb7256beb1c8238a18ca8aa749` |
+| `ffmpeg-hevc-annexb-open-gop.hevc` | 3,363 | `4aefd375be1f1431059fa4eae632fcc3e344aa22f24ad092ce1568aea3061e79` |
+
+These fixtures use the same license as this repository.
+
+The `ffmpeg-hevc-sao-boundary-*` fixtures have five synthetic 96×64 pictures
+with two independent 32-pixel CTB rows, sample adaptive offset, and a forbidden
+cross-slice filter boundary. FFmpeg 7.1.5 encoded the raw streams with libx265
+and copied their coded data to MP4. FFmpeg 9.1 decoded the elementary streams
+to the displayed YUV planes.
+
+```sh
+params='pools=1:frame-threads=1:log-level=error:ctu=32:wpp=1:slices=2:keyint=6:min-keyint=6:scenecut=0:open-gop=0:bframes=0:repeat-headers=1:aud=1:vui-timing-info=0:info=0'
+ffmpeg -f lavfi -i 'testsrc2=size=96x64:rate=24' -frames:v 5 -an \
+  -c:v libx265 -threads 1 -preset fast -profile:v main -pix_fmt yuv420p \
+  -x265-params "$params" -f hevc ffmpeg-hevc-sao-boundary-main.hevc
+ffmpeg -f lavfi -i 'testsrc2=size=96x64:rate=24,format=yuv420p10le' -frames:v 5 -an \
+  -c:v libx265 -threads 1 -preset fast -profile:v main10 -pix_fmt yuv420p10le \
+  -x265-params "$params" -f hevc ffmpeg-hevc-sao-boundary-main10.hevc
+for case in main main10; do
+  ffmpeg -f hevc -framerate 24 -i "ffmpeg-hevc-sao-boundary-$case.hevc" \
+    -map 0:v -c copy -tag:v hvc1 "ffmpeg-hevc-sao-boundary-$case.mp4"
+done
+```
+
+The eight-bit reference has one byte per sample. The ten-bit reference preserves
+little-endian sixteen-bit words. The reader tests round this reference to its
+eight-bit planar output and the decoder test also compares the native samples.
+
+| Local file | Size in bytes | SHA-256 |
+| --- | ---: | --- |
+| `ffmpeg-hevc-sao-boundary-main.hevc` | 2,029 | `608e75b3cfd7aa87cdb2de7da849d1f5e29ed39996ae846256c4086ff4864c71` |
+| `ffmpeg-hevc-sao-boundary-main.mp4` | 2,997 | `b626df498b5a63e9c12c1bb0bbc7d87c9100f61d53179e4cd4f687054ede5cc4` |
+| `ffmpeg-hevc-sao-boundary-main.yuv` | 46,080 | `bcc1b3d2541ccfa6e4de6c4389fe6814aea8cea251caf9bb56f296ed258e7a6c` |
+| `ffmpeg-hevc-sao-boundary-main10.hevc` | 2,018 | `c83ff32bf46592af34d06d5d7a7a5bf0b4358c3aecdae0e4c5fb00d569ddf7ab` |
+| `ffmpeg-hevc-sao-boundary-main10.mp4` | 2,987 | `20f9e878671389521336121ac69a35d3b55118bbe34844e56bbd28732121a1ee` |
+| `ffmpeg-hevc-sao-boundary-main10.yuv` | 92,160 | `d40cd2dfc9e1f201ebab96c31c100b3f62d4ae163c055ed65be56bc7d759b42b` |
+
+These fixtures use the same license as this repository.
+
 `ffmpeg-hevc-main.mp4`, `ffmpeg-hevc-inband.mp4`, and `ffmpeg-hevc-main.mkv` re-encode the source
 pictures of `ffmpeg-h264-pyramid.yuv` with x265 through PyAV 17.1, so the H.264 and H.265 fixtures
 carry the same 96x64, 60-frame content and a difference between them is the codec alone.
@@ -451,6 +551,33 @@ muxer write three empty video slots immediately after the first picture.
 SHA-256: `74eb423c6b862b672f45d8e87684a93a1bd07d777de6b85332d182e0322446d4`.
 Both fixtures are licensed under the same terms as this repository.
 
+### Synthetic raw Motion JPEG
+
+`synthetic-concatenated.mjpeg` contains five independently encoded, synthetic 37×29 JPEGs.
+Pillow 12.3.0 with libjpeg-turbo 3.1.4.1 encodes them at quality 89 with 4:4:4 sampling.
+Frame two in display order is progressive, and frames one and two use restart markers every
+second block, with frame numbering starting at zero. Frame zero inserts `FF D8`, `FF D9`,
+`FF DA`, and `FF 00` byte pairs inside an APP9 payload. The real entropy streams also contain
+stuffed `FF 00` bytes.
+
+For frame `n` and top-down pixel coordinates `(x, y)`, the RGB channels before encoding are
+`(19*x + 7*y + 37*n) % 256`, `(5*x + 13*y + 59*n) % 256`, and
+`(13*x + 3*y + 23*n) % 256`. The frames are joined directly without separators or a clock.
+FFmpeg 9.1 supplies 25 frames per second by default and generated the bottom-up RGB reference:
+
+```sh
+ffmpeg -threads 1 -f mjpeg -i synthetic-concatenated.mjpeg -vf vflip -pix_fmt rgb24 \
+  -c:v rawvideo -threads 1 -fps_mode passthrough -f rawvideo ../goldens/synthetic-concatenated.rgb
+```
+
+- `synthetic-concatenated.mjpeg`: 10,838 bytes, SHA-256
+  `296b507ed6f7d0acc139d6624839819426c8acd722fa0d5fe0a264ddeae00e7f`.
+- `../goldens/synthetic-concatenated.rgb`: 16,095 bytes, SHA-256
+  `c815b1212177003929bed2ea3b67b6d766ec10f685e6f812cfa5f4955bea46b9`.
+
+The fixture and decoded reference were generated for this suite and are redistributable under
+this repository's licence. No source picture was obtained from a third party.
+
 ## Expected values
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this
@@ -521,6 +648,13 @@ PyAV 17.1.0 remuxed the RealMedia packets into Matroska without re-encoding, wit
 the same packets as `rv40-ipb.mkv`, but stamps each B picture one millisecond after its preceding
 stored reference. It exercises the RV40 clock correction required by legacy Matroska muxers.
 
+`rv40-cluster-wrap.mkv` derives from `rv40-slices.mkv` under the same licence. It keeps
+its picture payloads and presentation times, except for adding 8,120 milliseconds modulo
+8,192 to the codec clock of every slice. It remuxes the 13 blocks in decoding order into
+six clusters holding 2, 3, 1, 3, 1, and 3 blocks, at timestamps 0, 80, 200, 240, 360,
+and 400 milliseconds. The cluster boundaries separate the future references from their
+B pictures. FFmpeg 9.1 decodes the fixture to the exact `rv40-slices.yuv` samples.
+
 The `.yuv` expectations in `../goldens/` were decoded independently by FFmpeg through PyAV,
 in presentation order, with tightly packed Y, U, then V planes. They are exact sample references.
 The legacy-clock fixture uses `rv40-ipb.yuv`.
@@ -532,6 +666,7 @@ The legacy-clock fixture uses `rv40-ipb.yuv`.
 | `rv40-adaptive.mkv` | 14626 | `f22405aedca2e28350698f838ac59a9f483bf0233a73e50cc32dfb00db8880a5` |
 | `rv40-legacy-clock.mkv` | 7264 | `3f0ae80c6a2a54412c938a7105ffc1c6a5df2eb580f90454d7ec85d43f31f01a` |
 | `rv40-slices.mkv` | 11480 | `dc302d9e5a7fbb393a248fa6f14ccd2822353842e44c4019d422bb194b4bae36` |
+| `rv40-cluster-wrap.mkv` | 11193 | `03987af157225ef8934b9a9986369115ba8878f452f29d973867018f2e5d5756` |
 | `../goldens/rv40-intra.yuv` | 101376 | `e47cac82c2655dd85976bb5fd802b48fcf839c0a7fb071749e622098d767eb8d` |
 | `../goldens/rv40-ipb.yuv` | 82944 | `1017f69a52657dcf75e9fc8a9d6662b87f624a28a8676a2cb045a7375f523485` |
 | `../goldens/rv40-adaptive.yuv` | 82944 | `24ca1301f039a0db96a0295c70413c70446a7ac5cf1507372efd4f96f8be59fe` |

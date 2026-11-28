@@ -588,7 +588,7 @@ retains the LLVM project licence.
 | `viewer.aac` | `audio/aac-lc-stereo-44100.aac` | `e002c74b334f68808367d2a0881afa9928efed09f1433a6ead214e452d117b8f` |
 | `viewer.ac3` | `audio/ac3-5.1-48000.ac3` | `62398152fe980bbcb9dc149e4ad31aaceb13dd7bc0462c1ce3eeb48a8d54b685` |
 | `viewer.avi` | `video/ffmpeg-mjpeg-422.avi` | `716ed68c91694a3d47ef3e754489065a983ea0d4e71039ae2b3a435e92c6e030` |
-| `viewer.ccitt.pdf` | `gui/synthetic-ccitt-cmyk.pdf` | `1888fe1d3e8222a15f4d35525ee1daf305e02b0406db9d444b41a92586008d90` |
+| `viewer.ccitt.pdf` | `gui/synthetic-ccitt-cmyk.pdf` | `ce9ba7c58239a3673f1fc5743de795d84ad8e407e15d0af9d4be6d08e7922fb4` |
 | `viewer.dts` | `audio/dts-5.1-48000.dts` | `6de5bc7205bd12bb36948215f8bc61cc8230a183670e5389b6b532bb1a04754e` |
 | `viewer.eac3`, `viewer.ec3` | `audio/eac3-stereo-48000.eac3` | `4b5cfef8680e681e82745a30abe5166fbfc316908b504f13b8e487da8e78ef4c` |
 | `viewer.flac` | `audio/flac-stereo-44100.flac` | `079c942489f90df0093df3f80eae4dafdd796a536a21b1d50169d615c1c49f53` |

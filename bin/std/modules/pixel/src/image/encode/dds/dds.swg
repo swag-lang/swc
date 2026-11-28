@@ -9,51 +9,43 @@ using Core, Core.Errors
 
 internal struct Encoder {}
 
-#[Swag.Inline]
-func writeU32(result: *ConcatBuffer, value: u32)
-{
-    result.addNative(cast(u8, (value & 0xFF)))
-    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
-    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
-    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
-}
-
 func writeHeader(result: *ConcatBuffer, image: Image, pitch, dxgi, flags, bits, redMask, greenMask, blueMask, alphaMask: u32)
 {
-    writeU32(result, Magic)
-    writeU32(result, 124)
-    writeU32(result, 0x0000100F)     // CAPS, HEIGHT, WIDTH, PITCH, PIXELFORMAT.
-    writeU32(result, cast(u32, image.height))
-    writeU32(result, cast(u32, image.width))
-    writeU32(result, pitch)
-    writeU32(result, 0)
-    writeU32(result, 0)
-    for 11
-    {
-        writeU32(result, 0)
-    }
+    let size   = dxgi ? HeaderSize + 20 : HeaderSize
+    let header = cast([*] u32, result.reserveInPlace(size))
+    Memory.clear(header, size)
+    header[0] = Magic
+    header[1] = 124
+    header[2] = 0x0000100F     // CAPS, HEIGHT, WIDTH, PITCH, PIXELFORMAT.
+    header[3] = cast(u32, image.height)
+    header[4] = cast(u32, image.width)
+    header[5] = pitch
 
-    writeU32(result, 32)
-    writeU32(result, dxgi ? FourCcFlag : flags)
-    writeU32(result, dxgi ? 0x30315844_u32 : 0)     // DX10
-    writeU32(result, bits)
-    writeU32(result, redMask)
-    writeU32(result, greenMask)
-    writeU32(result, blueMask)
-    writeU32(result, alphaMask)
-    writeU32(result, 0x1000)     // DDSCAPS_TEXTURE.
-    for 4
-    {
-        writeU32(result, 0)
-    }
+    // The legacy pixel format begins after the depth, mip count and reserved words.
+    header[19] = 32
+    header[20] = dxgi ? FourCcFlag : flags
+    header[21] = dxgi ? 0x30315844_u32 : 0     // DX10
+    header[22] = bits
+    header[23] = redMask
+    header[24] = greenMask
+    header[25] = blueMask
+    header[26] = alphaMask
+    header[27] = 0x1000     // DDSCAPS_TEXTURE.
 
     if dxgi
     {
-        writeU32(result, dxgi)
-        writeU32(result, 3)     // DDS_DIMENSION_TEXTURE2D.
-        writeU32(result, 0)
-        writeU32(result, 1)
-        writeU32(result, image.pixelFormat.hasAlpha() or bits != image.bitsPerPixel ? 1 : 3)
+        header[32] = dxgi
+        header[33] = 3     // DDS_DIMENSION_TEXTURE2D.
+        header[35] = 1
+        header[36] = image.pixelFormat.hasAlpha() or bits != image.bitsPerPixel ? 1 : 3
+    }
+
+    #static if Core.BIG_ENDIAN
+    {
+        for index in size / 4
+        {
+            header[index] = Swag.byteSwap(header[index])
+        }
     }
 }
 

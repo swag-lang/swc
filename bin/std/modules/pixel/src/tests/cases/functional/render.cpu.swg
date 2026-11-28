@@ -872,6 +872,66 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(right.b > right.r)
 }
 
+// Long stop lists retain the first color at a hard stop and the last color immediately after it.
+#test
+{
+    var short = Brush.createLinearGradient(0.5, 0, 64.5, 0, Argb.Red, Argb.Blue)
+    short.addGradientStop(0.5, Argb.Red)
+    short.addGradientStop(0.5, Argb.Blue)
+
+    var long = short
+    for 32
+    {
+        long.addGradientStop(0.5, Argb.Blue)
+    }
+
+    var unsorted = long
+    unsorted.gradientStops.add({0.375, Color.fromArgb(Argb.Green)})
+
+    for paint in [short, long, unsorted]
+    {
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.Zero))
+        painter.fillRect({0, 0, 64, 4}, paint[])
+        painter.end()
+
+        let image = renderCpu(64, 4, &painter)
+        for x in 33
+        {
+            assertPixel(image, cast(s32, x), 1, Argb.Red)
+        }
+
+        for x in 33 until 64
+        {
+            assertPixel(image, cast(s32, x), 1, Argb.Blue)
+        }
+    }
+}
+
+// A zero-length linear gradient uses its first stop across packed spans and their tails.
+#test
+{
+    let paint = Brush.createLinearGradient(7, 5, 7, 5, Argb.Red, Argb.Blue, .Mirror)
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.fillRect({1, 2, 23, 9}, paint)
+    painter.end()
+
+    let image = renderCpu(26, 13, &painter)
+    for y in 2 until 11
+    {
+        for x in 1 until 24
+        {
+            assertPixel(image, cast(s32, x), cast(s32, y), Argb.Red)
+        }
+    }
+}
+
 // Parallel color-only gradient spans match scalar blending over an opaque target.
 #[Swag.TestTag("parallel")]
 #test
@@ -890,6 +950,11 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     {
         paint.setOpacity(173)
         paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884_u32))
+
+        if paint.type == .RadialGradient
+        {
+            paint.multiplyTint(Color.fromArgb(0xE8B2_D584_u32))
+        }
     }
 
     var images: [2] Image
@@ -928,6 +993,71 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(images[0].pixelColor(60, 30).argb != 0xFF20_3040)
     Swag.require(images[0].pixelColor(0, 30).argb == 0xFF20_3040)
     Swag.require(Memory.compare(images[0].pixels.storage(), images[1].pixels.storage(), images[0].pixels.count) == 0)
+}
+
+// Consecutive overlapping gradient draws keep painter order on both sides of a clip change.
+#[Swag.TestTag("parallel")]
+#test
+{
+    let workers = Swag.workerCount()
+    defer Swag.setWorkerCount(workers)
+
+    let red   = Color.fromArgb(0x60E3_3C34_u32)
+    let blue  = Color.fromArgb(0x800C_58C8_u32)
+    let green = Color.fromArgb(0x48B4_E66B_u32)
+    let fills = [Brush.createLinearGradient(5, 3, 95, 55, red, blue, .Repeat),
+                 Brush.createRadialGradient(73, 37, 59, blue, green, .Mirror),
+                 Brush.createSweepGradient(53, 40, green, red, .Clamp)]
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+
+    for layer in 2
+    {
+        if layer
+        {
+            painter.setClippingRect(10, 17, 109, 68)
+        }
+
+        for i in 37
+        {
+            let x = 6.0 + cast(f32, i % 7) * 4.0
+            let y = 3.0 + cast(f32, i % 11) * 3.0
+            painter.fillRect(x, y, 101, 54, fills[(layer + i) % fills.count])
+        }
+    }
+
+    painter.resetClippingRect()
+    painter.fillRect(0, 0, 5, 5, Color.fromArgb(Argb.White))
+    painter.end()
+
+    let commands = painter.commandBuffer.toSlice()
+    var index, pairs, longest: u64
+    while index + 1 < commands.count
+    {
+        if commands[index].op is .BindTexture0 and commands[index + 1].op is .DrawTriangles
+        {
+            index   += 2
+            pairs   += 1
+            longest = Math.max(longest, pairs)
+        }
+        else
+        {
+            index += 1
+            pairs  = 0
+        }
+    }
+    Swag.require(longest == 37)
+
+    Swag.setWorkerCount(1)
+    let serial = renderCpu(137, 94, &painter)
+    Swag.setWorkerCount(4)
+    let parallelImage = renderCpu(137, 94, &painter)
+    assertPixel(parallelImage, 2, 2, Argb.White)
+    Swag.require(parallelImage.pixelColor(60, 55).argb != Argb.Black)
+    Swag.require(Memory.compare(parallelImage.pixels.storage(), serial.pixels.storage(), serial.byteCount) == 0)
 }
 
 // A zero scale collapses geometry instead of being treated as an identity transform.
@@ -1286,4 +1416,37 @@ private var g_MsdfRoundingGlyph: GlyphDesc = {uv: Math.Rectangle{0.1640625, 0, 0
 
     let image = renderCpu(160, 320, &painter)
     Swag.require(image.pixelColor(96, 271).a == 111)
+}
+
+// A scanline fill blends covered pixels against the RGB backdrop and leaves alpha intact.
+#test
+{
+    let background = Color.fromRgb(192, 128, 64)
+    var path: LinePathList
+    let shape      = path.newPath()
+    shape.start(2.25, 2)
+    shape.lineTo(12, 2)
+    shape.lineTo(12, 8)
+    shape.lineTo(2.25, 8)
+    shape.close()
+
+    var renderer: RenderCpu
+    renderer.begin(16, 10)
+    let backend: IRenderer = &renderer
+    var painter = Painter.createScanline(&renderer)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(background)
+    painter.setColorMaskColor()
+    painter.setBlendingMode(.Multiply)
+    painter.fillPath(&path, Color.fromArgb(128_u8, 128_u8, 255_u8, 0_u8), .NonZero)
+    painter.end()
+
+    discard expect backend.draw(&painter)
+    backend.end()
+    let image = renderer.surfaceImage()
+    assertPixel(image, 1, 3, background)
+    assertPixel(image, 6, 3, Color.fromRgb(144, 128, 31))
+    assertPixel(image, 2, 3, Color.fromRgb(156, 128, 39))
+    assertPixel(image, 12, 3, background)
 }

@@ -764,6 +764,21 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenVecCarrylessProductSum16(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 4);
+
+        const MicroReg result  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg input   = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg factors = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        const MicroReg shuffle = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(children[3]));
+
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, result, 4 * sizeof(uint64_t)));
+        codeGen.builder().emitVecCarrylessProductSum16(result, input, factors, shuffle);
+        return Result::Continue;
+    }
+
     Result codeGenX64ReadXcr0(CodeGen& codeGen)
     {
         constexpr MicroReg eax = MicroReg::intReg(0);
@@ -812,9 +827,14 @@ namespace
         const MicroReg left        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
         const MicroReg right       = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
         const MicroReg high        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + addendCount]), MicroOpBits::B64);
-        std::array<MicroReg, 2> addends{};
+        std::array<MicroReg, 2> addends;
+        size_t                  added = 0;
         for (size_t index = 0; index < addendCount; ++index)
-            addends[index] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + index]), MicroOpBits::B64);
+        {
+            const AstNodeRef addendRef = children[2 + index];
+            if (!isIntrinsicIntConstantZero(codeGen, addendRef))
+                addends[added++] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(addendRef), MicroOpBits::B64);
+        }
         SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, high, sizeof(uint64_t)));
 
         constexpr MicroReg rax     = MicroReg::intReg(0);
@@ -822,7 +842,7 @@ namespace
         MicroBuilder&      builder = codeGen.builder();
         builder.emitLoadRegReg(rax, left, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(rax, right, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64);
-        for (size_t index = 0; index < addendCount; ++index)
+        for (size_t index = 0; index < added; ++index)
         {
             builder.emitOpBinaryRegReg(rax, addends[index], MicroOp::Add, MicroOpBits::B64);
             builder.emitAddCarryRegImm(rdx, 0, MicroOpBits::B64);
@@ -2886,6 +2906,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicVecClmul2XorPair:
         case TokenId::IntrinsicVecClmul2XorQuad:
             return codeGenVecClmulXor(codeGen, *this);
+        case TokenId::IntrinsicVecCarrylessProductSum16:
+            return codeGenVecCarrylessProductSum16(codeGen, *this);
 
         case TokenId::IntrinsicX64ReadXcr0:
             return codeGenX64ReadXcr0(codeGen);

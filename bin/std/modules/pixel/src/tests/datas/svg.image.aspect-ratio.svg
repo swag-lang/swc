@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="32">
+  <image x="4" y="4" width="24" height="24"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAG0lEQVR4nGP8z8DwnwEJMKLwMAWYGEgEw0EDAGQBBArCgDwrAAAAAElFTkSuQmCC"/>
+  <image x="32" y="4" width="24" height="24" preserveAspectRatio="xMaxYMax meet"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAG0lEQVR4nGP8z8DwnwEJMKLwMAWYGEgEw0EDAGQBBArCgDwrAAAAAElFTkSuQmCC"/>
+  <image x="60" y="4" width="24" height="24" preserveAspectRatio="xMaxYMax slice"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAG0lEQVR4nGP8z8DwnwEJMKLwMAWYGEgEw0EDAGQBBArCgDwrAAAAAElFTkSuQmCC"/>
+  <image x="88" y="4" width="24" height="24" preserveAspectRatio="xMinYMin slice" transform="translate(200 0) scale(-1 1)"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAG0lEQVR4nGP8z8DwnwEJMKLwMAWYGEgEw0EDAGQBBArCgDwrAAAAAElFTkSuQmCC"/>
+  <image x="116" y="4" width="24" height="24" preserveAspectRatio="none"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAGCAYAAAD37n+BAAAAG0lEQVR4nGP8z8DwnwEJMKLwMAWYGEgEw0EDAGQBBArCgDwrAAAAAElFTkSuQmCC"/>
+</svg>

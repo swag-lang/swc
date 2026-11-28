@@ -249,6 +249,7 @@ namespace
             case MicroInstrOpcode::CmpRegImm:
             case MicroInstrOpcode::OpUnaryReg:
             case MicroInstrOpcode::VecGatherS32:
+            case MicroInstrOpcode::VecCarrylessProductSum16:
                 return 3;
 
             case MicroInstrOpcode::CallAlignedIndirect:

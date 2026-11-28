@@ -98,6 +98,36 @@ func ddsRoundtrip(source: Image)->Image
     return expect Image.decode("roundtrip.dds", nnBytes(encoded.toSlice()))
 }
 
+// Numeric D3D9 FourCCs and their modern DX10 equivalents preserve the same samples.
+#test
+{
+    const Formats = [PixelFormat.RGBA16, .GrayF16, .GrayAlphaF16, .RGBAF16, .GrayF32, .GrayAlphaF32, .RGBAF32]
+    const Codes   = [36_u32, 111, 112, 113, 114, 115, 116]
+    for index in Formats.count
+    {
+        let format = Formats[index]
+        var source = Image.create(3, 2, format)
+        for i in source.byteCount
+        {
+            source.pixels[i] = cast #wrap(u8, (i * 71 + index * 17))
+        }
+
+        let modern = expect source.encodeToBytes("dx10.dds")
+        var legacy: Array!{u8}
+        legacy.add(modern.toSlice()[until 128])
+        cast([*] u32, legacy.storage() + 84)[0] = Codes[index]
+        legacy.add(modern.toSlice()[148 to])
+        let decoded = expect Image.decode("legacy.dds", legacy.toSlice())
+        assertImage(decoded, 3, 2, format)
+        Swag.require(Slice.equals(decoded.pixels.toSlice(), source.pixels.toSlice()))
+
+        var reader = expect ImageReader.decode("legacy.dds", legacy.toSlice())
+        Swag.require(reader.info.frames.count == 1 and reader.info.frames[0].pixelFormat == format)
+        let frame = expect reader.read(0)
+        Swag.require(Slice.equals(frame.pixels.toSlice(), source.pixels.toSlice()))
+    }
+}
+
 // BC3 packs interpolated alpha over a full block and clips the neighboring partial block.
 #test
 {
@@ -420,4 +450,23 @@ func ddsRoundtrip(source: Image)->Image
             Swag.require(image.pixelColor(Width - 1, first) == color)
         }
     }
+}
+
+// The eight BC7 modes agree with the reference on a two-row block texture.
+#test
+{
+    const Name = "bc7-eight-modes.dds"
+    let texture = expect File.readAllBytes(getTestDataPath(Name))
+    let result  = expect Image.decode(Name, texture.toSlice())
+    assertImage(result, 16, 8, .RGBA8)
+    Swag.require(Hash.Crc64.compute(result.pixels.toSlice()) == 17406574498934867642_u64)
+
+    let probe = expect Image.decode(Name, texture.toSlice(), {decodePixels: false})
+    Swag.require(probe.pixelFormat == .RGBA8 and
+                 probe.width == 16 and
+                 probe.height == 8 and
+                 probe.pixels.isEmpty())
+    var truncated: Swag.Error
+    discard catch Image.decode(Name, texture.toSlice()[until texture.count - 1]) as truncated
+    Swag.require(truncated.value() != null)
 }

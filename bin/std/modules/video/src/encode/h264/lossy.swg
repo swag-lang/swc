@@ -1219,39 +1219,50 @@ func lossySatd16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->
     return cast(u32, Simd.sum(sum))
 }
 
-// Sum of the absolute Hadamard coefficients of the difference of two 4x4 blocks, halved.
-func lossySatd4(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->u32
+#[Swag.Inline]
+private func loadLossy4x4(source: const [*] u8, stride: u64)->Simd.U8x16
 {
-    var rows: [16] s32
-    for row in 4_u64
-    {
-        let pa = a + row * aStride
-        let pb = b + row * bStride
-        let d0 = cast(s32, pa[0]) - cast(s32, pb[0])
-        let d1 = cast(s32, pa[1]) - cast(s32, pb[1])
-        let d2 = cast(s32, pa[2]) - cast(s32, pb[2])
-        let d3 = cast(s32, pa[3]) - cast(s32, pb[3])
-        let s0 = d0 + d1
-        let s1 = d0 - d1
-        let s2 = d2 + d3
-        let s3 = d2 - d3
-        rows[row * 4]     = s0 + s2
-        rows[row * 4 + 1] = s1 + s3
-        rows[row * 4 + 2] = s0 - s2
-        rows[row * 4 + 3] = s1 - s3
-    }
+    var rows: Simd.U32x4
+    rows[0] = cast(const [*] u32, source)[0]
+    rows[1] = cast(const [*] u32, source + stride)[0]
+    rows[2] = cast(const [*] u32, source + stride * 2)[0]
+    rows[3] = cast(const [*] u32, source + stride * 3)[0]
+    return cast #bit(Simd.U8x16, rows)
+}
 
-    var sum = 0_u32
-    for column in 4_u64
-    {
-        let s0 = rows[column] + rows[4 + column]
-        let s1 = rows[column] - rows[4 + column]
-        let s2 = rows[8 + column] + rows[12 + column]
-        let s3 = rows[8 + column] - rows[12 + column]
-        sum += cast(u32, Math.abs(s0 + s2) + Math.abs(s1 + s3) + Math.abs(s0 - s2) + Math.abs(s1 - s3))
-    }
+// Puts the sum and difference of two four-sample rows into the two halves of a vector.
+#[Swag.Inline]
+private func hadamardRowPair(rows: Simd.S16x8)->Simd.S16x8
+{
+    let bytes       = cast #bit(Simd.U8x16, rows)
+    let other       = cast #bit(Simd.S16x8, Simd.align(bytes, bytes, 8))
+    let sums        = cast #bit(Simd.U64x2, rows + other)
+    let differences = cast #bit(Simd.U64x2, rows - other)
+    return cast #bit(Simd.S16x8, Simd.interleaveLow(sums, differences))
+}
 
-    return sum / 2
+// The horizontal Hadamard uses pair sums and differences. Each pair of final magnitudes
+// sums to twice the larger intermediate magnitude.
+#[Swag.Inline]
+private func hadamardPairDistance(samples: Simd.S16x8)->Simd.S32x4
+{
+    const Signs = cast(Simd.S16x8, [1_s16, -1, 1, -1, 1, -1, 1, -1])
+    let sums  = cast #bit(Simd.U32x4, Math.abs(Simd.mulAddPairs(samples, Simd.splat(1_s16))))
+    let diffs = cast #bit(Simd.U32x4, Math.abs(Simd.mulAddPairs(samples, Signs)))
+    let even  = cast #bit(Simd.S32x4, Simd.deinterleaveEven(sums, diffs))
+    let odd   = cast #bit(Simd.S32x4, Simd.deinterleaveOdd(sums, diffs))
+    return Math.max(even, odd)
+}
+
+// Sum of the absolute Hadamard coefficients of the difference of two 4x4 blocks, halved.
+#[Swag.Inline]
+private func lossySatd4(source, prediction: Simd.U8x16)->u32
+{
+    let top    = cast #bit(Simd.S16x8, Simd.widenLow(source)) - cast #bit(Simd.S16x8, Simd.widenLow(prediction))
+    let bottom = cast #bit(Simd.S16x8, Simd.widenHigh(source)) - cast #bit(Simd.S16x8, Simd.widenHigh(prediction))
+    let even   = hadamardPairDistance(hadamardRowPair(top + bottom))
+    let odd    = hadamardPairDistance(hadamardRowPair(top - bottom))
+    return cast(u32, Simd.sum(even + odd))
 }
 
 // Sum of absolute differences of a block narrower than a vector.
@@ -1416,24 +1427,17 @@ impl LossyCoder
             let hasTop    = by > 0 or mbY > firstRow
             let hasCorner = hasLeft and hasTop
 
-            // The samples above and to the right exist only when their block was decoded first.
-            var hasTopRight = false
-            if by == 0
-            {
-                hasTopRight = mbY > firstRow and (bx < 3 or mbX + 1 < .mbWidth)
-            }
-            else if bx < 3
-            {
-                for other in index where LossyBlockColumn[other] == bx + 1 and LossyBlockRow[other] == by - 1
-                {
-                    hasTopRight = true
-                }
-            }
+            // Within the macroblock the 8x8 groups are scanned in raster order. An odd
+            // block row can reach above-right only within its group, from an even column.
+            let hasTopRight = by == 0 ? hasTop and (bx < 3 or mbX + 1 < .mbWidth) :
+                              bx < 3 and (by & 1 == 0 or bx & 1 == 0)
+            let edges = readIntra4Edges(pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
 
+            let original = loadLossy4x4(from, .lumaStride())
             let expected = .predictedMode4(mbX, mbY, bx, by, firstRow)
             var best     = Swag.U32.Max
             var bestMode = IntraDc
-            var last     = IntraDc
+            var bestSamples: Simd.U8x16
             for mode in 9_u32
             {
                 let needsTop  = mode == IntraVertical or mode == IntraDownLeft or mode == IntraVerticalLeft
@@ -1446,20 +1450,17 @@ impl LossyCoder
                     continue
                 }
 
-                intraPredict4x4(mode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
-                last = mode
-                let distance = lossySatd4(from, .lumaStride(), pixels, stride) + cast(u32, .lambda) * (mode == expected ? 1 : 4)
+                let samples  = intra4Samples(mode, hasLeft, hasTop, edges)
+                let distance = lossySatd4(original, samples) + cast(u32, .lambda) * (mode == expected ? 1 : 4)
                 if distance < best
                 {
-                    best     = distance
-                    bestMode = mode
+                    best        = distance
+                    bestMode    = mode
+                    bestSamples = samples
                 }
             }
 
-            if last != bestMode
-            {
-                intraPredict4x4(bestMode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
-            }
+            storeIntra4x4(pixels, stride, bestSamples)
 
             mb.modes[block] = cast(u8, bestMode)
             cost += best
@@ -1593,17 +1594,11 @@ struct LossyRegionResult
 }
 
 // Returns the bit count of a signed Exp-Golomb code.
+#[Swag.Inline]
 func lossySignedBits(value: s32)->s32
 {
-    var code = cast(u32, value > 0 ? value * 2 - 1 : -value * 2) + 1
-    var size = 0_s32
-    while code
-    {
-        size += 1
-        code >>= 1
-    }
-
-    return size * 2 - 1
+    let code = cast(u32, value > 0 ? value * 2 - 1 : -value * 2) + 1
+    return 63 - 2 * cast(s32, Swag.leadingZeros(code))
 }
 
 impl LossyCoder

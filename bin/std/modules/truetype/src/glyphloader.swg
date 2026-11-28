@@ -17,6 +17,139 @@ const CMP_WE_HAVE_AN_XY_SCALE   = 0x0040_u16
 const CMP_WE_HAVE_A_2X2         = 0x0080_u16
 const CMP_WE_HAVE_INSTRUCTIONS  = 0x0100_u16
 
+private struct GlyphAxisChunk
+{
+    // Low bytes select four deltas. High bytes mark the short deltas to negate.
+    shuffle: [16] u8
+    bytes:   u8
+}
+
+// The two flags for one axis encode a long delta, a negative short delta,
+// a zero delta or a positive short delta. Each lookup describes four such deltas.
+private const GlyphAxisChunks: [256] GlyphAxisChunk = #run
+{
+    var chunks: [256] GlyphAxisChunk
+    for combination in chunks.count
+    {
+        var chunk: GlyphAxisChunk
+        for lane in 4
+        {
+            let mode = (combination >> (lane * 2)) & 3
+            let byte = cast(u8, lane * 2)
+            chunk.shuffle[byte]     = 128
+            chunk.shuffle[byte + 1] = 128
+            switch mode
+            {
+            case 0:
+                chunk.shuffle[byte]     = chunk.bytes + 1
+                chunk.shuffle[byte + 1] = chunk.bytes
+                chunk.bytes             += 2
+
+            case 1, 3:
+                chunk.shuffle[byte] = chunk.bytes
+                chunk.bytes         += 1
+            }
+
+            if mode == 1
+            {
+                chunk.shuffle[byte + 8] = 255
+                chunk.shuffle[byte + 9] = 255
+            }
+        }
+
+        chunks[combination] = chunk
+    }
+
+    return chunks
+}
+
+private func(horizontal: bool) decodeGlyphAxis(data: const [..] u8, first: u64, flags: [*] u8, points: [*] Vector, count: u32, scaler: const *PointScale)->u64 fail
+{
+    const ShortShift = horizontal ? 1 : 2
+    const SameShift  = horizontal ? 3 : 4
+    const ShortBit   = 1_u8 << ShortShift
+    const SameBit    = 2_u8 << SameShift
+    var offset = first
+    var index  = 0_u32
+    var value  = 0_s32
+
+    #static if Math.nativeToBigEndian(1_u16) != 1
+    {
+        if count >= 16
+        {
+            let zero = Math.Simd.splat(0_u32)
+            while count - index >= 4 and data.count - offset >= 16
+            {
+                let packed = cast(const [*] u32, flags + index)[0]
+                let modes  = ((packed >> ShortShift) & 0x0101_0101) | ((packed >> SameShift) & 0x0202_0202)
+
+                // Collect the low pair of bits from each flag byte into one table index.
+                let key   = cast(u32, ((cast(u64, modes) * 0x0104_1040) >> 24) & 255)
+                let chunk = &GlyphAxisChunks[key]
+                let table = Math.Simd.load(&chunk.shuffle[0])
+                let bytes = Math.Simd.load(data.buffer + offset)
+                let words = cast #bit(Math.Simd.S16x8, Math.Simd.shuffle(bytes, table))
+                let signs = cast #bit(Math.Simd.S16x8, Math.Simd.align(table, table, 8))
+                let delta = cast #bit(Math.Simd.U32x4, Math.Simd.widenLow((words ^ signs) - signs))
+
+                // A simple glyph has at most 65,536 signed 16-bit deltas per axis.
+                // Both partial sums and the final coordinates fit in signed 32 bits.
+                let pairs  = delta + Math.Simd.align(zero, delta, 12)
+                let sums   = cast #bit(Math.Simd.S32x4, pairs + Math.Simd.align(zero, pairs, 8)) + value
+                let scaled = cast #bit(Math.Simd.U32x4, try scaler.applyFour(sums))
+                let target = cast([*] u32, points + index)
+                #static if horizontal
+                {
+                    Math.Simd.store(target, Math.Simd.interleaveLow(scaled, zero))
+                    Math.Simd.store(target + 4, Math.Simd.interleaveHigh(scaled, zero))
+                }
+                else
+                {
+                    const MaskY = cast(Math.Simd.U32x4, [0_u32, 0xFFFF_FFFF, 0, 0xFFFF_FFFF])
+                    let low  = Math.Simd.interleaveLow(zero, scaled)
+                    let high = Math.Simd.interleaveHigh(zero, scaled)
+                    Math.Simd.store(target, Math.Simd.select(MaskY, low, Math.Simd.load(target)))
+                    Math.Simd.store(target + 4, Math.Simd.select(MaskY, high, Math.Simd.load(target + 4)))
+                    cast([*] u32, flags + index)[0] = packed & 0x0101_0101
+                }
+
+                value  = sums[3]
+                offset += chunk.bytes
+                index  += 4
+            }
+        }
+    }
+
+    var input = data.buffer + offset
+    for point in index until count
+    {
+        let flag = flags[point]
+        if (flag & ShortBit) != 0
+        {
+            let delta = cast(s32, input[0])
+            input += 1
+            value += (flag & SameBit) != 0 ? delta : -delta
+        }
+        else if (flag & SameBit) == 0
+        {
+            value += cast #bit(s16, Math.make16(input[0], input[1]))
+            input += 2
+        }
+
+        #static if horizontal
+        {
+            points[point] = {x: try scaler.apply(value), y: 0}
+        }
+        else
+        {
+            points[point].y = try scaler.apply(value)
+            flags[point]    = flag & CURVE_TAG_ON
+        }
+    }
+
+    return cast(u64, input - data.buffer)
+}
+
 private const GlyfCoordinateBytes: [64] u8 = #run
 {
     var sizes: [64] u8
@@ -30,7 +163,7 @@ private const GlyfCoordinateBytes: [64] u8 = #run
     return sizes
 }
 
-func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32) fail
+func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u16) fail
 {
     if glyphData.count < 10
     {
@@ -158,49 +291,19 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
         return
     }
 
-    let scaler     = try PointScale.create(faceData.unitsPerEm)
-    let xScale     = cast(s64, xPpem) * 64
-    let yScale     = cast(s64, yPpem) * 64
-    let points     = faceData.outlinePoints.emplaceAddress(pointCount)
-    var coordinate = input + offset
-    var x          = 0_s32
-    for index in pointCount
+    let scaleKey = (cast(u64, faceData.unitsPerEm) << 32) | (cast(u64, xPpem) << 16) | yPpem
+    if faceData.pointScaleKey != scaleKey
     {
-        let flag = flags[index]
-        if (flag & 0x02) != 0
-        {
-            let dx = cast(s32, coordinate[0])
-            coordinate += 1
-            x += (flag & 0x10) != 0 ? dx : -dx
-        }
-        else if (flag & 0x10) == 0
-        {
-            x += cast #bit(s16, Math.make16(coordinate[0], coordinate[1]))
-            coordinate += 2
-        }
-
-        points[index].x = try scaler.apply(x, xScale)
+        let xScale = try PointScale.create(faceData.unitsPerEm, xPpem)
+        let yScale = xPpem == yPpem ? xScale : (try PointScale.create(faceData.unitsPerEm, yPpem))
+        faceData.pointScaleX   = xScale
+        faceData.pointScaleY   = yScale
+        faceData.pointScaleKey = scaleKey
     }
 
-    var y = 0_s32
-    for index in pointCount
-    {
-        let flag = flags[index]
-        if (flag & 0x04) != 0
-        {
-            let dy = cast(s32, coordinate[0])
-            coordinate += 1
-            y += (flag & 0x20) != 0 ? dy : -dy
-        }
-        else if (flag & 0x20) == 0
-        {
-            y += cast #bit(s16, Math.make16(coordinate[0], coordinate[1]))
-            coordinate += 2
-        }
-
-        points[index].y = try scaler.apply(y, yScale)
-        flags[index]    = flag & CURVE_TAG_ON
-    }
+    let points  = faceData.outlinePoints.emplaceAddress(pointCount)
+    let yOffset = try decodeGlyphAxis!{true}(glyphData, offset, flags, points, pointCount, &faceData.pointScaleX)
+    discard try decodeGlyphAxis!{false}(glyphData, yOffset, flags, points, pointCount, &faceData.pointScaleY)
 
     let contours = faceData.outlineContours.emplaceAddress(contourCount)
     for index in contourCount
@@ -209,7 +312,46 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     }
 }
 
-func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u32, depth: u32) fail
+private func translateGlyphPoints(points: [*] Vector, count: u64, dx, dy: f64)
+{
+    var index = 0_u64
+    #static if Math.nativeToBigEndian(1_u32) != 1
+    {
+        if count >= 2 and
+           dx >= Swag.S32.Min and
+           dx <= Swag.S32.Max and
+           dy >= Swag.S32.Min and
+           dy <= Swag.S32.Max
+        {
+            let x      = cast #bit(u32, cast(s32, dx))
+            let y      = cast #bit(u32, cast(s32, dy))
+            let offset = cast(Math.Simd.U32x4, [x, y, x, y])
+            while count - index >= 2
+            {
+                let target  = cast([*] u32, points + index)
+                let old     = Math.Simd.load(target)
+                let shifted = old + offset
+
+                // Any signed overflow falls back to the existing checked conversions.
+                if Swag.vecMask((old ^ shifted) & (offset ^ shifted))
+                {
+                    break
+                }
+
+                Math.Simd.store(target, shifted)
+                index += 2
+            }
+        }
+    }
+
+    for point in index until count
+    {
+        points[point].x = cast(s32, points[point].x + dx)
+        points[point].y = cast(s32, points[point].y + dy)
+    }
+}
+
+func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPpem: u16, depth: u32) fail
 {
     if depth >= MAX_RECURSE
     {
@@ -304,8 +446,9 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             var dy     = 0.0
             if (flags & CMP_ARGS_ARE_XY_VALUES) != 0
             {
-                dx = try scale26_6(arg1, xPpem, faceData.unitsPerEm)
-                dy = try scale26_6(arg2, yPpem, faceData.unitsPerEm)
+                // A nonempty component has already prepared the two point scales.
+                dx = try faceData.pointScaleX.apply(arg1)
+                dy = try faceData.pointScaleY.apply(arg2)
             }
 
             if xx != 1.0 or yy != 1.0 or xy != 0.0 or yx != 0.0
@@ -331,11 +474,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
             // The scaled offsets and both anchors are already integer 26.6 coordinates.
             if dx != 0 or dy != 0
             {
-                for index in addedPointCount
-                {
-                    points[index].x = cast(s32, points[index].x + dx)
-                    points[index].y = cast(s32, points[index].y + dy)
-                }
+                translateGlyphPoints(points, addedPointCount, dx, dy)
             }
         }
 
@@ -345,7 +484,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, 
     if hasMore and (peekU16(glyphData, offset) & CMP_WE_HAVE_INSTRUCTIONS) != 0 {}
 }
 
-func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth: u32 = 0) fail
+func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u16, depth: u32 = 0) fail
 {
     if glyphIndex >= faceData.face.glyphCount
     {
@@ -398,8 +537,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
 
     slot.beginLoad(glyphIndex)
 
-    let xPpem = Math.max(1_u32, face.size.metrics.xPpem)
-    let yPpem = Math.max(1_u32, face.size.metrics.yPpem)
+    let xPpem = Math.max(1_u16, face.size.metrics.xPpem)
+    let yPpem = Math.max(1_u16, face.size.metrics.yPpem)
     if faceData.outlineSource == .Glyf
     {
         try appendGlyph(faceData, glyphIndex, xPpem, yPpem)
@@ -408,6 +547,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) fail
     {
         try appendCharstringGlyph(faceData, glyphIndex, xPpem, yPpem)
     }
+
+    faceData.emptyOutlineSize = faceData.outlinePoints.count ? 0 : (cast(u32, xPpem) << 16) | yPpem
 
     slot.outline.setView(faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null,
                          faceData.outlineTags.count ? faceData.outlineTags.buffer : null,

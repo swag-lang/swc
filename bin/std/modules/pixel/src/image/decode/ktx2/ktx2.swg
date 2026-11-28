@@ -1,7 +1,7 @@
 //! Format: Khronos Texture 2 decoder.
 //! Supported: All mip levels, array layers, cube faces, and depth slices of Vulkan RGB(A), grayscale, 16-bit and float formats;
-//!            BC1 through BC5 blocks; and optional per-level ZLIB supercompression.
-//! Not supported: BasisLZ, Zstandard, ETC/ASTC, or signed/depth pixel formats.
+//!            BC1 through BC5 and BC7 blocks; and optional per-level Zstandard or ZLIB supercompression.
+//! Not supported: BasisLZ, ETC/ASTC, or signed/depth pixel formats.
 //! Role: This file validates KTX2 indices and decodes individual texture subresources.
 //
 #global namespace Ktx2
@@ -31,7 +31,8 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
     case 16, 22:   format[] = .GrayAlpha8
     case 23, 29:   format[] = .RGB8
     case 30, 36:   format[] = .BGR8
-    case 37, 43:   format[] = .RGBA8
+    // A8B8G8R8 packed words use RGBA byte order in the little-endian file.
+    case 37, 43, 51, 57: format[] = .RGBA8
     case 44, 50:   format[] = .BGRA8
     case 70:       format[] = .Gray16
     case 76:       format[] = .GrayF16
@@ -50,10 +51,31 @@ func vkPixelFormat(vk: u32, format: *PixelFormat, blocks: *TextureBlocks.Format)
     case 137, 138: blocks[] = .BC3
     case 139:      blocks[] = .BC4
     case 141:      blocks[] = .BC5
+    case 145, 146: blocks[] = .BC7
     default:       return false
     }
 
     return true
+}
+
+// Four narrow scanlines occupy one vector. Keep a scalar tail for odd heights.
+#[Swag.NoInline]
+private func flipWordRows(target: [*] u32, source: const [*] u32, rows: u64)
+{
+    using Math.Simd
+
+    const Reverse = cast(U32x4, [3_u32, 2, 1, 0])
+    var loaded: u64
+    while rows - loaded >= 4
+    {
+        store(target + rows - loaded - 4, permute(load(source + loaded), Reverse))
+        loaded += 4
+    }
+
+    for row in loaded until rows
+    {
+        target[rows - row - 1] = source[row]
+    }
 }
 
 func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
@@ -64,12 +86,24 @@ func copyRows(image: *Image, source: const [..] u8, sourceTopDown: bool) fail
         fail InvalidFormatError{"KTX2 level data is truncated"}
     }
 
+    let pixels = image.pixels.storage()
+    if not sourceTopDown
+    {
+        Memory.copy(pixels, source.buffer, required)
+        return
+    }
+
+    let stride = cast(u64, image.rowStride)
+    if stride == 4 and image.height >= 16
+    {
+        flipWordRows(cast([*] u32, pixels), cast(const [*] u32, source.buffer), cast(u64, image.height))
+        return
+    }
+
     for y in image.height
     {
-        let targetY = sourceTopDown ? image.height - y - 1 : y
-        Memory.copy(image.pixels.storage() + cast(u64, targetY) * image.rowStride,
-                    source.buffer + cast(u64, y) * image.rowStride,
-                    cast(u64, image.rowStride))
+        let targetY = image.height - y - 1
+        Memory.copy(pixels + cast(u64, targetY) * stride, source.buffer + cast(u64, y) * stride, stride)
     }
 }
 
@@ -136,9 +170,9 @@ impl Decoder
             fail InvalidFormatError{"KTX2 data format descriptor is invalid"}
         }
 
-        if compression != 0 and compression != 3
+        if compression != 0 and compression != 2 and compression != 3
         {
-            fail UnsupportedFormatError{"KTX2 supercompression must be absent or ZLIB"}
+            fail UnsupportedFormatError{"unsupported KTX2 supercompression scheme"}
         }
 
         var sourceTopDown = true
@@ -182,7 +216,9 @@ impl Decoder
                 if key == "KTXorientation"
                 {
                     let expectedLength = baseHeight ? (depth ? 3_u64 : 2_u64) : 1_u64
-                    if valueLength != expectedLength
+                    // KTX strings include a terminating NUL. Older files may omit it.
+                    let terminated = valueLength == expectedLength + 1 and not buffer[valueOffset + expectedLength]
+                    if valueLength != expectedLength and not terminated
                     {
                         fail InvalidFormatError{"KTX2 orientation length disagrees with the texture dimensions"}
                     }
@@ -274,13 +310,20 @@ impl Decoder
 
         var inflated: Array!{u8}
         var level = buffer[levelOffset until levelOffset + levelLength]
-        if compression == 3
+        if compression
         {
-            var zlib: Compress.ZLib
-            inflated = #move try zlib.decompress(level, rawLength)
+            if compression == 2
+            {
+                inflated = #move try Compress.Zstd.decompress(level, rawLength)
+            }
+            else
+            {
+                var zlib: Compress.ZLib
+                inflated = #move try zlib.decompress(level, rawLength, rawLength)
+            }
             if inflated.count != rawLength
             {
-                fail InvalidFormatError{"KTX2 ZLIB level has an invalid decoded size"}
+                fail InvalidFormatError{"KTX2 compressed level has an invalid decoded size"}
             }
 
             level = inflated.toSlice()

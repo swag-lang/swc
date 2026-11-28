@@ -133,3 +133,96 @@ func makeTrianglePath()->LinePath
     Swag.require(text.contains("<svg "))
     Swag.require(not text.contains("<path"))
 }
+
+// SVG geometry and opacity keep a decimal point in every locale.
+#test
+{
+    var doc = Svg.Document.create(8.5, 6.5)
+    var path: LinePath
+    path.start(-1, 1.5)
+    path.lineTo(7.25, 1.5)
+    path.lineTo(7.25, 5.5)
+    path.lineTo(-1, 5.5)
+    path.close()
+
+    doc.setBackground(Color.fromArgb(64_u8, 20_u8, 60_u8, 100_u8))
+    doc.addPath(path, Color.fromArgb(128_u8, 220_u8, 50_u8, 90_u8))
+
+    var text: String
+    scope
+    {
+        let culture = Globalization.currentCulture()
+        let previous = culture.numberFormat
+        defer culture.numberFormat = previous
+        culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
+        culture.numberFormat.negativeSign = '~'
+
+        Swag.require(culture.numberFormat.decimalSeparator == ',')
+        text = doc.toString()
+    }
+
+    const Reference = """
+        <svg viewBox="0 0 8.5 6.5" width="8.5" height="6.5">
+        <rect width="8.5" height="6.5" fill="#143C64" fill-opacity="0.251"/>
+        <path fill="#DC325A" fill-opacity="0.502" d="M-1 1.5L7.25 1.5L7.25 5.5L-1 5.5Z"/>
+        </svg>
+        """
+    let drawing   = expect Svg.Drawing.parse(text.toString())
+    let reference = expect Svg.Drawing.parse(Reference)
+    let image     = drawing.rasterize(17, 13, 1)
+    let expected  = reference.rasterize(17, 13, 1)
+
+    Swag.require(image.isValid() and expected.isValid())
+    Swag.require(image.pixelColor(0, 0).a > 0)
+    Swag.require(image.pixelColor(7, 5).a > image.pixelColor(0, 0).a)
+    let cmp = Memory.compare(image.pixels.storage(), expected.pixels.storage(), expected.byteCount)
+    Swag.require(cmp == 0)
+}
+
+// Zeros at the end of a large integral coordinate are part of the value.
+#test
+{
+    var doc = Svg.Document.create(1_000_000_000, 1_000_000_000)
+    var path: LinePath
+    path.start(-1_000_000_000, 250_000_000)
+    path.lineTo(1_000_000_000, 250_000_000)
+    path.lineTo(1_000_000_000, 750_000_000)
+    path.lineTo(-1_000_000_000, 750_000_000)
+    path.close()
+
+    let color = Color.fromRgb(32, 104, 176)
+    doc.addPath(path, color)
+    let text = doc.toString()
+    Swag.require(text.contains("viewBox=\"0 0 1000000000 1000000000\""))
+    Swag.require(text.contains("M-1000000000 250000000L1000000000 250000000"))
+
+    let drawing = expect Svg.Drawing.parse(text.toString())
+    let image   = drawing.rasterize(16, 16, 1)
+    Swag.require(image.isValid())
+    Swag.require(image.pixelColor(14, 2).a == 0)
+    Swag.require(image.pixelColor(14, 8).argb == color.argb)
+}
+
+// A smoothed curve is exported as a filled contour through its flattened points.
+#test
+{
+    var path: LinePath
+    path.start(3, 7)
+    path.curveTo(7, 3)
+    path.curveTo(13, 7)
+    path.lineTo(13, 13)
+    path.lineTo(3, 13)
+    path.close()
+
+    let color = Color.fromRgb(64, 120, 200)
+    var doc   = Svg.Document.create(16, 16)
+    doc.addPath(path, color)
+    let text = doc.toString()
+    Swag.require(text.contains("d=\"M3 7L"))
+
+    let drawing = expect Svg.Drawing.parse(text.toString())
+    let image   = drawing.rasterize(16, 16, 1)
+    Swag.require(image.isValid())
+    Swag.require(image.pixelColor(8, 8).argb == color.argb)
+    Swag.require(image.pixelColor(1, 1).a == 0)
+}

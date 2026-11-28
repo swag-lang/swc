@@ -1141,6 +1141,11 @@ namespace
                                    tagInstructionToken(inst.op == MicroInstrOpcode::VecClmulXorQuad ? "vclmulxor4x128" : "vclmulxor2x128"),
                                    regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder),
                                    regName(ops[2].reg, regPrintMode, encoder), ops[3].valueU64, ops[4].valueU64);
+            case MicroInstrOpcode::VecCarrylessProductSum16:
+                return std::format("{} [{}], [{}], [{}]",
+                                   tagInstructionToken("vclmulsum16x128"),
+                                   regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder),
+                                   regName(ops[2].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Prefetch:
                 return std::format("{} [{}]", tagInstructionToken("prefetch"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Push:
@@ -1910,6 +1915,15 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                     out += ", ";
                 }
                 out += std::format("{}, {}", ops[3].valueU64, ops[4].valueU64);
+                break;
+
+            case MicroInstrOpcode::VecCarrylessProductSum16:
+                for (uint8_t operandIndex = 0; operandIndex < 3; ++operandIndex)
+                {
+                    if (operandIndex)
+                        out += ", ";
+                    appendRegister(out, ops[operandIndex].reg, regPrintMode, encoder);
+                }
                 break;
 
             case MicroInstrOpcode::JumpReg:

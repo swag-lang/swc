@@ -196,7 +196,7 @@ ships; history lives in Git, not here.
 - Done when: dynamically registered faces can be reclaimed after their final owner releases
   them, cached glyph resources cannot retain stale pointers, and repeated PDF open/close tests
   show bounded growth while existing process-lifetime callers retain their documented behavior.
-- Related: std.gui.pdf.028, std.gui.pdf.037
+- Related: std.gui.pdf.037
 
 ### std.pixel.026 — Stroking a page costs four times filling the same geometry
 

@@ -24,18 +24,36 @@ private func updatePadded(mac: *Poly1305, data: const [..] u8)
 
 private func authenticatePolyKey(authKey, associatedData, ciphertext: const [..] u8)->Poly1305Tag fail
 {
+    let lengths = [Math.nativeToLittleEndian(associatedData.count),
+                   Math.nativeToLittleEndian(ciphertext.count)]
+    const ShortAadLimit        = 64
+    const ShortCiphertextLimit = 128
+    if associatedData.count <= ShortAadLimit and ciphertext.count <= ShortCiphertextLimit
+    {
+        // Each section starts at its own block boundary before the two RFC length words.
+        const BlockMask = Poly1305BlockSize - 1
+        let ciphertextOffset = (associatedData.count + BlockMask) & ~cast(u64, BlockMask)
+        let lengthOffset     = ciphertextOffset + ((ciphertext.count + BlockMask) & ~cast(u64, BlockMask))
+        var frame: [ShortAadLimit + ShortCiphertextLimit + #sizeof(lengths)] u8
+        defer secureClear(frame)
+        if associatedData.count
+        {
+            Swag.memcpy(frame.buffer, associatedData.buffer, associatedData.count)
+        }
+
+        if ciphertext.count
+        {
+            Swag.memcpy(frame.buffer + ciphertextOffset, ciphertext.buffer, ciphertext.count)
+        }
+
+        Swag.memcpy(frame.buffer + lengthOffset, lengths.buffer, #sizeof(lengths))
+        return try Poly1305.compute(authKey, frame[until lengthOffset + #sizeof(lengths)])
+    }
+
     var mac = try Poly1305.create(authKey)
     updatePadded(&mac, associatedData)
     updatePadded(&mac, ciphertext)
-
-    var lengths: [16] u8
-    for i in 8
-    {
-        lengths[i]     = Math.byteAt(associatedData.count, i)
-        lengths[8 + i] = Math.byteAt(ciphertext.count, i)
-    }
-
-    mac.update(lengths)
+    mac.update(Swag.makeSlice(cast(const [*] u8, lengths.buffer), #sizeof(lengths)))
     return mac.finalize()
 }
 
@@ -91,7 +109,7 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     }
 
     var computed: Poly1305Tag
-    if plaintext.count and plaintext.count <= ChaCha20BlockSize
+    if plaintext.count and plaintext.count <= 3 * ChaCha20BlockSize
     {
         var authKey: [Poly1305KeySize] u8
         defer secureClear(authKey)

@@ -45,10 +45,117 @@ private func(DigestWords: u64, Accumulate: bool) pbkdf2Sha2Encode(words: const [
     }
 }
 
+#[Swag.Inline]
+private func(DigestWords: u64) pbkdf2Sha2PadHigh(digest: Math.Simd.U32x4)->Math.Simd.U32x4
+{
+    #static if DigestWords == 8
+    {
+        return digest
+    }
+    else
+    {
+        const Keep: Math.Simd.U32x4 = [0xFFFF_FFFF, 0xFFFF_FFFF, 0xFFFF_FFFF, 0]
+        const Pad: Math.Simd.U32x4  = [0, 0, 0, 0x8000_0000]
+        return (digest & Keep) | Pad
+    }
+}
+
+// Keep the accumulator in the explicitly scrubbed scratch across compression.
+#[Swag.NoInline]
+private func accumulateSha2Digest(resultLow, resultHigh: *Math.Simd.U32x4, digestLow, digestHigh: const *Math.Simd.U32x4)
+{
+    resultLow[]  ^= digestLow[]
+    resultHigh[] ^= digestHigh[]
+}
+
+private func(DigestSize: u64) repeatPbkdf2ShaInstructions(inner, outer: const *[8] u32, first: const *[DigestSize] u8, result: *[DigestSize] u8, rounds: u32)
+{
+    using Math
+
+    const DigestWords = DigestSize / #sizeof(u32)
+    const Abef: Simd.U32x4 = [5, 4, 1, 0]
+    const Cdgh: Simd.U32x4 = [7, 6, 3, 2]
+    const Abcd: Simd.U32x4 = [3, 2, 7, 6]
+    const Efgh: Simd.U32x4 = [1, 0, 5, 4]
+    const Words2: Simd.U32x4 = [DigestWords == 8 ? 0x8000_0000 : 0, 0, 0, 0]
+    const Words3: Simd.U32x4 = [0, 0, 0, (64 + DigestSize) * 8]
+
+    var scratch: struct
+    {
+        innerAbef, innerCdgh, outerAbef, outerCdgh: Simd.U32x4
+        digestLow, digestHigh:                    Simd.U32x4
+        resultLow, resultHigh:                    Simd.U32x4
+    }
+    defer secureClear(Swag.makeSlice(&scratch, 1))
+
+    let innerLow  = Simd.load(inner[].buffer)
+    let innerHigh = Simd.load(inner[].buffer + 4)
+    let outerLow  = Simd.load(outer[].buffer)
+    let outerHigh = Simd.load(outer[].buffer + 4)
+    scratch.innerAbef = Simd.permute2(innerLow, innerHigh, Abef)
+    scratch.innerCdgh = Simd.permute2(innerLow, innerHigh, Cdgh)
+    scratch.outerAbef = Simd.permute2(outerLow, outerHigh, Abef)
+    scratch.outerCdgh = Simd.permute2(outerLow, outerHigh, Cdgh)
+
+    let words = cast(const [*] u32, first[].buffer)
+    scratch.digestLow = Math.byteSwap(Simd.load(words))
+    #static if DigestWords == 8
+    {
+        scratch.digestHigh = Math.byteSwap(Simd.load(words + 4))
+    }
+    else
+    {
+        // A SHA-224 digest has three words in its second vector.
+        let firstHigh: Simd.U32x4 = [words[4], words[5], words[6], 0]
+        scratch.digestHigh = Math.byteSwap(firstHigh)
+    }
+    scratch.resultLow  = scratch.digestLow
+    scratch.resultHigh = scratch.digestHigh
+
+    for rounds
+    {
+        // The round output words already have SHA's native numeric order.
+        var abef = scratch.innerAbef
+        var cdgh = scratch.innerCdgh
+        Hash.Sha256.compressShaWords(&abef, &cdgh, scratch.digestLow,
+                                    pbkdf2Sha2PadHigh!{DigestWords}(scratch.digestHigh), Words2, Words3)
+        scratch.digestLow  = Simd.permute2(abef, cdgh, Abcd)
+        scratch.digestHigh = Simd.permute2(abef, cdgh, Efgh)
+
+        abef = scratch.outerAbef
+        cdgh = scratch.outerCdgh
+        Hash.Sha256.compressShaWords(&abef, &cdgh, scratch.digestLow,
+                                    pbkdf2Sha2PadHigh!{DigestWords}(scratch.digestHigh), Words2, Words3)
+        scratch.digestLow  = Simd.permute2(abef, cdgh, Abcd)
+        scratch.digestHigh = Simd.permute2(abef, cdgh, Efgh)
+        accumulateSha2Digest(&scratch.resultLow, &scratch.resultHigh, &scratch.digestLow, &scratch.digestHigh)
+    }
+
+    let output = cast([*] u32, result[].buffer)
+    let high   = Math.byteSwap(scratch.resultHigh)
+    Simd.store(output, Math.byteSwap(scratch.resultLow))
+    #static if DigestWords == 8
+    {
+        Simd.store(output + 4, high)
+    }
+    else
+    {
+        output[4] = high[0]
+        output[5] = high[1]
+        output[6] = high[2]
+    }
+}
+
 // Each inner and outer MAC after the first PBKDF2 iteration hashes one
 // digest after a precomputed key pad. The final block length is fixed.
 private func(DigestSize: u64) repeatPbkdf2Sha2(inner, outer: const *[8] u32, first: const *[DigestSize] u8, result: *[DigestSize] u8, rounds: u32)
 {
+    if Swag.hasCpuFeature(.Sha)
+    {
+        repeatPbkdf2ShaInstructions!{DigestSize}(inner, outer, first, result, rounds)
+        return
+    }
+
     const ShaBlockSize = 64
     const DigestWords  = DigestSize / #sizeof(u32)
     const FinalLength  = (ShaBlockSize + DigestSize) * 8

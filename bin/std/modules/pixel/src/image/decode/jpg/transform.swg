@@ -124,6 +124,13 @@ private
         Math.Simd.storeLow8(destination + 16, Math.Simd.shuffle(firstGreen, TripletHighFirstGreen) | Math.Simd.shuffle(last, TripletHighLast))
     }
 
+    func multiplyLight(a, b: Math.Simd.U8x16)->Math.Simd.S16x8
+    {
+        using Math.Simd
+        let biased = widenLow(a) * widenLow(b) + 128_u16
+        return cast #bit(S16x8, (biased + (biased >> 8)) >> 8)
+    }
+
     // Converts eight luma samples and their chroma corrections into eight packed pixels.
     //
     // The saturating narrowing is the clamp the conversion needs: a corrected sample outside the
@@ -406,19 +413,27 @@ impl Decoder
         }
     }
 
-    mtd(Rgb: bool) convertH1V1(output: [*] u8)
+    mtd(Rgb: bool) convertH1V1(output: [*] u8, clipTail: bool)
     {
         let row         = .maxMcuSizeY - .mcuLinesLeft
         let planeBytes  = .compSampV[0] * 64
         let mcuBytes    = 3 * planeBytes
         var destination = output
         var luma        = .safeSampleBuf() + row * 8
-        for .maxMcusPerRow
+        let full        = .maxMcusPerRow - cast(s32, clipTail)
+        for full
         {
             storeColor!{Rgb}(destination, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
 
             destination += 24
             luma        += mcuBytes
+        }
+
+        if clipTail
+        {
+            var last: [24] u8
+            storeColor!{Rgb}(last, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
+            Memory.copy(destination, last, cast(u64, .realDestBytesPerScanLine - full * 24))
         }
     }
 
@@ -439,6 +454,31 @@ impl Decoder
         }
     }
 
+    mtd(Rgb: bool) convertMappedCmykH1V1(output: [*] u8)
+    {
+        using Math.Simd
+
+        const First = Rgb ? 0 : 2
+        const Last  = 2 - First
+        let firstMask   = splat(.cmykMasks[First])
+        let greenMask   = splat(.cmykMasks[1])
+        let lastMask    = splat(.cmykMasks[Last])
+        let blackMask   = splat(.cmykMasks[3])
+        let row         = .maxMcuSizeY - .mcuLinesLeft
+        var source      = .safeSampleBuf() + row * 8
+        var destination = output
+        for .maxMcusPerRow
+        {
+            let black = load(source + 192) ^ blackMask
+            let first = multiplyLight(load(source + First * 64) ^ firstMask, black)
+            let green = multiplyLight(load(source + 64) ^ greenMask, black)
+            let last  = multiplyLight(load(source + Last * 64) ^ lastMask, black)
+            storeTriplets(destination, packUnsigned(first, green), packUnsigned(last, last))
+            destination += 24
+            source      += 256
+        }
+    }
+
     // Turns one row of a four-component unit into packed colour triplets.
     //
     // Four components are the inks of a printed page, in one of two spellings. The luminance and
@@ -449,6 +489,12 @@ impl Decoder
     // producer writes and what the marker is read for here.
     mtd(Rgb: bool) convertCmykH1V1(output: [*] u8)
     {
+        if .mapCmyk
+        {
+            .convertMappedCmykH1V1!{Rgb}(output)
+            return
+        }
+
         let row         = .maxMcuSizeY - .mcuLinesLeft
         let chromatic   = .adobeTransform == 2
         let inverse     = .hasAdobeMarker and not chromatic
@@ -542,7 +588,20 @@ impl Decoder
         }
     }
 
-    mtd(Rgb: bool) convertH2V2(output0, output1: [*] u8)
+    #[Swag.Inline]
+    func(Rgb: bool) storeH2V2(d0, d1, y, c: [*] u8)
+    {
+        // The same eight chroma corrections feed sixteen pixels in both luma rows.
+        let bias  = chromaBias8(c, c + 64)
+        let left  = duplicateBias!{false}(bias)
+        let right = duplicateBias!{true}(bias)
+        storeColor!{Rgb}(d0, y, left)
+        storeColor!{Rgb}(d1, y + 8, left)
+        storeColor!{Rgb}(d0 + 24, y + 64, right)
+        storeColor!{Rgb}(d1 + 24, y + 72, right)
+    }
+
+    mtd(Rgb: bool) convertH2V2(output0, output1: [*] u8, clipTail: bool)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d0  = output0
@@ -558,40 +617,40 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 2 + (row & 7) * 8
         }
 
-        var c = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
-        for _ in rangeTo(1, .maxMcusPerRow).reversed()
+        var c    = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
+        let full = .maxMcusPerRow - cast(s32, clipTail)
+        for full
         {
-            // The same eight chroma corrections feed sixteen pixels in both luma rows.
-            let bias  = chromaBias8(c, c + 64)
-            let left  = duplicateBias!{false}(bias)
-            let right = duplicateBias!{true}(bias)
-            storeColor!{Rgb}(d0, y, left)
-            storeColor!{Rgb}(d1, y + 8, left)
-            storeColor!{Rgb}(d0 + 24, y + 64, right)
-            storeColor!{Rgb}(d1 + 24, y + 72, right)
-
+            storeH2V2!{Rgb}(d0, d1, y, c)
             d0 += 48
             d1 += 48
             y  += 64 * 6
             c  += 64 * 6
+        }
+
+        if clipTail
+        {
+            let bytes = cast(u64, .realDestBytesPerScanLine - full * 48)
+            var last0, last1: [48] u8
+            storeH2V2!{Rgb}(last0, last1, y, c)
+            Memory.copy(d0, last0, bytes)
+            Memory.copy(d1, last1, bytes)
         }
     }
 
     // For each group of eight output pixels, load the component block that covers it and
     // repeat its samples according to the horizontal ratio. The frame validated that every
     // ratio divides the MCU sampling grid, so a group never spans two component blocks.
-    mtd(Rgb: bool) convertGeneric(output: [*] u8)
+    mtd genericRowLayout()->{offsets: [4][4] s32, indices: [4][4] Math.Simd.U8x16, mcuBytes: s32}
     {
         using Math.Simd
+        var result: #returntype
 
         let row = .maxMcuSizeY - .mcuLinesLeft
         let maxSamplingH = .maxMcuSizeX / 8
         let maxSamplingV = .maxMcuSizeY / 8
-        const MaxSampling = 4
-        var offsets:   [MaxSampling][3] s32
-        var indices:   [MaxSampling][3] U8x16
         var blockBase: s32
-        for component in 3
+        for component in .compsInFrame
         {
             let samplingH       = .compSampH[component]
             let samplingV       = .compSampV[component]
@@ -601,33 +660,118 @@ impl Decoder
             for group in maxSamplingH
             {
                 let x = group * 8
-                offsets[group][component] = rowOffset + ((x / horizontalRatio) >> 3) * 64
+                result.offsets[group][component] = rowOffset + ((x / horizontalRatio) >> 3) * 64
                 var lanes: [16] u8
                 for lane in 8
                 {
                     lanes[lane] = cast(u8, (((x + lane) / horizontalRatio) & 7))
                 }
 
-                indices[group][component] = cast #bit(U8x16, lanes)
+                result.indices[group][component] = cast #bit(U8x16, lanes)
             }
 
             blockBase += samplingH * samplingV
         }
 
+        result.mcuBytes = blockBase * 64
+        return result
+    }
+
+    mtd(Rgb: bool) convertGeneric(output: [*] u8)
+    {
+        using Math.Simd
+        let layout      = .genericRowLayout()
+        let groups      = .maxMcuSizeX / 8
         var destination = output
         var mcu         = cast(const [*] u8, .safeSampleBuf())
         for .maxMcusPerRow
         {
-            for group in maxSamplingH
+            for group in groups
             {
-                let y  = shuffle(load(mcu + offsets[group][0]), indices[group][0])
-                let cb = shuffle(load(mcu + offsets[group][1]), indices[group][1])
-                let cr = shuffle(load(mcu + offsets[group][2]), indices[group][2])
+                let y  = shuffle(load(mcu + layout.offsets[group][0]), layout.indices[group][0])
+                let cb = shuffle(load(mcu + layout.offsets[group][1]), layout.indices[group][1])
+                let cr = shuffle(load(mcu + layout.offsets[group][2]), layout.indices[group][2])
                 storeColorSamples!{Rgb}(destination, y, chromaBias8Samples(cb, cr))
                 destination += 24
             }
 
-            mcu += blockBase * 64
+            mcu += layout.mcuBytes
+        }
+    }
+
+    mtd(Rgb: bool) convertCmykGeneric(output: [*] u8)
+    {
+        using Math.Simd
+
+        let layout      = .genericRowLayout()
+        let groups      = .maxMcuSizeX / 8
+        let chromatic   = .adobeTransform == 2
+        let colorMask   = splat(.hasAdobeMarker and not chromatic ? 0_u8 : 255_u8)
+        let blackMask   = ~colorMask
+        var destination = output
+        var mcu         = cast(const [*] u8, .safeSampleBuf())
+        for .maxMcusPerRow
+        {
+            for group in groups
+            {
+                var channels: [4] U8x16
+                for component in 4
+                {
+                    channels[component] = shuffle(load(mcu + layout.offsets[group][component]), layout.indices[group][component])
+                }
+
+                if chromatic
+                {
+                    let luma = cast #bit(S16x8, widenLow(channels[0]))
+                    let bias = chromaBias8Samples(channels[1], channels[2])
+                    channels[0] = ~packUnsigned(luma + bias.rc, luma + bias.rc)
+                    channels[1] = ~packUnsigned(luma + bias.gc, luma + bias.gc)
+                    channels[2] = ~packUnsigned(luma + bias.bc, luma + bias.bc)
+                }
+
+                const First = Rgb ? 0 : 2
+                const Last  = 2 - First
+                if .mapCmyk
+                {
+                    if .simpleCmyk
+                    {
+                        for component in 4
+                        {
+                            channels[component] ^= splat(.cmykMasks[component])
+                        }
+                    }
+                    else
+                    {
+                        for component in 4
+                        {
+                            var mapped: [16] u8
+                            for lane in 8
+                            {
+                                mapped[lane] = .cmykSamples[component][channels[component][lane]]
+                            }
+
+                            channels[component] = cast(U8x16, mapped)
+                        }
+                    }
+
+                    let black = channels[3]
+                    let end   = multiplyLight(channels[Last], black)
+                    storeTriplets(destination, packUnsigned(multiplyLight(channels[First], black), multiplyLight(channels[1], black)), packUnsigned(end, end))
+                }
+                else
+                {
+                    let black      = channels[3] ^ blackMask
+                    let first      = subSaturating(channels[First] ^ colorMask, black)
+                    let green      = subSaturating(channels[1] ^ colorMask, black)
+                    let end        = subSaturating(channels[Last] ^ colorMask, black)
+                    let firstGreen = cast #bit(U8x16, interleaveLow(cast #bit(U64x2, first), cast #bit(U64x2, green)))
+                    storeTriplets(destination, firstGreen, end)
+                }
+
+                destination += 24
+            }
+
+            mcu += layout.mcuBytes
         }
     }
 }

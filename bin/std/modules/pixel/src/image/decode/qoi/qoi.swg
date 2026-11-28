@@ -44,7 +44,21 @@ private func addRgbDeltas(pixel: u32, red, green, blue: s32)->u32
     return low ^ ((pixel ^ delta) & 0x8080_8080_u32)
 }
 
-private func(CHANNELS: u32) decodePayload(image: *Image, buffer: const [..] u8)->u64 fail
+#[Swag.Inline]
+private func cacheColorBatch(index: [*] u32, pixels: Math.Simd.U32x4)
+{
+    let even   = (pixels & 0x00FF_00FF_u32) * 0x0003_0007_u32
+    let odd    = ((pixels >> 8) & 0x00FF_00FF_u32) * 0x0005_000B_u32
+    let hashes = ((even + odd) >> 16) & 63_u32
+
+    // Preserve insertion order for pixels that share an index.
+    index[hashes[0]] = pixels[0]
+    index[hashes[1]] = pixels[1]
+    index[hashes[2]] = pixels[2]
+    index[hashes[3]] = pixels[3]
+}
+
+private func(CHANNELS: u32, DENSE_RGB: bool = false) decodePayload(image: *Image, buffer: const [..] u8)->u64 fail
 {
     let source     = buffer.buffer
     let width      = cast(u64, image.width)
@@ -103,6 +117,29 @@ private func(CHANNELS: u32) decodePayload(image: *Image, buffer: const [..] u8)-
             input += 1
             if tag == 0xFE
             {
+                #static if DENSE_RGB
+                {
+                    if width - x >= 4 and input + 15 <= chunkLimit and
+                       source[input + 3] == 0xFE and source[input + 7] == 0xFE and source[input + 11] == 0xFE
+                    {
+                        using Math.Simd
+                        // Strip the tags, and keep the preceding alpha in the index.
+                        const RgbaWords = cast(U8x16, [0_u8, 1, 2, 0x80, 4, 5, 6, 0x80, 8, 9, 10, 0x80, 12, 13, 14, 0x80])
+                        const RgbBytes  = cast(U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
+                        let raw    = load(source + input)
+                        let pixels = cast #bit(U32x4, shuffle(raw, RgbaWords)) | (previous & 0xFF000000_u32)
+                        cacheColorBatch(&index[0], pixels)
+                        let packed = shuffle(raw, RgbBytes)
+                        storeLow8(target, packed)
+                        cast([*] u32, target + 8)[0] = cast #bit(U32x4, packed)[2]
+                        previous = pixels[3]
+                        target   += 12
+                        input    += 15
+                        x        += 4
+                        continue
+                    }
+                }
+
                 if input + 3 > chunkLimit
                 {
                     fail InvalidFormatError{"QOI RGB chunk is truncated"}
@@ -115,6 +152,31 @@ private func(CHANNELS: u32) decodePayload(image: *Image, buffer: const [..] u8)-
             }
             else if tag == 0xFF
             {
+                #static if CHANNELS == 4
+                {
+                    if width - x >= 4 and
+                       input + 19 <= chunkLimit and
+                       source[input + 4] == 0xFF and
+                       source[input + 9] == 0xFF and
+                       source[input + 14] == 0xFF
+                    {
+                        using Math.Simd
+
+                        // Drop the three tags between the four RGBA pixels.
+                        const RgbaWords = cast(U8x16, [0_u8, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 28, 29, 30, 31])
+                        let first  = load(source + input)
+                        let last   = load(source + input + 3)
+                        let pixels = cast #bit(U32x4, permute2(first, last, RgbaWords))
+                        cacheColorBatch(&index[0], pixels)
+                        store(cast([*] u32, target), pixels)
+                        previous = pixels[3]
+                        target   += 16
+                        input    += 19
+                        x        += 4
+                        continue
+                    }
+                }
+
                 if input + 4 > chunkLimit
                 {
                     fail InvalidFormatError{"QOI RGBA chunk is truncated"}
@@ -248,7 +310,17 @@ internal impl IImageDecoder for Decoder
         }
         else
         {
-            input = try decodePayload!{3}(&result, buffer)
+            // Longer RGB streams contain enough explicit color chunks to repay batch checks.
+            let pixels       = cast(u64, width) * height
+            let payloadBytes = buffer.count - HeaderSize - EndMarkerSize
+            if width >= 4 and payloadBytes >= pixels * 3 + pixels / 2
+            {
+                input = try decodePayload!{3, true}(&result, buffer)
+            }
+            else
+            {
+                input = try decodePayload!{3}(&result, buffer)
+            }
         }
 
         let expectedEnd: [8] u8 = [0, 0, 0, 0, 0, 0, 0, 1]

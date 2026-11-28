@@ -7,8 +7,85 @@
 
 using Core
 
+#[Swag.Inline]
+private func loadEdgeRow(source: const [*] u8)->Simd.S16x8
+{
+    let low = cast(u64, cast(const [*] u32, source)[0])
+    return cast #bit(Simd.S16x8, Simd.widenLow(cast #bit(Simd.U8x16, Simd.splat(low))))
+}
+
+// The four samples of an interior horizontal edge can be updated together.
+private func weakHorizontalEdge(source: [*] u8, stride, limitQ, limitP, alpha, beta: s32)
+{
+    let previousRow      = source - stride
+    let nextRow          = source + stride
+    let outerPreviousRow = previousRow - stride
+    let p0               = loadEdgeRow(previousRow)
+    let q0               = loadEdgeRow(source)
+    let zero             = Simd.splat(0_s16)
+    let delta            = q0 - p0
+    if not Simd.anyTrue(delta != zero)
+    {
+        return
+    }
+
+    let p1      = loadEdgeRow(outerPreviousRow)
+    let q1      = loadEdgeRow(nextRow)
+    let filterP = Math.abs(cast(s32, Simd.sum(p1 - p0))) < beta * 4
+    let filterQ = Math.abs(cast(s32, Simd.sum(q1 - q0))) < beta * 4
+    if not filterP and not filterQ
+    {
+        return
+    }
+
+    let both    = filterP and filterQ
+    let flags   = (Math.abs(delta) * cast(s16, alpha)) >> 7
+    let allowed = (flags <= Simd.splat(cast(s16, (3 - cast(s32, both))))) & (delta != zero)
+    if not Simd.anyTrue(allowed)
+    {
+        return
+    }
+
+    let amount     = (cast(s32, filterP) + cast(s32, filterQ) + ((limitP + limitQ) >> 1) + 1) >> (both ? 0 : 1)
+    let limit      = Simd.splat(cast(s16, amount))
+    let bound      = Simd.splat(cast(s16, beta))
+    let weighted   = (delta << 2) + (both ? p1 - q1 : zero)
+    let adjustment = Math.max(Math.min((weighted + 4) >> 3, limit), -limit)
+    let shift      = Simd.select(allowed, adjustment, zero)
+    let resultP    = p0 + shift
+    let resultQ    = q0 - shift
+    Simd.storeLow4(previousRow, Simd.packUnsigned(resultP, resultP))
+    Simd.storeLow4(source, Simd.packUnsigned(resultQ, resultQ))
+
+    if filterP
+    {
+        let reach     = p1 - loadEdgeRow(outerPreviousRow - stride)
+        let active    = allowed & (Math.abs(reach) <= bound)
+        let limitLeft = Simd.splat(cast(s16, (both ? limitP : limitP >> 1)))
+        let variation = Math.max(Math.min((p1 - p0 + reach - adjustment) >> 1, limitLeft), -limitLeft)
+        let result    = p1 - Simd.select(active, variation, zero)
+        Simd.storeLow4(outerPreviousRow, Simd.packUnsigned(result, result))
+    }
+
+    if filterQ
+    {
+        let reach      = q1 - loadEdgeRow(nextRow + stride)
+        let active     = allowed & (Math.abs(reach) <= bound)
+        let limitRight = Simd.splat(cast(s16, (both ? limitQ : limitQ >> 1)))
+        let variation  = Math.max(Math.min((q1 - q0 + reach + adjustment) >> 1, limitRight), -limitRight)
+        let result     = q1 - Simd.select(active, variation, zero)
+        Simd.storeLow4(nextRow, Simd.packUnsigned(result, result))
+    }
+}
+
 private func edgeFilter(src: [*] u8, stride, dither, limitQ, limitP, alpha, beta, beta2: s32, chroma, edge, vertical: bool)
 {
+    if not vertical and not edge
+    {
+        weakHorizontalEdge(src, stride, limitQ, limitP, alpha, beta)
+        return
+    }
+
     let step  = vertical ? 1 : stride
     let along = vertical ? stride : 1
     var sumP:   s32

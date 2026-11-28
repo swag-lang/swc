@@ -64,6 +64,11 @@ The loop count means total plays, with zero for unlimited playback. GIF repeat
 counts are converted to this convention. Forward reads reuse the canvas; backward
 seeks replay the necessary frames. Pixels are not cached by the reader.
 
+Use [[Pixel.Png.AnimationWriter]] to stream lossless 8- or 16-bit RGBA animation
+to an APNG file. Supply one canvas image and a rational duration per frame. The
+writer encodes the changed rectangle of each subsequent frame and keeps the
+first frame readable by a static PNG decoder.
+
 [[Pixel.Image.load]] and [[Pixel.Image.decode]] retain a still-image contract:
 the first composited GIF/WebP frame, the PNG default image (which can be a separate
 APNG poster), the first TIFF page or EXR part, the PSD composite, the largest icon
@@ -124,7 +129,7 @@ write straight-alpha file samples.
 PNG preserves 8- and 16-bit grayscale or RGB samples with optional alpha. EXR
 preserves half- and full-float Y, YA, RGB, and RGBA scanlines. DDS and KTX2 preserve
 their supported uncompressed integer and floating layouts; their decoders also read
-BC1 through BC5 block-compressed textures. Other general-purpose codecs convert to
+BC1 through BC5 and BC7 block-compressed textures. Other general-purpose codecs convert to
 the nearest supported 8-bit RGB/RGBA representation.
 
 The PSD decoder imports the flattened composite from PSD version 1 RGB or grayscale files with

@@ -401,7 +401,8 @@ internal struct SvgText
 internal struct SvgImage
 {
     rasterIndex: u64
-    rect:        Rectangle           // Destination in the user units of the element.
+    rect:        Rectangle           // Visible destination in the user units of the element.
+    paintRect:   Rectangle           // Full raster placement when the viewport slices it.
     transform:   Math.Transform2     // User units to drawing space.
     opacity:     f32 = 1
 }
@@ -567,6 +568,8 @@ private struct Parser
     lastDashScaling: DashScaling
     lastSolidStroke: u64
     embeddedImages:  HashTable!{string, u64}     // Raster indices plus one, keyed by the authored URI.
+    lastEmbeddedHref:  string = ""
+    lastEmbeddedIndex: u64
     externalImages:  HashTable!{string, CachedExternalRaster}     // Encoded bytes and raster indices for small files.
     options:         ParseOptions
     typeFaces:       [FontFamilyKind.count] (*TypeFace?)
@@ -617,6 +620,7 @@ private enum AttributeKind
     Class
     Href
     XlinkHref
+    PreserveAspectRatio
     GradientUnits
     GradientTransform
     SpreadMethod
@@ -717,6 +721,7 @@ private func attributeKind(name: string)->AttributeKind
     case "class":               return .Class
     case "href":                return .Href
     case "xlink:href":          return .XlinkHref
+    case "preserveAspectRatio": return .PreserveAspectRatio
     case "gradientUnits":       return .GradientUnits
     case "gradientTransform":   return .GradientTransform
     case "spreadMethod":        return .SpreadMethod
@@ -738,6 +743,62 @@ private func attributeKind(name: string)->AttributeKind
     case "style":               return .Style
     default:                    return .Unknown
     }
+}
+
+private func rasterPlacement(viewport: Rectangle, raster: const *Image, aspect: string)->{rect, paintRect: Rectangle}
+{
+    let viewportWidth  = cast(f64, viewport.width)
+    let viewportHeight = cast(f64, viewport.height)
+    let rasterWidth    = cast(f64, raster.width)
+    let rasterHeight   = cast(f64, raster.height)
+    if viewportWidth * rasterHeight == viewportHeight * rasterWidth
+    {
+        return {rect: viewport, paintRect: {}}
+    }
+
+    var text  = Latin1.trim(aspect)
+    var align = Tokenize.prefixToWhitespace(text)
+    if align == "defer"
+    {
+        text  = Latin1.trim(text[align.count to])
+        align = Tokenize.prefixToWhitespace(text)
+    }
+
+    let mode = Latin1.trim(text[align.count to])
+    var fraction = Vector2{0.5, 0.5}
+    var slice = mode == "slice"
+    if mode == "" or mode == "meet" or slice
+    {
+        switch align
+        {
+        case "none":     return {rect: viewport, paintRect: {}}
+        case "xMinYMin": fraction = {0, 0}
+        case "xMidYMin": fraction = {0.5, 0}
+        case "xMaxYMin": fraction = {1, 0}
+        case "xMinYMid": fraction = {0, 0.5}
+        case "xMidYMid": break
+        case "xMaxYMid": fraction = {1, 0.5}
+        case "xMinYMax": fraction = {0, 1}
+        case "xMidYMax": fraction = {0.5, 1}
+        case "xMaxYMax": fraction = {1, 1}
+        default:         slice = false
+        }
+    }
+
+    let scaleX = viewportWidth / rasterWidth
+    let scaleY = viewportHeight / rasterHeight
+    let scale  = slice ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY)
+    let width  = rasterWidth * scale
+    let height = rasterHeight * scale
+    let x      = cast(f64, viewport.x) + (viewportWidth - width) * cast(f64, fraction.x)
+    let y      = cast(f64, viewport.y) + (viewportHeight - height) * cast(f64, fraction.y)
+    let fitted = Rectangle{cast(f32, x), cast(f32, y), cast(f32, width), cast(f32, height)}
+    if slice
+    {
+        return {rect: viewport, paintRect: fitted}
+    }
+
+    return {rect: fitted, paintRect: {}}
 }
 
 private struct StyleDeclaration
@@ -1184,12 +1245,84 @@ private func spacingLength(value: string, fontSize: f32)->f32
     return amount
 }
 
+// Reads a predefined XML entity or character reference after '&'.
+// Zero leaves the following bytes untouched so malformed references stay literal.
+private func scanTextReference(text: string, pos: *u64)->rune
+{
+    let rest = text[pos[] to]
+    if not rest.count or rest[0] != '#'
+    {
+        const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
+        const Chars = "<>&\"'"
+        for index in Names.count
+        {
+            if Utf8.startsWith(rest, Names[index])
+            {
+                pos[] += Names[index].count
+                return cast(rune, Chars[index])
+            }
+        }
+
+        return 0
+    }
+
+    var offset = 1_u64
+    var radix  = 10_u32
+    if offset < rest.count and rest[offset] == 'x'
+    {
+        offset += 1
+        radix   = 16
+    }
+
+    let first = offset
+    var value = 0_u32
+    while offset < rest.count and rest[offset] != ';'
+    {
+        let c = rest[offset]
+        if not Latin1.isDigit(c) and (radix != 16 or not Latin1.isHexDigit(c))
+        {
+            return 0
+        }
+
+        // At the start of each digit, value is at most the largest Unicode scalar.
+        value = value * radix + cast(u32, hexNibble(c))
+        if value > 0x10FFFF
+        {
+            return 0
+        }
+
+        offset += 1
+    }
+
+    if offset == first or offset == rest.count
+    {
+        return 0
+    }
+
+    // XML 1.0 Char allows only TAB, LF and CR below U+0020 and skips surrogates.
+    if not (value == 0x9 or value == 0xA or value == 0xD or
+            (0x20 <= value and value <= 0xD7FF) or
+            (0xE000 <= value and value <= 0xFFFD) or
+            value >= 0x10000)
+    {
+        return 0
+    }
+
+    pos[] += offset + 1
+    return cast(rune, value)
+}
+
 private func normalizedText(value: string)->String
 {
     var result: #returntype
     var pendingSpace = false
-    for c in value
+    var pos = 0_u64
+    while pos < value.count
     {
+        let byte = value[pos]
+        pos += 1
+        let reference = byte == '&' ? scanTextReference(value, &pos) : cast(rune, 0)
+        let c = reference ? reference : cast(rune, byte)
         if c == ' ' or c == '\t' or c == '\r' or c == '\n'
         {
             pendingSpace = not result.isEmpty()
@@ -1202,7 +1335,14 @@ private func normalizedText(value: string)->String
         }
 
         pendingSpace = false
-        result       += c
+        if reference > 0x7F
+        {
+            result.append(reference)
+        }
+        else
+        {
+            result.append(cast(u8, c))
+        }
     }
 
     return result
@@ -3558,12 +3698,14 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and
-                  .text[.pos] != '=' and
-                  .text[.pos] != ' ' and
-                  .text[.pos] != '>' and
-                  .text[.pos] != '/'
+            while .pos < len
             {
+                let c = .text[.pos]
+                if c == '=' or c == '>' or c == '/' or c == ' ' or c == '\t' or c == '\n' or c == '\r'
+                {
+                    break
+                }
+
                 .pos += 1
             }
 
@@ -3975,16 +4117,30 @@ private impl Parser
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
             }
 
-            let entry = .embeddedImages.findOrAdd(.sourceView(href))
-            if entry.value
+            // Compare from the end so a changed tail does not scan a common bitmap
+            // payload before the hash table would scan it again.
+            let previous = .lastEmbeddedHref
+            if href.count == previous.count
             {
-                return entry.value - 1
+                let tail = href.count - Math.min(href.count, 64_u64)
+                if href[tail to] == previous[tail to] and (not tail or href[until tail] == previous[until tail])
+                {
+                    return .lastEmbeddedIndex
+                }
             }
 
-            var raster = #move try Image.fromDataUri(href)
-            .drawing.rasterImages.add(#move raster)
-            entry.value = index + 1
-            return index
+            let key   = .sourceView(href)
+            let entry = .embeddedImages.findOrAdd(key)
+            if not entry.value
+            {
+                var raster = #move try Image.fromDataUri(href)
+                .drawing.rasterImages.add(#move raster)
+                entry.value = index + 1
+            }
+
+            .lastEmbeddedHref  = key
+            .lastEmbeddedIndex = entry.value - 1
+            return .lastEmbeddedIndex
         }
 
         if (.options.externalResourceRoot).count == 0
@@ -4079,7 +4235,11 @@ private impl Parser
         // The rectangle stays in user units and carries its transform, so a mirrored or turned
         // picture is painted through the same matrix as its siblings instead of being
         // flattened into an upright rectangle.
-        item.rect      = Rectangle{.geoNumber(geo, .X), .geoNumber(geo, .Y), width, height}
+        let viewport  = Rectangle{.geoNumber(geo, .X), .geoNumber(geo, .Y), width, height}
+        let aspect    = geo.tryFind(.PreserveAspectRatio)
+        let placement = rasterPlacement(viewport, &.drawing.rasterImages[item.rasterIndex], aspect ? aspect.value : "")
+        item.rect      = placement.rect
+        item.paintRect = placement.paintRect
         item.transform = state.transform
         item.opacity   = state.opacity
         if not state.inDefs
@@ -5964,8 +6124,8 @@ impl Drawing
     // The result owns its shapes and decoded images. Text supports one-level `tspan`
     // runs with `x`, `y`, `dx`, `dy`, size, family class, anchor, weight, style, letter
     // and word spacing, solid fill, and opacity, and runs along the direction its element
-    // is turned by. Images stretch into their declared rectangle. Patterns repeat vector
-    // shape tiles in user or object-bounding-box units. Filters support either a
+    // is turned by. Raster images honor `preserveAspectRatio`, with centered `meet`
+    // as the default. Patterns repeat vector shape tiles in user or object-bounding-box units. Filters support either a
     // Gaussian blur followed by offsets, or a standalone `feDropShadow`.
     //
     // A `clip-path` is instantiated in the space of the element that names it, a `use`
@@ -6647,7 +6807,6 @@ impl Drawing
         let interpolation = painter.interpolationMode()
         painter.setInterpolationMode(.Linear)
         defer painter.setInterpolationMode(interpolation)
-        var alpha = image.opacity
 
         let drawingToSurface = painter.transform()
         var placed = image.transform
@@ -6656,7 +6815,20 @@ impl Drawing
         defer painter.setTransform(drawingToSurface)
 
         let texture = painter.renderer().addImage(.rasterImages[image.rasterIndex])
-        painter.drawTexture(image.rect, texture, Color.fromArgb(Argb.White).withAlphaF32(alpha))
+        let tint    = Color.fromArgb(Argb.White).withAlphaF32(image.opacity)
+        if image.paintRect.isEmpty()
+        {
+            painter.drawTexture(image.rect, texture, tint)
+        }
+        else
+        {
+            // Paint through the viewport while sampling the full fitted raster in user space.
+            var brush = Brush.createTexture(texture)
+            brush.setTint(tint)
+            brush.mapOver(image.paintRect)
+            painter.fillRect(image.rect, brush)
+        }
+
         painter.releaseTexture(texture)
     }
 

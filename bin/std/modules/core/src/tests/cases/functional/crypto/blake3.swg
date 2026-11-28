@@ -223,3 +223,32 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
         Swag.require(Crypto.constantTimeEqual(actual, reference.toSlice()))
     }
 }
+
+#test
+{
+    // BLAKE3 C 1.8.7 extends the 8193-byte official input vector to two four-block root batches and a tail.
+    let input = blake3Pattern(8193)
+    var digest: [513] u8
+    expect Hash.Blake3.compute(input.toSlice(), digest)
+    assertBlake3Output(digest, [
+        "bab6c09cb8ce8cf459261398d2e7aef35700bf488116ceb94a36d0f5f1b7bc3bb2282aa69be089359ea1154b9a9286c4a56af4de975a9aa4a5c497654914d279",
+        "bea60bb6d2cf7225a2fa0ff5ef56bbe4b149f3ed15860f78b4e2ad04e158e375c1e0c0b551cd7dfc82f1b155c11b6b3ed51ec9edb30d133653bb5709d1dbd55f",
+        "4e1ff62805a1cafd5baeeafdb94d20c8d2c1eaa943acad3fcb9db9ac24d32b3bc8af17b8b04536d59f6c06cc3c62bdf2021f2b24a98174f02052f74e183801f3",
+        "5c3fc1df9696298c96e08349d59382014da1a7f0b6c7448e8e4b136ce5ec6fd16f1dcb844fd63cc2656b1ebdce0aa3ff435b7b3eb3abf89aace0a201385a8c36",
+        "37eda7bc25034cc19dd621569d883c4d64673ad75638b32271e839065425e02d707c3124b599396d6081ebae3d103d368404c169e8191c9bafba834864afe94f",
+        "9bfe4da395c3173b2a3f48fc9706dbaf9f478d8b2cecce4c3236c6e396a6835d9c12cb199d9316e4881e2a1e1bc8b0bc188996ba8fcf91350e3b81f602e9538a",
+        "17689f1960420774a040a03f8cead51e9eb3f06915234c20eef02f6965bc31ef207b0aa6816b273afffa8c4594a0adc78c93336d78d90e73df372487ec0681ef",
+        "ade0827736d71772386337da3f0e814b397c38ea7d624f628f4f1915396f2d8a62a9870b0eccccfd2aa8dbfc9f7dfef164c572cecefb5150f7a845ea4eb244a2",
+        "9e"])
+
+    var storage: [515] u8
+    for length in [255_u64, 256, 257, 511, 512, 513]
+    {
+        storage[0] = 0xA5
+        storage[length + 1] = 0x5A
+        let output = storage[1 until length + 1]
+        expect Hash.Blake3.compute(input.toSlice(), output)
+        Swag.require(Crypto.constantTimeEqual(output, digest[until length]))
+        Swag.require(storage[0] == 0xA5 and storage[length + 1] == 0x5A)
+    }
+}

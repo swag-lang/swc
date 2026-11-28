@@ -103,6 +103,14 @@ SWC_MICRO_INSTR_DEF(
         .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
         .flags    = MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
     })
+// Reads all input, factors, and the seed before the output write, and
+// permits overlap. Register effects model the encoder's fixed SIMD scratch.
+SWC_MICRO_INSTR_DEF(
+    VecCarrylessProductSum16,
+    MicroInstrDef{
+        .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .flags    = MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
+    })
 // Cache hint for the line holding [op0.reg]. It never faults and has no observable effect, so it
 // carries no memory flag: passes neither order it against stores nor read it as a load, and it
 // survives dead-code elimination only because it defines nothing.

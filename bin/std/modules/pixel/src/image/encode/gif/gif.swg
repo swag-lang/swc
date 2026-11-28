@@ -92,7 +92,7 @@ internal impl IImageEncoder for Encoder
         let uniform    = pixelCount >= 256 and tryBuildUniformPalette(&palette, image, pixelCount)
         let fullGray   = not uniform and
                          image.pixelFormat == .Gray8 and
-                         image.width >= 256 and
+                         (image.width >= 256 or pixelCount >= 4096) and
                          tryBuildFullGrayPalette(&palette, image, &literals)
         if not uniform and not fullGray
         {

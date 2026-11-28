@@ -79,230 +79,182 @@ private func storeIntra8Filtered(dst: [*] u8, low, high: Simd.S32x4)
     Simd.storeLow8(dst, Simd.packUnsigned(cast #bit(Simd.S16x8, words), cast #bit(Simd.S16x8, words)))
 }
 
-// Predicts one 4x4 luma block, section 8.3.1.2.
-//
-// `hasTopRight` covers the four samples above and to the right; when they are missing but the
-// top ones exist, the last top sample substitutes for them.
+// Index layout of the sixteen raw references. Slots 0 through 9 are the top edge with
+// the opposite edge's first sample and the corner prepended. Slots 10 through 15 mirror
+// that layout for the left edge.
+private const Intra4Left = 10_u32
+
+// Each output names three references. The same three-tap filter gives a single sample
+// when all three agree, a rounded average when the two outside references agree, and
+// a weighted average of three samples otherwise.
+private var Intra4Directions = #run buildIntra4Directions()
+
+private func buildIntra4Directions()->[9, 3, 16] u8
+{
+    var table: #returntype
+    for mode in 9_u32
+    {
+        for row in 4_s32
+        {
+            for column in 4_s32
+            {
+                var a, b, c: u32
+                switch mode
+                {
+                case IntraVertical:
+                    a = cast(u32, column + 2)
+                    b = a
+                    c = a
+
+                case IntraHorizontal:
+                    a = Intra4Left + cast(u32, row + 2)
+                    b = a
+                    c = a
+
+                case IntraDownLeft:
+                    a = cast(u32, row + column + 2)
+                    b = a + 1
+                    c = Math.min(a + 2, 9_u32)
+
+                case IntraDownRight:
+                    let diagonal = column - row
+                    if diagonal > 0
+                    {
+                        a = cast(u32, diagonal)
+                        b = a + 1
+                        c = a + 2
+                    }
+                    else if diagonal < 0
+                    {
+                        a = Intra4Left + cast(u32, -diagonal)
+                        b = a + 1
+                        c = a + 2
+                    }
+                    else
+                    {
+                        a = Intra4Left + 2
+                        b = 1
+                        c = 2
+                    }
+
+                case IntraVerticalRight, IntraHorizontalDown:
+                    let vertical = mode == IntraVerticalRight
+                    let major    = vertical ? column : row
+                    let minor    = vertical ? row : column
+                    let primary  = vertical ? 0_u32 : Intra4Left
+                    let opposite = vertical ? Intra4Left : 0_u32
+                    let z        = 2 * major - minor
+                    if z >= 0 and z & 1 == 0
+                    {
+                        a = primary + cast(u32, (major - (minor >> 1) + 1))
+                        b = a + 1
+                        c = a
+                    }
+                    else if z >= -1
+                    {
+                        a = primary + cast(u32, (major - (minor >> 1)))
+                        b = a + 1
+                        c = a + 2
+                    }
+                    else
+                    {
+                        b = opposite + cast(u32, -z)
+                        a = b + 1
+                        c = b - 1
+                    }
+
+                case IntraVerticalLeft, IntraHorizontalUp:
+                    let vertical = mode == IntraVerticalLeft
+                    let minor    = vertical ? row : column
+                    let major    = vertical ? column : row
+                    let origin   = vertical ? 0_u32 : Intra4Left
+                    let limit    = vertical ? 9_u32 : Intra4Left + 5
+                    let index    = origin + cast(u32, (2 + major + (minor >> 1)))
+                    a = Math.min(index, limit)
+                    b = Math.min(index + 1, limit)
+                    c = minor & 1 == 0 ? a : Math.min(index + 2, limit)
+                }
+
+                let index = cast(u32, row * 4 + column)
+                table[mode, 0, index] = cast(u8, a)
+                table[mode, 1, index] = cast(u8, b)
+                table[mode, 2, index] = cast(u8, c)
+            }
+        }
+    }
+
+    return table
+}
+
+#[Swag.Inline]
+func readIntra4Edges(dst: const [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft, hasTopRight: bool)->Simd.U8x16
+{
+    var references: [16] u8
+    let above  = dst - stride
+    let left   = dst - 1
+    let corner = hasTopLeft ? (above - 1)[0] : 128_u8
+    let top    = hasTop ? cast(const [*] u32, above)[0] : 0x80808080_u32
+    let far    = hasTopRight ? cast(const [*] u32, above + 4)[0] : (top >> 24) * 0x01010101
+    cast([*] u32, &references[2])[0] = top
+    cast([*] u32, &references[6])[0] = far
+    references[12]                   = hasLeft ? left[0] : 128
+    references[13]                   = hasLeft ? left[stride] : 128
+    references[14]                   = hasLeft ? left[stride * 2] : 128
+    references[15]                   = hasLeft ? left[stride * 3] : 128
+    references[0]                    = references[12]
+    references[1]                    = corner
+    references[10]                   = references[2]
+    references[11]                   = corner
+    return Simd.load(references.buffer)
+}
+
+// Predicts one 4x4 luma block, section 8.3.1.2. Missing top-right samples repeat the
+// last available top sample.
 func intraPredict4x4(mode: u32, dst: [*] u8, stride: u64, hasLeft, hasTop, hasTopLeft, hasTopRight: bool)
 {
-    // tp[2 + i] is the top reference t(i); tp[1] the corner, tp[0] the first left sample.
-    // lp mirrors it for the left edge.
-    var tp: [10] s32
-    var lp: [6] s32
-    let corner = hasTopLeft ? cast(s32, (dst - stride - 1)[0]) : 128
-
-    for row in 4_u64
+    if mode > IntraHorizontalUp
     {
-        lp[2 + row] = hasLeft ? cast(s32, (dst - 1)[row * stride]) : 128
+        return
     }
 
-    for column in 4_u64
+    let edges = readIntra4Edges(dst, stride, hasLeft, hasTop, hasTopLeft, hasTopRight)
+    storeIntra4x4(dst, stride, intra4Samples(mode, hasLeft, hasTop, edges))
+}
+
+// Builds the sixteen prediction samples in raster order.
+func intra4Samples(mode: u32, hasLeft, hasTop: bool, edges: Simd.U8x16)->Simd.U8x16
+{
+    if mode == IntraDc
     {
-        tp[2 + column] = hasTop ? cast(s32, (dst - stride)[column]) : 128
+        const TopMask  = cast(Simd.U8x16, [0_u8, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        const LeftMask = cast(Simd.U8x16, [0_u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255])
+        var dc = 128_u32
+        if hasLeft and hasTop
+        {
+            dc = (Simd.sumWide(edges & (TopMask | LeftMask)) + 4) >> 3
+        }
+        else if hasLeft or hasTop
+        {
+            dc = (Simd.sumWide(edges & (hasLeft ? LeftMask : TopMask)) + 2) >> 2
+        }
+
+        return Simd.splat(cast(u8, dc))
     }
 
-    for column in 4_u64 until 8
-    {
-        if hasTopRight
-        {
-            tp[2 + column] = cast(s32, (dst - stride)[column])
-        }
-        else if hasTop
-        {
-            tp[2 + column] = tp[5]
-        }
-        else
-        {
-            tp[2 + column] = 128
-        }
-    }
+    let left   = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 0, 0]))
+    let centre = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 1, 0]))
+    let right  = Simd.shuffle(edges, Simd.load(&Intra4Directions[mode, 2, 0]))
+    return lowpassBytes(left, centre, right)
+}
 
-    tp[1] = corner
-    tp[0] = lp[2]
-    lp[1] = corner
-    lp[0] = tp[2]
-
-    switch mode
-    {
-    case IntraVertical:
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                dst[row * stride + column] = cast(u8, tp[2 + column])
-            }
-        }
-
-    case IntraHorizontal:
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                dst[row * stride + column] = cast(u8, lp[2 + row])
-            }
-        }
-
-    case IntraDc:
-        var sum   = 0_s32
-        var count = 0_s32
-        if hasLeft
-        {
-            sum   += lp[2] + lp[3] + lp[4] + lp[5]
-            count += 4
-        }
-
-        if hasTop
-        {
-            sum   += tp[2] + tp[3] + tp[4] + tp[5]
-            count += 4
-        }
-
-        var value = 128_s32
-        if count == 8
-        {
-            value = (sum + 4) >> 3
-        }
-        else if count == 4
-        {
-            value = (sum + 2) >> 2
-        }
-
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                dst[row * stride + column] = cast(u8, value)
-            }
-        }
-
-    case IntraDownLeft:
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                let diag  = row + column
-                let value = diag == 6 ? (tp[8] + 3 * tp[9] + 2) >> 2 : (tp[2 + diag] + 2 * tp[3 + diag] + tp[4 + diag] + 2) >> 2
-                dst[row * stride + column] = cast(u8, value)
-            }
-        }
-
-    case IntraDownRight:
-        for row in 4_s64
-        {
-            for column in 4_s64
-            {
-                let diag = column - row
-                var value: s32
-                if diag >= 1
-                {
-                    value = (tp[cast(u64, diag)] + 2 * tp[cast(u64, diag) + 1] + tp[cast(u64, diag) + 2] + 2) >> 2
-                }
-                else if diag == 0
-                {
-                    value = (lp[2] + 2 * lp[1] + tp[2] + 2) >> 2
-                }
-                else
-                {
-                    value = (lp[cast(u64, (2 - diag))] + 2 * lp[cast(u64, (1 - diag))] + lp[cast(u64, (0 - diag))] + 2) >> 2
-                }
-
-                dst[cast(u64, row) * stride + cast(u64, column)] = cast(u8, value)
-            }
-        }
-
-    case IntraVerticalRight:
-        for row in 4_s64
-        {
-            for column in 4_s64
-            {
-                let z = 2 * column - row
-                var value: s32
-                if z >= 0 and z & 1 == 0
-                {
-                    let k = cast(u64, (column - (row >> 1)))
-                    value = (tp[k + 1] + tp[k + 2] + 1) >> 1
-                }
-                else if z >= -1
-                {
-                    let k = cast(u64, (column - (row >> 1)))
-                    value = (tp[k] + 2 * tp[k + 1] + tp[k + 2] + 2) >> 2
-                }
-                else
-                {
-                    let e = cast(u64, (row - 2 * column))
-                    value = (lp[e + 1] + 2 * lp[e] + lp[e - 1] + 2) >> 2
-                }
-
-                dst[cast(u64, row) * stride + cast(u64, column)] = cast(u8, value)
-            }
-        }
-
-    case IntraHorizontalDown:
-        for row in 4_s64
-        {
-            for column in 4_s64
-            {
-                let z = 2 * row - column
-                var value: s32
-                if z >= 0 and z & 1 == 0
-                {
-                    let k = cast(u64, (row - (column >> 1)))
-                    value = (lp[k + 1] + lp[k + 2] + 1) >> 1
-                }
-                else if z >= -1
-                {
-                    let k = cast(u64, (row - (column >> 1)))
-                    value = (lp[k] + 2 * lp[k + 1] + lp[k + 2] + 2) >> 2
-                }
-                else
-                {
-                    let e = cast(u64, (column - 2 * row))
-                    value = (tp[e + 1] + 2 * tp[e] + tp[e - 1] + 2) >> 2
-                }
-
-                dst[cast(u64, row) * stride + cast(u64, column)] = cast(u8, value)
-            }
-        }
-
-    case IntraVerticalLeft:
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                let k     = column + (row >> 1)
-                let value = row & 1 == 0 ? (tp[2 + k] + tp[3 + k] + 1) >> 1 : (tp[2 + k] + 2 * tp[3 + k] + tp[4 + k] + 2) >> 2
-                dst[row * stride + column] = cast(u8, value)
-            }
-        }
-
-    case IntraHorizontalUp:
-        for row in 4_u64
-        {
-            for column in 4_u64
-            {
-                let z = column + 2 * row
-                var value: s32
-                if z > 5
-                {
-                    value = lp[5]
-                }
-                else if z == 5
-                {
-                    value = (lp[4] + 3 * lp[5] + 2) >> 2
-                }
-                else if z & 1 == 0
-                {
-                    value = (lp[2 + row + (column >> 1)] + lp[3 + row + (column >> 1)] + 1) >> 1
-                }
-                else
-                {
-                    value = (lp[2 + row + (column >> 1)] + 2 * lp[3 + row + (column >> 1)] + lp[4 + row + (column >> 1)] + 2) >> 2
-                }
-
-                dst[row * stride + column] = cast(u8, value)
-            }
-        }
-    }
+#[Swag.Inline]
+func storeIntra4x4(dst: [*] u8, stride: u64, pixels: Simd.U8x16)
+{
+    let rows = cast #bit(Simd.U32x4, pixels)
+    cast([*] u32, dst)[0] = rows[0]
+    cast([*] u32, dst + stride)[0]     = rows[1]
+    cast([*] u32, dst + stride * 2)[0] = rows[2]
+    cast([*] u32, dst + stride * 3)[0] = rows[3]
 }
 
 // The three-tap filter `(a + 2b + c + 2) >> 2` on bytes: the floored half-sum of the outer

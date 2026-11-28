@@ -45,7 +45,11 @@ impl Voice
     {
         voice.handle = cast(*void?, Memory.new!{NoSoundVoice}(voice.allocationAllocator))
         let file = unwrap voice.file
-        voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
+        switch file.encoding
+        {
+        case .AacLc, .ALaw, .MuLaw, .Float64: voice.requestedEncoding = .Pcm16
+        default:                  voice.requestedEncoding = file.encoding
+        }
         if not voice.handle
         {
             fail BadParameterError{"cannot create no-sound voice"}

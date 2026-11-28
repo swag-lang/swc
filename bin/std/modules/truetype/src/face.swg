@@ -575,13 +575,14 @@ public impl Face
         return faceData.glyphAdvance(glyphIndex)
     }
 
-    // Returns the ordered color layers declared for a glyph by COLR version 0.
+    // Returns the ordered COLR version 0 layers for a glyph.
     //
-    // `paletteIndex` selects a CPAL palette. Each returned layer identifies its glyph,
-    // CPAL entry, and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb`
-    // is zero for the special COLR foreground entry (0xFFFF). The returned array is
-    // owned by the caller. An absent COLR table or base glyph returns an empty array;
-    // invalid glyph or palette indices and malformed or unsupported tables fail.
+    // COLR versions 0 and 1 can both contain version 0 layers. `paletteIndex` selects
+    // a palette from CPAL version 0 or 1. Each layer identifies its glyph, CPAL entry,
+    // and resolved color in 0xAARRGGBB form. `hasColor` is false and `argb` is zero
+    // for the special COLR foreground entry (0xFFFF). The caller owns the array.
+    // A glyph without version 0 layers returns an empty array. Invalid glyph or
+    // palette indices and malformed or unsupported layer and palette records fail.
     mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array!{ColorGlyphLayer} fail
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
@@ -655,12 +656,10 @@ public impl Face
 
     // Resolves a PostScript glyph name to a glyph index.
     //
-    // CFF and Type 1 programs key their outlines by name, which is how a document format
-    // addresses them: the encoding of such a font is a table of names, not of characters.
-    // TrueType outlines use names from `post` formats 1, 2, or 2.5. Format 3 contains no
-    // names. If a name appears more than once, the lowest glyph index wins. Zero is returned
-    // when the name is absent; as with [[TrueType.Face.glyphIndex]], zero is also the
-    // conventional missing-glyph index.
+    // CFF1 and Type 1 carry glyph names in their font programs. TrueType and CFF2
+    // use names from `post` formats 1, 2, or 2.5. Format 3 contains no names. If
+    // a name appears more than once, the lowest glyph index wins. A missing name
+    // returns zero, the conventional missing-glyph index.
     //
     // ```swag
     // let face  = try TrueType.Face.load(bytes)
@@ -674,10 +673,10 @@ public impl Face
 
     // Returns the name assigned to a glyph index, or null when the font has no name for it.
     //
-    // CFF and Type 1 use their charstring glyph names. TrueType outlines use names from
-    // `post` formats 1, 2, or 2.5. Format 3 has no names. The returned string borrows storage
-    // owned by this face and remains valid until [[TrueType.Face.destroy]]. Invalid glyph
-    // indices and empty or unavailable names return null.
+    // CFF1 and Type 1 carry glyph names in their font programs. TrueType and CFF2
+    // use names from `post` formats 1, 2, or 2.5. Format 3 contains no names.
+    // The returned string borrows storage from this face until [[TrueType.Face.destroy]].
+    // Invalid glyph indices and empty or unavailable names return null.
     //
     // ```swag
     // if let name = face.glyphName(glyphIndex) do
@@ -747,7 +746,7 @@ public impl Face
     //
     // The active pixel size controls scaling. Existing outline and bitmap pointers
     // from this face are invalidated. Add `.Render` to produce a grayscale bitmap
-    // in the same operation.
+    // in the same operation, using [[TrueType.Face.renderGlyph]].
     mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
         try loadGlyphInternal(me, glyphIndex)
@@ -775,18 +774,22 @@ public impl Face
     // entries use `foregroundArgb`, defaulting to opaque black. The slot's outline and
     // metrics describe `baseGlyph`, while its bitmap uses [[TrueType.PixelMode.ColorRgba]]
     // with bytes in red, green, blue, alpha order. This replaces the slot's current
-    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has no
-    // color layers.
+    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has
+    // no layers through [[TrueType.Face.getColorLayers]].
     mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0, foregroundArgb: u32 = 0xFF000000) fail
     {
         try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)
     }
 
-    // Rasterizes the current outline into an 8-bit grayscale bitmap.
+    // Renders the current glyph into an 8-bit grayscale bitmap.
     //
+    // An empty TrueType outline can use a one-bit `EBDT` / `EBLC` strike at the
+    // pixel size used to load the glyph. Index and image format pairs 1/7 and 2/5
+    // are supported. An absent, unsupported, malformed, or blank strike leaves
+    // the bitmap empty. The loaded advances are retained.
     // The result is stored in [[TrueType.GlyphSlot.bitmap]] and replaces any
     // previous bitmap from this face.
-    mtd renderGlyph() fail => try renderCurrentOutline(&.glyph)
+    mtd renderGlyph() fail => try renderCurrentOutline(&.glyph, allowEmbeddedBitmap: true)
 
     // Aligns important vertical zones of the current outline to whole pixels.
     //

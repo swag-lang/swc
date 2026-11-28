@@ -83,6 +83,22 @@ private func buildSpectralPairCodes()->SpectralPairCodes
 // Book 11 puts the sign bits after the Huffman word, in coefficient order.
 private const PackedSpectralPairs = #run buildSpectralPairCodes()
 
+private func buildRateSpectralWidths()->[MaxMagnitude + 1, MaxMagnitude + 1] u32
+{
+    var widths: #returntype
+    for first in MaxMagnitude + 1
+    {
+        for second in MaxMagnitude + 1
+        {
+            widths[first, second] = PackedSpectralPairs[first + MaxMagnitude, second + MaxMagnitude] >> 16
+        }
+    }
+
+    return widths
+}
+
+private const RateSpectralWidths = #run buildRateSpectralWidths()
+
 private const QuantizationGains = 256
 private alias MagnitudeThresholds = [QuantizationGains, MaxMagnitude + 1] u32
 
@@ -178,6 +194,14 @@ private func gainForPeak(peak: f32)->s32
 
 private const RateGainSteps   = [0_s32, 2, 4, 8, 12, 20]
 private const RateChoiceCount = RateGainSteps.count + 1
+
+private struct RateSpectrum
+{
+    coefficients: [FullLines] f32
+    peaks:        [FullBands] f32
+    peak:         f32
+}
+
 private alias RateGains = [2, FullBands] s32
 
 private struct RateChoice
@@ -365,14 +389,17 @@ impl Encoder
             fail BadParameterError{"AAC software encoder needs exactly 1024 complete sample frames"}
         }
 
-        var spectra: [2, FullLines] f32
+        var spectra: [2] RateSpectrum
+        let offsets = swbLong(.sampleRate == 48_000 ? 3_u32 : 4_u32)
         for channel in .channels
         {
-            .transformChannel!{false}(samples, channel, .Long, &spectra[channel, 0])
+            let spectrum = &spectra[channel]
+            .transformChannel!{false}(samples, channel, .Long, &spectrum.coefficients[0])
+            spectrum.peak = collectEncoderBandPeaks(&spectrum.coefficients[0], offsets, .bandCount, &spectrum.peaks[0])
         }
 
-        try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra)
-        if packet.count > maximumBytes
+        try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra, trialLimit: maximumBytes)
+        if not packet.count or packet.count > maximumBytes
         {
             var choices:     RateChoices
             var initialGain: [2] s32
@@ -415,8 +442,9 @@ impl Encoder
     internal mtd(Adaptive: bool, Limited: bool) encodeWindowed(samples: const [..] s16,
                                                                packet: *Array!{u8},
                                                                sequence: EncodeWindow,
-                                                               spectra: const *[2, FullLines] f32? = null,
-                                                               choices: const *RateGains? = null) fail
+                                                               spectra: const *[2] RateSpectrum? = null,
+                                                               choices: const *RateGains? = null,
+                                                               trialLimit: u64 = MaximumPacketBytes) fail
     {
         if samples.count != EncoderFrames * .channels
         {
@@ -486,34 +514,26 @@ impl Encoder
 
         for channel in .channels
         {
-            var transformed: [FullLines] f32
+            var storage:     [FullLines] f32
+            var bandPeaks:   [MaximumShortBands] f32
+            var transformed: const [*] f32
+            var peaks:       const [*] f32
+            var maximum:     f32
             #static if Limited
             {
-                Memory.copy(&transformed[0], &spectra![][channel, 0], #sizeof(transformed))
+                let spectrum = &spectra![][channel]
+                transformed = &spectrum.coefficients[0]
+                peaks       = &spectrum.peaks[0]
+                maximum     = spectrum.peak
             }
             else
             {
-                .transformChannel!{Adaptive}(samples, channel, sequence, &transformed[0])
-            }
-
-            var peaks: [MaximumShortBands] f32
-            var maximum = 0_f32
-            for group in windowCount
-            {
-                let start = group * lineStride
-                for band in bandCount
+                .transformChannel!{Adaptive}(samples, channel, sequence, &storage[0])
+                transformed = &storage[0]
+                peaks       = &bandPeaks[0]
+                for group in windowCount
                 {
-                    let first = cast(const [*] f32, &transformed[start + offsets[band]])
-                    let width = cast(u64, offsets[band + 1] - offsets[band])
-                    var lanes = Simd.splat(0_f32)
-                    for index in width / 4
-                    {
-                        let values = Math.abs(Simd.load(first + 4 * index))
-                        lanes = Simd.select(values > lanes, values, lanes)
-                    }
-
-                    let peak = Simd.maximum(lanes)
-                    peaks[group * bandCount + band] = peak
+                    let peak = collectEncoderBandPeaks(transformed + group * lineStride, offsets, bandCount, &bandPeaks[group * bandCount])
                     maximum = Math.max(maximum, peak)
                 }
             }
@@ -632,6 +652,16 @@ impl Encoder
                         .writeBits(pair & 0xFFFF, pair >> 16)
                         line += 2
                     }
+                    #static if Limited
+                    {
+                        // Leave the packet empty when the initial rate trial cannot fit.
+                        let used = .wordCount * #sizeof(u32) + (.pendingBits + 7) / 8
+                        if used > trialLimit
+                        {
+                            return
+                        }
+                    }
+
                 }
             }
 
@@ -664,30 +694,42 @@ impl Encoder
     }
 }
 
+#[Swag.Inline]
+private func collectEncoderBandPeaks(spectrum: const [*] f32, offsets: const [..] u16,
+                                    bandCount: u64, peaks: [*] f32)->f32
+{
+    var bandMaximum = 0_f32
+    for band in bandCount
+    {
+        let first = spectrum + offsets[band]
+        let width = cast(u64, offsets[band + 1] - offsets[band])
+        var lanes = Simd.splat(0_f32)
+        for index in width / 4
+        {
+            let values = Math.abs(Simd.load(first + 4 * index))
+            lanes = Simd.select(values > lanes, values, lanes)
+        }
+
+        let peak = Simd.maximum(lanes)
+        peaks[band] = peak
+        bandMaximum = Math.max(bandMaximum, peak)
+    }
+
+    return bandMaximum
+}
+
 private impl Encoder
 {
-    mtd const prepareRateChoices(spectra: const *[2, FullLines] f32, choices: *RateChoices, initialGain: *[2] s32)->f64
+    mtd const prepareRateChoices(spectra: const *[2] RateSpectrum, choices: *RateChoices, initialGain: *[2] s32)->f64
     {
         let offsets   = swbLong(.sampleRate == 48_000 ? 3_u32 : 4_u32)
         var strongest = 0_f64
         for channel in .channels
         {
-            let spectrum = cast(const [*] f32, &spectra[][channel, 0])
-            var peaks: [FullBands] f64
-            var largest  = 0_f64
-            for band in .bandCount
-            {
-                var peak = 0_f32
-                for line in offsets[band] until offsets[band + 1]
-                {
-                    peak = Math.max(peak, Math.abs(spectrum[line]))
-                }
-
-                peaks[band] = 2.0 * cast(f64, peak)
-                largest     = Math.max(largest, peaks[band])
-            }
-
-            let globalGain = gainForPeak(cast(f32, largest * 0.5))
+            let cached     = &spectra[][channel]
+            let spectrum   = cast(const [*] f32, &cached.coefficients[0])
+            let largest    = 2.0 * cast(f64, cached.peak)
+            let globalGain = gainForPeak(cached.peak)
             initialGain[][channel] = globalGain
             let minimumGain = Math.max(0_s32, globalGain - MaximumBandBoost)
 
@@ -697,11 +739,11 @@ private impl Encoder
             {
                 let first    = cast(u64, offsets[band])
                 let end      = cast(u64, offsets[band + 1])
-                let peak     = peaks[band]
+                let peak     = cached.peaks[band]
                 var selected = globalGain
-                if peak >= largest / 512.0 and peak > 0
+                if 2.0 * cast(f64, peak) >= largest / 512.0 and peak > 0
                 {
-                    selected = Math.clamp(gainForPeak(cast(f32, peak * 0.5)), minimumGain, globalGain)
+                    selected = Math.clamp(gainForPeak(peak), minimumGain, globalGain)
                 }
 
                 var energy = 0_f64
@@ -725,7 +767,7 @@ private impl Encoder
 
                     previousGain = gain
                     let thresholds = cast(const [*] u32, &g_FirstMagnitude[gain, 0])
-                    let peakBits   = cast #bit(u32, cast(f32, peak * 0.5))
+                    let peakBits   = cast #bit(u32, peak)
                     if peakBits < thresholds[1]
                     {
                         for rest in step until RateGainSteps.count
@@ -741,14 +783,24 @@ private impl Encoder
                     var codedBits     = 0_u32
                     for pair in first / 2 until end / 2
                     {
-                        let a  = Math.abs(spectrum[pair * 2])
-                        let b  = Math.abs(spectrum[pair * 2 + 1])
-                        let qa = rateMagnitude(cast #bit(u32, a), thresholds)
-                        let qb = rateMagnitude(cast #bit(u32, b), thresholds)
-                        let ea = 2.0 * cast(f64, a) - cast(f64, reconstructed[qa])
-                        let eb = 2.0 * cast(f64, b) - cast(f64, reconstructed[qb])
+                        let aBits = cast #bit(u32, spectrum[pair * 2]) & 0x7FFF_FFFF
+                        let bBits = cast #bit(u32, spectrum[pair * 2 + 1]) & 0x7FFF_FFFF
+                        let a     = 2.0 * cast(f64, cast #bit(f32, aBits))
+                        let b     = 2.0 * cast(f64, cast #bit(f32, bBits))
+                        // A union below the first cutoff proves both magnitudes are zero.
+                        if (aBits | bBits) < thresholds[1]
+                        {
+                            distortion += a * a + b * b
+                            codedBits  += RateSpectralWidths[0, 0]
+                            continue
+                        }
+
+                        let qa = rateMagnitude(aBits, thresholds)
+                        let qb = rateMagnitude(bBits, thresholds)
+                        let ea = a - cast(f64, reconstructed[qa])
+                        let eb = b - cast(f64, reconstructed[qb])
                         distortion += ea * ea + eb * eb
-                        codedBits  += PackedSpectralPairs[qa + MaxMagnitude, qb + MaxMagnitude] >> 16
+                        codedBits  += RateSpectralWidths[qa, qb]
                     }
 
                     choices[][channel, band, step] = {gain, codedBits, distortion}

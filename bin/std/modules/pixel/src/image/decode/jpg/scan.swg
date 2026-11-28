@@ -372,7 +372,7 @@ impl Decoder
                              first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
                 if .scanType == YH2V2
                 {
-                    .convertH2V2!{Rgb}(first, second)
+                    .convertH2V2!{Rgb}(first, second, destination and .realDestBytesPerScanLine != .destBytesPerScanLine)
                 }
                 else
                 {
@@ -388,13 +388,16 @@ impl Decoder
             .convertH2V1!{Rgb}(first)
 
         case YH1V1:
-            .convertH1V1!{Rgb}(first)
+            .convertH1V1!{Rgb}(first, destination and .realDestBytesPerScanLine != .destBytesPerScanLine)
 
         case RGBH1V1:
             .convertRgbH1V1!{Rgb}(first)
 
         case CmykH1V1:
             .convertCmykH1V1!{Rgb}(first)
+
+        case CmykGeneric:
+            .convertCmykGeneric!{Rgb}(first)
 
         case YGeneric:
             .convertGeneric!{Rgb}(first)
@@ -507,22 +510,22 @@ impl Decoder
         }
         else if .compsInFrame == 4
         {
-            // Four components are the inks of a printed page, written either as they are or with
-            // their three chromatic channels carried the way luma and chroma are. Neither form
-            // subsamples in practice, and the layout that does is well formed and simply not read
-            // here.
-            for i in 4
+            let maxSamplingH = Math.max(.compSampH[0], .compSampH[1], .compSampH[2], .compSampH[3])
+            let maxSamplingV = Math.max(.compSampV[0], .compSampV[1], .compSampV[2], .compSampV[3])
+            for component in 4
             {
-                if .compSampH[i] != 1 or .compSampV[i] != 1
+                if maxSamplingH % .compSampH[component] or maxSamplingV % .compSampV[component]
                 {
-                    fail UnsupportedFormatError{Errors.mkString(Format.toString("JPEG four-component sampling of %x% is not supported", .compSampH[i], .compSampV[i]))}
+                    fail UnsupportedFormatError{"JPEG component sampling ratios must divide the MCU sampling grid"}
                 }
+
+                .maxBlocksPerMcu += .compSampH[component] * .compSampV[component]
             }
 
-            .scanType        = CmykH1V1
-            .maxBlocksPerMcu = 4
-            .maxMcuSizeX     = 8
-            .maxMcuSizeY     = 8
+            let fastColorMap = not .mapCmyk or (.simpleCmyk and .adobeTransform != 2)
+            .scanType    = maxSamplingH == 1 and maxSamplingV == 1 and fastColorMap ? CmykH1V1 : CmykGeneric
+            .maxMcuSizeX = maxSamplingH * 8
+            .maxMcuSizeY = maxSamplingV * 8
         }
         else
         {

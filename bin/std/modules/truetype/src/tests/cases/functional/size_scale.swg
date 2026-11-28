@@ -44,22 +44,61 @@ using Swag, Core
     const Coordinates: [13] s32 = [Swag.S32.Min, -32768, -1023, -51, -2, -1, 0, 1, 2, 51, 1023, 32767, Swag.S32.Max]
     for units in Units
     {
-        let scale = expect PointScale.create(units)
         for size in PixelSizes
         {
-            let factor = cast(s64, size) * 64
+            let scale = expect PointScale.create(units, cast(u16, size))
             for coordinate in Coordinates
             {
-                var direct, reciprocal: s32
-                var directError, reciprocalError: Swag.Error
+                var direct, fixed: s32
+                var directError, fixedError: Swag.Error
                 catch { direct = try scale26_6(coordinate, size, units) } as directError
-                catch { reciprocal = try scale.apply(coordinate, factor) } as reciprocalError
-                Swag.require(directError.isEmpty() == reciprocalError.isEmpty())
+                catch { fixed = try scale.apply(coordinate) } as fixedError
+                Swag.require(directError.isEmpty() == fixedError.isEmpty())
                 if directError.isEmpty()
                 {
-                    Swag.require(direct == reciprocal)
+                    Swag.require(direct == fixed)
                 }
             }
         }
     }
+}
+
+// A face that switches between non-square sizes must prepare both point scales again.
+#test
+{
+    const SinglePoint = [0_u8, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x37, 5, 7]
+    var faceData: FaceImpl
+    faceData.unitsPerEm = 64
+    for width in [10_u16, 20, 10]
+    {
+        let height = cast(u16, 30 - width)
+        faceData.outlinePoints.clear()
+        faceData.outlineTags.clear()
+        faceData.outlineContours.clear()
+        expect appendSimpleGlyph(&faceData, SinglePoint, width, height)
+        Swag.require(faceData.outlinePoints.count == 1)
+        Swag.require(faceData.outlinePoints[0].x == cast(s32, width) * 5)
+        Swag.require(faceData.outlinePoints[0].y == cast(s32, height) * 7)
+    }
+}
+
+// A group still uses exact scaling at half units, large coordinates and the s32 limit.
+#test
+{
+    let halfScale = expect PointScale.create(128, 1)
+    let halves    = expect halfScale.applyFour(cast(Math.Simd.S32x4, [-3_s32, -1, 1, 3]))
+    Swag.require(halves[0] == -2 and halves[1] == -1 and halves[2] == 1 and halves[3] == 2)
+
+    let wideScale = expect PointScale.create(Swag.U16.Max, 64)
+    let values    = cast(Math.Simd.S32x4, [Swag.S32.Min, -32769_s32, 32769, Swag.S32.Max])
+    let scaled    = expect wideScale.applyFour(values)
+    for index in 4
+    {
+        Swag.require(scaled[index] == expect wideScale.apply(values[index]))
+    }
+
+    let largeScale = expect PointScale.create(16, Swag.U16.Max)
+    var rejected: Swag.Error
+    discard catch largeScale.applyFour(cast(Math.Simd.S32x4, [0_s32, 0, -8193, 0])) as rejected
+    Swag.require(rejected.value() != null)
 }

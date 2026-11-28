@@ -5,9 +5,11 @@ using Swag, Core
 func buildBinaryType1Fixture(firstCipher: const [4] u8,
                              hexEncoded: bool = false,
                              rdSeparator: string = " ",
-                             firstNotDefByte: u8 = 139)->Array!{u8}
+                             firstNotDefByte: u8 = 139,
+                             bounds: string = "[0 0 1000 1000]")->Array!{u8}
 {
-    const ClearHeader:        string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
+    const HeaderPrefix               = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox"
+    const HeaderSuffix               = "\n/Encoding StandardEncoding\neexec\n"
     const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD"
     const ClearBetweenGlyphs: string = " ND\n/A 4 RD"
     const ClearPrivateSuffix: string = " ND\nend\n"
@@ -40,7 +42,10 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     }
 
     var program: Array!{u8}
-    program.add(cast(const [..] u8, ClearHeader))
+    program.add(cast(const [..] u8, HeaderPrefix))
+    program.add(cast(const [..] u8, " "))
+    program.add(cast(const [..] u8, bounds))
+    program.add(cast(const [..] u8, HeaderSuffix))
     if hexEncoded
     {
         const HexDigits = "0123456789ABCDEF"
@@ -93,6 +98,45 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let lower = expect parseType1Font(lowercase.toSlice())
     Swag.require(lower.glyphNames[1] == "A")
     Swag.require(expect type1CharstringWidth(&lower, 1) == 50)
+}
+
+#test
+{
+    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    for bounds in ["[-11 -2e1 +9.55e2 870]", "% bounds\n{ -11% left\n -20 955 870 }"]
+    {
+        let bytes = buildBinaryType1Fixture(BinaryPrefix, bounds: bounds)
+        let face  = expect Face.load(bytes.toSlice())
+        defer face.destroy()
+
+        let box = face.bbox
+        Swag.require(box.xMin == -11 and box.yMin == -20 and box.xMax == 955 and box.yMax == 870)
+        Swag.require(face.ascender == 870 and face.descender == -20 and face.height == 890)
+    }
+
+    for bounds in ["[1 2 3]", "{1 2 3 +}", "{1 2 3 4]", "{1 2 3 4 5}",
+                   "{3 -20 1 870}", "{-11 -32768 955 32767}", "null\n/Later [4 5 6 7]"]
+    {
+        let bytes = buildBinaryType1Fixture(BinaryPrefix, bounds: bounds)
+        let face  = expect Face.load(bytes.toSlice())
+        defer face.destroy()
+
+        let box = face.bbox
+        Swag.require(box.xMin == 0 and box.yMin == 0 and box.xMax == 1000 and box.yMax == 1000)
+    }
+}
+
+#test
+{
+    // Latin Modern Math Extension 10 uses a braced FontBBox in its PFB header.
+    let face = expect Face.loadFile(getTestDataPath("latin-modern-extension-10.pfb"))
+    defer face.destroy()
+
+    // Design-space bounds and vertical metrics from FreeType 2.14.3.
+    let box = face.bbox
+    Swag.require(face.unitsPerEm == 1000)
+    Swag.require(box.xMin == -24 and box.yMin == -2960 and box.xMax == 1454 and box.yMax == 772)
+    Swag.require(face.ascender == 772 and face.descender == -2960 and face.height == 3732)
 }
 
 // CRLF after RD is consumed as one separator without discarding binary bytes.
@@ -194,4 +238,36 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     Swag.require(expect second.getAdvanceWidth(1) == 50)
     second.destroy()
     Swag.require(allocator.stats().countAlloc == baseline)
+}
+
+// Whole vectors and their remainders must carry the same state after leading padding.
+#test
+{
+    var ciphertext: [65] u8
+    for index in ciphertext.count
+    {
+        ciphertext[index] = cast(u8, (index * 91 + index * index * 17) & 0xFF)
+    }
+
+    for key in [0_u16, 4330, 55665, Swag.U16.Max]
+    {
+        var cleartext: [65] u8
+        var state = cast(u32, key)
+        for index in ciphertext.count
+        {
+            let cipher = ciphertext[index]
+            cleartext[index] = cipher ^ cast(u8, (state >> 8) & 0xFF)
+            state = ((state + cipher) * 52845 + 22719) & 0xFFFF
+        }
+
+        for size in [0_u64, 1, 15, 16, 17, 31, 32, 33, 64, 65]
+        {
+            for skip in [0_u64, 1, 4, 9, 16]
+            {
+                let decoded = eexecDecrypt(ciphertext[0 until size], key, skip)
+                let start   = Math.min(size, skip)
+                Swag.require(Slice.equals(decoded.toSlice(), cleartext[start until size]))
+            }
+        }
+    }
 }

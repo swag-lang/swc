@@ -1536,7 +1536,7 @@ private impl AacCodec
                     sign = -sign
                 }
 
-                let scale = sign * bandGain(.scaleFactors[right, band])
+                let scale = sign * bandGain(-.scaleFactors[right, band])
                 for index in line until line + width
                 {
                     .coefficients[right, index] = cast(f32, scale * cast(f64, .coefficients[left, index]))
@@ -1628,22 +1628,25 @@ private impl AacCodec
     #[Swag.NoInline]
     mtd reconstructSurround(destination: [*] s16)
     {
-        var pcm: [6, FrameSamples] f32
         for channel in 6
         {
-            .synthesizeChannel(.sourceChannel(cast(s32, channel)), &pcm[channel, 0])
+            let input = .sourceChannel(cast(s32, channel))
+            // The transform reads the full spectrum before storing any time samples.
+            .synthesizeChannel(input, &.coefficients[input, 0])
         }
 
-        let source = cast(const [*] f32, &pcm[0, 0])
+        let left          = cast(const [*] f32, &.coefficients[.sourceChannel(0), 0])
+        let right         = cast(const [*] f32, &.coefficients[.sourceChannel(1), 0])
+        let center        = cast(const [*] f32, &.coefficients[.sourceChannel(2), 0])
+        let lfe           = cast(const [*] f32, &.coefficients[.sourceChannel(3), 0])
+        let surroundLeft  = cast(const [*] f32, &.coefficients[.sourceChannel(4), 0])
+        let surroundRight = cast(const [*] f32, &.coefficients[.sourceChannel(5), 0])
         for group in FrameSamples / 4
         {
-            let index = 4 * group
-            let first = packSurroundPair(Simd.load(source + index),
-                                         Simd.load(source + FrameSamples + index))
-            let second = packSurroundPair(Simd.load(source + 2 * FrameSamples + index),
-                                          Simd.load(source + 3 * FrameSamples + index))
-            let third = packSurroundPair(Simd.load(source + 4 * FrameSamples + index),
-                                         Simd.load(source + 5 * FrameSamples + index))
+            let index  = 4 * group
+            let first  = packSurroundPair(Simd.load(left + index), Simd.load(right + index))
+            let second = packSurroundPair(Simd.load(center + index), Simd.load(lfe + index))
+            let third  = packSurroundPair(Simd.load(surroundLeft + index), Simd.load(surroundRight + index))
             storeSurroundPcm16(destination + 6 * index, first, second, third)
         }
     }

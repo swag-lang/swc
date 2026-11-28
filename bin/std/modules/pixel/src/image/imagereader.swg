@@ -528,12 +528,50 @@ public impl ImageReader
             .lastIndex = -1
         }
 
-        if .lastIndex < 0 or cast(s32, index) < .lastIndex
+        let gif    = .decoderType == #typeof(Gif.SetDecoder) ? cast(*Gif.SetDecoder, .decoder) : null
+        let png    = .decoderType == #typeof(Png.Decoder) ? cast(*Png.Decoder, .decoder) : null
+        let target = cast(s32, index)
+        let reset  = .lastIndex < 0 or target < .lastIndex
+        let next   = reset ? 0 : .lastIndex + 1
+        var replay = next
+        if next < target
+        {
+            if let decoder = gif
+            {
+                replay = decoder.replayFrame(target, next)
+            }
+            else if let decoder = png
+            {
+                replay = decoder.replayFrame(target, next)
+            }
+        }
+        if reset
         {
             let format = .animationCanvasFormat()
             .canvas = Image.create(.info.canvasWidth, .info.canvasHeight, format)
-            .canvas.fill(.info.background)
+            if replay == next
+            {
+                .canvas.fill(.info.background)
+            }
+
             .lastIndex = -1
+        }
+
+        if replay > next
+        {
+            if let decoder = gif
+            {
+                try decoder.compositeFrame(cast(u32, replay), &.canvas)
+                .canvas.metadata.clear()
+            }
+            else
+            {
+                let image = try multiple.readFrame(cast(u32, replay), .options)
+                try .composite(.info.frames[replay], image)
+                .canvas.metadata = image.metadata
+            }
+
+            .lastIndex = replay
         }
 
         while .lastIndex < cast(s32, index)
@@ -556,10 +594,19 @@ public impl ImageReader
                 .copyPreviousRectangle!{true}(descriptor[])
             }
 
-            let image = try multiple.readFrame(current, .options)
-            try .composite(descriptor[], image)
-            .canvas.metadata = image.metadata
-            .lastIndex       += 1
+            if gif
+            {
+                try gif.compositeFrame(current, &.canvas)
+                .canvas.metadata.clear()
+            }
+            else
+            {
+                let image = try multiple.readFrame(current, .options)
+                try .composite(descriptor[], image)
+                .canvas.metadata = image.metadata
+            }
+
+            .lastIndex += 1
         }
 
         succeeded = true

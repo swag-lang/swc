@@ -63,23 +63,27 @@ func runMax(inter: bool, last: u32, level: u32)->u32
     return inter ? InterLimits.runByLevel[last, level] : IntraLimits.runByLevel[last, level]
 }
 
-// A nine-bit prefix includes the sign of each code of at most eight bits. The packed entry
-// stores the consumed bit count, zero run and last flag below the signed 16-bit level.
-private const IntraPrefixes = #run buildCoefficientPrefixes(TcoefIntraLen, TcoefIntraCod, TcoefIntraRun, TcoefIntraLevel, TcoefIntraLast)
-private const InterPrefixes = #run buildCoefficientPrefixes(TcoefInterLen, TcoefInterCod, TcoefInterRun, TcoefInterLevel, TcoefInterLast)
+// A nine-bit prefix includes the sign of codes up through eight bits. Every longer
+// signed code falls below prefix 38, so those rare words only need a compact extension.
+private const LongCoefficientPrefixes = 38_u32
 
-private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] u16, runs: const [..] u8, levels: const [..] u16, lasts: const [..] u8)->[512] u32
+struct CoefficientPrefixes
+{
+    short: [512] u32
+    long:  [LongCoefficientPrefixes * 16] u32
+}
+
+private var IntraPrefixes = #run buildCoefficientPrefixes(TcoefIntraLen, TcoefIntraCod, TcoefIntraRun, TcoefIntraLevel, TcoefIntraLast)
+private var InterPrefixes = #run buildCoefficientPrefixes(TcoefInterLen, TcoefInterCod, TcoefInterRun, TcoefInterLevel, TcoefInterLast)
+
+private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] u16, runs: const [..] u8, levels: const [..] u16, lasts: const [..] u8)->CoefficientPrefixes
 {
     var result: #returntype
     for index in lengths.count
     {
-        let length = cast(u32, lengths[index]) + 1
-        if length > 9
-        {
-            continue
-        }
-
-        let rest      = 9 - length
+        let length    = cast(u32, lengths[index]) + 1
+        let short     = length <= 9
+        let rest      = (short ? 9_u32 : 13_u32) - length
         let magnitude = cast(s32, levels[index])
         let fields    = length | (cast(u32, runs[index]) << 4) | (cast(u32, lasts[index]) << 10)
         for sign in 2_u32
@@ -89,7 +93,15 @@ private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] 
             let first = ((cast(u32, codes[index]) << 1) | sign) << rest
             for suffix in 1_u32 << rest
             {
-                result[first + suffix] = entry
+                if short
+                {
+                    result.short[first + suffix] = entry
+                }
+                else
+                {
+                    Swag.require(first + suffix < result.long.count)
+                    result.long[first + suffix] = entry
+                }
             }
         }
     }
@@ -98,11 +110,11 @@ private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] 
 }
 
 #[Swag.Inline]
-func coefficientPrefixes(inter: bool)->const [*] u32 => inter ? &InterPrefixes[0] : &IntraPrefixes[0]
+func coefficientPrefixes(inter: bool)->const *CoefficientPrefixes => inter ? &InterPrefixes : &IntraPrefixes
 
-// The short path consumes the complete event, so it needs no fallible call or separate sign read.
+// The table path consumes the complete event, so it needs no fallible call or separate sign read.
 #[Swag.Inline]
-func readCoefficientPrefix(reader: *BitReader, prefixes: const [*] u32, result: *Coefficient)->bool
+func readCoefficientPrefix(reader: *BitReader, prefixes: const *CoefficientPrefixes, result: *Coefficient)->bool
 {
     let at = reader.bitPos
     if at + 16 > reader.bitEnd
@@ -110,10 +122,17 @@ func readCoefficientPrefix(reader: *BitReader, prefixes: const [*] u32, result: 
         return false
     }
 
-    let data = unwrap reader.data + (at >> 3)
-    let word = cast(u32, Swag.byteSwap(cast(const [*] u16, data)[0]))
-    let bits = (word >> (7 - cast(u32, at & 7))) & 511
-    let code = prefixes[bits]
+    let data   = unwrap reader.data + (at >> 3)
+    let word   = cast(u32, Swag.byteSwap(cast(const [*] u16, data)[0]))
+    let offset = cast(u32, at & 7)
+    let bits   = (word >> (7 - offset)) & 511
+    var code   = prefixes.short[bits]
+    if not code and bits < LongCoefficientPrefixes and at + 24 <= reader.bitEnd
+    {
+        let expanded = ((word << 8) | cast(u32, data[2])) >> (11 - offset)
+        code = prefixes.long[expanded & 8191]
+    }
+
     if not code
     {
         return false

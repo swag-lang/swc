@@ -597,6 +597,13 @@ private impl Codebook
     }
 }
 
+// A consecutive run of lines sharing one Floor 0 Bark bin.
+private struct BarkBand
+{
+    end:    u32
+    cosine: f64
+}
+
 // One floor of the setup header, of type 0 or 1.
 private struct Floor
 {
@@ -609,7 +616,8 @@ private struct Floor
     amplitudeBits:   u32
     amplitudeOffset: u32
     books:           Array!{u32}
-    barkMap:         [2] Array!{u32}     // Lazily built map from spectral line to bark bin, per block size.
+    barkBands:       [2] Array!{BarkBand}     // Contiguous Bark bands for each block size.
+    barkHalf:        [2] u32                 // The half-block lengths represented by these bands.
 
     // Type 1: a piecewise linear curve through posts on a fixed grid.
     partitions:      u32
@@ -646,6 +654,7 @@ private impl Floor
 
     mtd parseType0(reader: *BitReader, codebooks: u32) fail
     {
+        .barkHalf = [0_u32, 0_u32]
         .order           = reader.read(8)
         .rate            = reader.read(16)
         .barkMapSize     = reader.read(16)
@@ -776,31 +785,35 @@ private impl Floor
         }
     }
 
-    // Builds the map from spectral line to bark bin for a half block of `half` lines.
-    mtd buildBarkMap(which: u32, half: u32)
+    // Builds the runs of spectral lines sharing a Bark bin, including its cosine.
+    mtd buildBarkBands(which: u32, half: u32)
     {
         func bark(frequency: f64)->f64 => 13.1 * Math.atan(0.00074 * frequency) + 2.24 * Math.atan(1.85e-8 * frequency * frequency) + 1e-4 * frequency
 
-        let map = &.barkMap[which]
-        map.resize(cast(u64, half) + 1)
-        let scale = cast(f64, .barkMapSize) / bark(cast(f64, .rate) / 2.0)
+        let bands = &.barkBands[which]
+        bands.clear()
+        let nyquist = cast(f64, .rate) / 2.0
+        let scale   = cast(f64, .barkMapSize) / bark(nyquist)
+        let step    = nyquist / cast(f64, half)
+        let lastBin = cast(s64, .barkMapSize) - 1
+        var previous = -1_s64
         for line in half
         {
-            var value = cast(s64, Math.floor(bark(cast(f64, .rate) / 2.0 / cast(f64, half) * cast(f64, line)) * scale))
-            if value < 0
+            let raw = cast(s64, Math.floor(bark(step * cast(f64, line)) * scale))
+            let bin = Math.clamp(raw, 0_s64, lastBin)
+            if bin == previous
             {
-                value = 0
+                bands[][bands.count - 1].end = line + 1
             }
-
-            if value >= cast(s64, .barkMapSize)
+            else
             {
-                value = cast(s64, .barkMapSize) - 1
+                let omega = Math.ConstF64.Pi * cast(f64, bin) / cast(f64, .barkMapSize)
+                bands.add(BarkBand{line + 1, Math.cos(omega)})
+                previous = bin
             }
-
-            map[][line] = cast(u32, value)
         }
 
-        map[][half] = Swag.U32.Max
+        .barkHalf[which] = half
     }
 }
 
@@ -1038,6 +1051,7 @@ private struct Codec
     floorPosts:      [MaxChannels] Array!{s32}       // Floor 1 post values of every channel.
     floorUsed:       [MaxChannels] Array!{bool}      // Whether each post takes part in the rendering.
     floorCurve:      [MaxChannels] Array!{f32}       // Floor 0 coefficients, with the amplitude last.
+    floorCosines:    Array!{f64}                     // Scratch space for one Floor 0 channel.
     floorPresent:    [MaxChannels] bool              // The channel's floor was coded in the current block.
     nonzero:         [MaxChannels] bool              // The channel carries residue, coded or through coupling.
     classes:         Array!{u32}                     // Residue partition classes of the current pass.
@@ -1569,34 +1583,31 @@ private impl Codec
     // Multiplies the spectrum of a channel by the curve its floor 0 describes.
     mtd applyFloor0(floor: *Floor, which: u32, channel: u32, half: u32)
     {
-        if floor.barkMap[which].count != cast(u64, half) + 1
+        if floor.barkHalf[which] != half
         {
-            floor.buildBarkMap(which, half)
+            floor.buildBarkBands(which, half)
         }
 
-        let map       = floor.barkMap[which].storage()
+        let bands     = floor.barkBands[which].toSlice()
         let curve     = .floorCurve[channel].storage()
         let spectrum  = .spectrum[channel].storage()
         let order     = floor.order
         let amplitude = cast(f64, curve[order])
         let offset    = cast(f64, floor.amplitudeOffset)
-        let maximum   = cast(f64, ((1_u32 << floor.amplitudeBits) - 1))
 
-        var cosines: Array!{f64}
-        cosines.resize(order)
+        .floorCosines.resize(order)
+        let cosines = .floorCosines.storage()
         for index in order
         {
             cosines[index] = Math.cos(cast(f64, curve[index]))
         }
 
         var line = 0_u32
-        while line < half
+        for band in bands
         {
-            let bin   = map[line]
-            let omega = Math.ConstF64.Pi * cast(f64, bin) / cast(f64, floor.barkMapSize)
-            let cosw  = Math.cos(omega)
-            var p     = 1.0_f64
-            var q     = 1.0_f64
+            let cosw = band.cosine
+            var p    = 1.0_f64
+            var q    = 1.0_f64
             if order & 1
             {
                 for index in (order - 1) / 2
@@ -1626,12 +1637,13 @@ private impl Codec
                 q *= (1.0 + cosw) / 2.0
             }
 
-            let value = cast(f32, Math.exp(0.11512925 * (amplitude * offset / (maximum * Math.sqrt(p + q)) - offset)))
-            while line < half and map[line] == bin
+            let value = cast(f32, Math.exp(0.11512925 * (amplitude / Math.sqrt(p + q) - offset)))
+            for coefficient in line until band.end
             {
-                spectrum[line] *= value
-                line += 1
+                spectrum[coefficient] *= value
             }
+
+            line = band.end
         }
     }
 
@@ -3086,30 +3098,50 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     let span  = x1 - x0
     let dy    = y1 - y0
-    let delta = cast(u32, Math.abs(dy))
+    let delta = cast(u64, Math.abs(dy))
     let sign  = dy < 0 ? -1 : 1
-    var x     = x0
+    if span < FloorReciprocals.count
+    {
+        // For spans up to 255 bins, accumulated Q16 rounding stays below 1/span,
+        // preserving the exact table index even at the last rendered bin.
+        let slope = ((delta * FloorReciprocals[span]) >> 40) + 1
+        renderFloorSlope!{16}(x0, end, y0, sign, slope, target)
+    }
+    else
+    {
+        // Wider spans need Q32 to keep the same error bound.
+        let slope = ((delta << 32) + span - 1) / span
+        renderFloorSlope!{32}(x0, end, y0, sign, slope, target)
+    }
+}
+
+#[Swag.Inline]
+private func(FractionBits: u32) renderFloorSlope(x0, end: u32, y0, sign: s32, slope: u64, target: [*] f32)
+{
+    var x = x0
     if end - x >= 4
     {
-        // The ceiling of the Q32 step gives the same floor as the integer walk:
-        // a span is at most 32768 and accumulating its error stays below 1/span.
-        // The rounded reciprocal overestimates the exact step by less than two
-        // Q32 units. For offsets below these small spans, the accumulated error
-        // remains less than 1/span, so the table index stays exact.
-        let slope = span < FloorReciprocals.count ?
-                    ((cast(u64, delta) * FloorReciprocals[span]) >> 24) + 1 :
-                    ((cast(u64, delta) << 32) + span - 1) / span
         let base       = Simd.splat(y0)
         let direction  = Simd.splat(sign)
-        let whole      = Simd.splat(cast(u32, slope >> 32))
         let step       = Simd.splat(cast(u32, slope & 0xFFFFFFFF))
         let amplitudes = cast(const [*] s32, &Floor1InverseDb[0])
         var offsets    = cast(Simd.U32x4, [0_u32, 1, 2, 3])
         while x + 4 <= end
         {
-            let distance = cast #bit(Simd.S32x4, whole * offsets + Simd.mulHigh(offsets, step))
-            let indices  = cast #bit(Simd.U32x4, base + distance * direction)
-            let gain     = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
+            var distance: Simd.U32x4
+            #static if FractionBits == 16
+            {
+                // The product fits in 32 bits for a short span and a delta of at most 255.
+                distance = (offsets * step) >> 16
+            }
+            else
+            {
+                let whole = Simd.splat(cast(u32, slope >> 32))
+                distance = whole * offsets + Simd.mulHigh(offsets, step)
+            }
+
+            let indices = cast #bit(Simd.U32x4, base + cast #bit(Simd.S32x4, distance) * direction)
+            let gain    = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
             Simd.store(target + x, Simd.load(target + x) * gain)
             offsets += Simd.splat(4_u32)
             x       += 4
@@ -3118,7 +3150,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     for line in x until end
     {
-        let distance = cast(s32, ((line - x0) * delta) / span)
+        let distance = cast(s32, (cast(u64, line - x0) * slope) >> FractionBits)
         target[line] *= Floor1InverseDb[cast(u32, y0 + sign * distance)]
     }
 }

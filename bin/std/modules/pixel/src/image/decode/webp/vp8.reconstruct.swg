@@ -494,36 +494,42 @@ func vp8PrepareYbr(decoder: *Vp8Decoder, mbX, mbY: s32)
 func vp8ReconstructMacroblock(decoder: *Vp8Decoder, mbX, mbY: s32)
 {
     #[Swag.Inline]
-    func applyResidual(decoder: *Vp8Decoder, y, x, block: s32)
+    func(CODED: bool) applyResidual(decoder: *Vp8Decoder, y, x, block: s32)
     {
         let mask = 1_u32 << block
         if decoder.nzAcMask & mask
         {
             vp8InverseDct4(decoder, y, x, 16 * block)
         }
-        else if decoder.nzDcMask & mask
+        else if CODED or (decoder.nzDcMask & mask)
         {
             vp8InverseDct4Dc(decoder, y, x, 16 * block)
         }
     }
 
+    let coded = decoder.nzDcMask | decoder.nzAcMask
     if decoder.usePredY16
     {
         vp8PredictLarge(decoder, 1, 8, 16, vp8TopLeftPredictor(mbX, mbY, decoder.predY16))
-    }
-
-    for j in 4
-    {
-        for i in 4
+        var remaining = coded & 0xFFFF
+        while remaining
         {
-            let y = 4 * j + 1
-            let x = 4 * i + 8
-            if not decoder.usePredY16
+            let block = cast(s32, Math.trailingZeros(remaining))
+            applyResidual!{true}(decoder, 4 * (block >> 2) + 1, 4 * (block & 3) + 8, block)
+            remaining &= remaining - 1
+        }
+    }
+    else
+    {
+        for j in 4
+        {
+            for i in 4
             {
+                let y = 4 * j + 1
+                let x = 4 * i + 8
                 vp8Predict4(decoder, y, x, decoder.predY4[j][i])
+                applyResidual!{false}(decoder, y, x, 4 * j + i)
             }
-
-            applyResidual(decoder, y, x, 4 * j + i)
         }
     }
 
@@ -532,12 +538,13 @@ func vp8ReconstructMacroblock(decoder: *Vp8Decoder, mbX, mbY: s32)
     {
         let x = 8 + 16 * plane
         vp8PredictLarge(decoder, 18, x, 8, predictor)
-        for j in 2
+        let first     = 16 + 4 * cast(s32, plane)
+        var remaining = (coded >> first) & 0xF
+        while remaining
         {
-            for i in 2
-            {
-                applyResidual(decoder, 18 + 4 * j, x + 4 * i, 16 + 4 * plane + 2 * j + i)
-            }
+            let block = cast(s32, Math.trailingZeros(remaining))
+            applyResidual!{true}(decoder, 18 + 4 * (block >> 1), x + 4 * (block & 1), first + block)
+            remaining &= remaining - 1
         }
     }
 }

@@ -12,7 +12,9 @@ impl LzMatchFinder
     mtd init(size: u64)
     {
         let slots = Math.roundUpToPowerOf2(cast(u32, Math.clamp(size, 256_u64, 16384_u64)))
-        .positions.resize(slots)
+        .positions.clear()
+        let table = .positions.emplaceAddress(slots)
+        Memory.set(table, Swag.U8.Max, cast(u64, slots) * #sizeof(u32))
         .shift = Math.leadingZeros(slots) + 1
     }
 
@@ -29,19 +31,19 @@ impl LzMatchFinder
             let word     = cast(const [*] u32, source + at)[0]
             let slot     = .hash(word)
             let previous = cast(u64, positions[slot])
-            positions[slot] = cast(u32, at + 1)
+            positions[slot] = cast(u32, at)
 
-            let distance = at + 1 - previous
-            if previous and
-               distance <= Swag.U16.Max and
-               cast(const [*] u32, source + at - distance)[0] == word
+            // An empty slot holds U32.Max, beyond any valid start. Its wrapped
+            // 64-bit distance fails the same window check as an expired match.
+            let distance = at - #wrap previous
+            if distance <= Swag.U16.Max and cast(const [*] u32, source + previous)[0] == word
             {
-                let length = matchLength(source + at, source + at - distance, matchEnd - at)
+                let length = matchLength(source + at, source + previous, matchEnd - at)
                 let end    = at + length
                 if end <= lastStart
                 {
                     let preceding = cast(const [*] u32, source + end - 1)[0]
-                    positions[.hash(preceding)] = cast(u32, end)
+                    positions[.hash(preceding)] = cast(u32, end - 1)
                 }
 
                 return {at: at, distance: distance, length: length}
@@ -66,6 +68,7 @@ private func matchLength(current, previous: const [*] u8, limit: u64)->u64
         {
             return length + (Math.trailingZeros(Math.littleEndianToNative(different)) >> 3)
         }
+
         length += 8
     }
 
@@ -73,15 +76,17 @@ private func matchLength(current, previous: const [*] u8, limit: u64)->u64
     {
         length += 1
     }
+
     return length
 }
 
 // Copies a validated LZ back-reference, extending a repeated prefix when it overlaps the output.
 #[Swag.Inline]
-func copyLzMatch(output: [*] u8, distance, length: u64)
+func(BulkLongMatches: bool = false) copyLzMatch(output: [*] u8, distance, length: u64)
 {
     let from = output - distance
-    if distance >= 8 and length >= 8
+    // Long matches amortize the bulk copies that double the decoded prefix.
+    if distance >= 8 and length >= 8 and (not BulkLongMatches or length < 512)
     {
         var copied = 0_u64
         while length - copied >= 8
@@ -96,6 +101,7 @@ func copyLzMatch(output: [*] u8, distance, length: u64)
         {
             cast([*] u64, output + length - 8)[0] = cast(const [*] u64, from + length - 8)[0]
         }
+
         return
     }
 

@@ -1,6 +1,6 @@
 #global namespace Pdf
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 // The Group 3 and Group 4 facsimile filter, decoded here like every other PDF stream filter.
 //
@@ -48,31 +48,26 @@ private const CcittBlackCodes: [104] CcittCode = [CcittCode{10, 0b0000110111, 0}
 
 // A run table expanded into a direct lookup: every bit pattern opening with one code maps to that
 // code's width and run, so a run is read with one peek instead of a walk down the tree.
-private struct CcittRunTable
-{
-    length: Array!{u8}
-    run:    Array!{u16}
-}
-
-private func buildRunTable(codes: const [..] CcittCode)->CcittRunTable
+private func buildRunTable(codes: const [..] CcittCode)->[CcittLookupSize] u16
 {
     var result: #returntype
-    result.length.resize(CcittLookupSize)
-    result.run.resize(CcittLookupSize)
-
     for one in codes
     {
         let shift = CcittLookupBits - cast(u32, one.bits)
         let base  = cast(u64, one.code) << shift
+        let entry = (one.run << 4) | cast(u16, one.bits)
         for i in 1_u64 << shift
         {
-            result.length[base + i] = one.bits
-            result.run[base + i]    = one.run
+            result[base + i] = entry
         }
     }
 
     return result
 }
+
+// Both tables depend only on the fax codebook.
+private const CcittWhiteRuns = #run buildRunTable(CcittWhiteCodes)
+private const CcittBlackRuns = #run buildRunTable(CcittBlackCodes)
 
 // Reads the encoded stream one code at a time, most significant bit first.
 private struct CcittBits
@@ -95,10 +90,10 @@ private impl CcittBits
         let index = .pos >> 3
         let shift = cast(u32, (.pos & 7))
         var window: u32
-        if index + 2 < .data.count
+        if index + 3 < .data.count
         {
-            let bytes = .data.buffer + index
-            window = (cast(u32, bytes[0]) << 16) | (cast(u32, bytes[1]) << 8) | bytes[2]
+            let word = cast(const [*] u32, .data.buffer + index)[0]
+            window = Math.bigEndianToNative(word) >> 8
         }
         else
         {
@@ -134,20 +129,21 @@ private impl CcittBits
 }
 
 // Reads one complete run: a chain of make-up codes closed by a terminating code below 64.
-private func readCcittRun(bits: *CcittBits, table: const *CcittRunTable)->s32 fail
+private func readCcittRun(bits: *CcittBits, table: const [..] u16)->s32 fail
 {
     var result = 0_s32
     for 64
     {
         let index  = bits.peek(CcittLookupBits)
-        let length = table.length[index]
+        let entry  = table[index]
+        let length = entry & 15
         if not length
         {
             fail InvalidFormatError{"CCITTFaxDecode stream contains an undefined run code"}
         }
 
         bits.skip(length)
-        let run = cast(s32, table.run[index])
+        let run = cast(s32, entry >> 4)
         result += run
         if run < 64
         {
@@ -233,7 +229,7 @@ private func readCcittMode(bits: *CcittBits)->CcittModeCode
 }
 
 // Decodes one line written on its own, as alternating white and black runs.
-private func decodeCcittLine1D(bits: *CcittBits, current: *Array!{s32}, columns: s32, white, black: const *CcittRunTable) fail
+private func decodeCcittLine1D(bits: *CcittBits, current: *Array!{s32}, columns: s32, white, black: const [..] u16) fail
 {
     var at    = 0_s32
     var color = 0_u32
@@ -257,7 +253,7 @@ private func decodeCcittLine1D(bits: *CcittBits, current: *Array!{s32}, columns:
 }
 
 // Decodes one line written as differences from the line above it.
-private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, current: *Array!{s32}, columns: s32, white, black: const *CcittRunTable) fail
+private func decodeCcittLine2D(bits: *CcittBits, reference: const [..] s32, current: *Array!{s32}, columns: s32, white, black: const [..] u16) fail
 {
     var a0          = -1_s32
     var previousA0  = -1_s32
@@ -358,9 +354,7 @@ private func(const BlackIs1: bool) writeCcittBlackRun(row: [*] u8, first, last: 
 private func(const BlackIs1: bool) writeCcittRow(result: *Array!{u8}, changes: const [..] s32, columns: s32)
 {
     let rowBytes = (cast(u64, columns) + 7) / 8
-    let base     = result.count
-    result.resize(base + rowBytes)
-    let row = result.storage() + base
+    let row      = result.emplaceAddress(cast(u32, rowBytes))
     Memory.set(row, BlackIs1 ? 0 : 0xFF, rowBytes)
 
     var color = 0_u32
@@ -398,10 +392,7 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
 
     let columns  = cast(s32, params.columns)
     let rowBytes = (cast(u64, columns) + 7) / 8
-    let white    = buildRunTable(CcittWhiteCodes)
-    let black    = buildRunTable(CcittBlackCodes)
-
-    var bits = CcittBits{data, 0}
+    var bits     = CcittBits{data, 0}
 
     var result:    #returntype
     var reference: Array!{s32}
@@ -452,11 +443,11 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
         current.clear()
         if twoDimensional
         {
-            try decodeCcittLine2D(&bits, reference.toSlice(), &current, columns, &white, &black)
+            try decodeCcittLine2D(&bits, reference.toSlice(), &current, columns, CcittWhiteRuns, CcittBlackRuns)
         }
         else
         {
-            try decodeCcittLine1D(&bits, &current, columns, &white, &black)
+            try decodeCcittLine1D(&bits, &current, columns, CcittWhiteRuns, CcittBlackRuns)
         }
 
         // A line that consumed nothing is the end of the data rather than an empty line; without
@@ -482,9 +473,8 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
     // A stream that stopped early still describes an image of the declared height.
     while params.rows > 0 and rows < params.rows
     {
-        let base = result.count
-        result.resize(base + rowBytes)
-        Memory.set(result.storage() + base, params.blackIs1 ? 0 : 0xFF, rowBytes)
+        let row = result.emplaceAddress(cast(u32, rowBytes))
+        Memory.set(row, params.blackIs1 ? 0 : 0xFF, rowBytes)
         rows += 1
     }
 

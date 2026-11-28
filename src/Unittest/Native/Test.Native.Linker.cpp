@@ -1530,7 +1530,8 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames
             const int32_t  relative = std::bit_cast<int32_t>(bytes.readLe32(rules->offset + offset + 8));
             const uint64_t start    = rules->address + offset + 8 + static_cast<uint64_t>(relative);
             const uint64_t end      = start + bytes.readLe32(rules->offset + offset + 12);
-            if (offset + 4 != cie || start != symbols.at("__swc_fn_a0").value || end != symbols.at(std::format("__swc_fn_a{}", depth - 1)).value + 6)
+            // A group with only entry rules fits in the 24-byte padded FDE header.
+            if (length + 4 != 24 || offset + 4 != cie || start != symbols.at("__swc_fn_a0").value || end != symbols.at(std::format("__swc_fn_a{}", depth - 1)).value + 6)
                 return Result::Error;
             ++frameCount;
         }

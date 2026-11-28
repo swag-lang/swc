@@ -1,7 +1,7 @@
 //! Format: OpenEXR scanline decoder.
 //! Supported: Single-part and multipart RGB, RGBA, or Y scanline images with half/float channels and
-//!            no compression, ZIPS, or ZIP lossless compression.
-//! Not supported: Tiled, deep, subsampled, UINT, PIZ/PXR24/B44/DWA/HTJ2K data,
+//!            no compression, RLE, ZIPS, ZIP, or PIZ lossless compression.
+//! Not supported: Tiled, deep, subsampled, UINT, PXR24/B44/DWA/HTJ2K data,
 //!                or layered channel names.
 //! Role: This file reconstructs high-dynamic-range channels into half/full-float Pixel images.
 //
@@ -10,7 +10,19 @@
 using Core, Core.Errors, Core.Math
 
 const Magic = 20000630_u32
+const RleCompression   = 1_u8
 const ParallelZipBytes = 512_u64 * 1024
+
+#[Swag.Inline]
+func scanlinesPerChunk(compression: u8)->u64
+{
+    switch compression
+    {
+    case 3:  return 16
+    case PizCompression: return 32
+    default: return 1
+    }
+}
 
 struct Channel
 {
@@ -21,13 +33,13 @@ struct Channel
 internal struct Decoder { bytes: const [..] u8?; parts: Array!{Part}; multipart: bool }
 
 #[Swag.Inline]
-func readU16(source: const [*] u8)->u16 => cast(u16, source[0]) | (cast(u16, source[1]) << 8)
+func readU16(source: const [*] u8)->u16 => Math.littleEndianToNative(cast(const [*] u16, source)[0])
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => cast(u32, readU16(source)) | (cast(u32, readU16(source + 2)) << 16)
+func readU32(source: const [*] u8)->u32 => Math.littleEndianToNative(cast(const [*] u32, source)[0])
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => cast(u64, readU32(source)) | (cast(u64, readU32(source + 4)) << 32)
+func readU64(source: const [*] u8)->u64 => Math.littleEndianToNative(cast(const [*] u64, source)[0])
 
 #[Swag.Inline]
 func readF32(source: const [*] u8)->f32 => cast #bit (f32, readU32(source))
@@ -213,6 +225,75 @@ func undoZipPredictor(data: [..] u8, reordered: *Array!{u8})
     {
         reordered[offset * 2] = data[offset]
     }
+}
+
+private func decodeRleScanline(packed: const [..] u8, expected: u64, decoded: *Array!{u8}) fail
+{
+    // Complete later packets overwrite any unconsumed bytes in the scratch row.
+    const VectorBytes = #sizeof(Simd.U8x16)
+    decoded.grow(expected)
+    let output = decoded.storage()
+    var source, target: u64
+    while source < packed.count
+    {
+        let tag = cast(u64, packed[source])
+        source += 1
+        if tag >= 128
+        {
+            let count        = 256 - tag
+            let remainingIn  = packed.count - source
+            let remainingOut = expected - target
+            if count > remainingIn or count > remainingOut
+            {
+                fail InvalidFormatError{"OpenEXR RLE literal exceeds the scanline"}
+            }
+
+            if count == 1
+            {
+                output[target] = packed[source]
+            }
+            else if count <= VectorBytes and remainingIn >= VectorBytes and remainingOut >= VectorBytes
+            {
+                Simd.store(output + target, Simd.load(packed.buffer + source))
+            }
+            else
+            {
+                Memory.copy(output + target, packed.buffer + source, count)
+            }
+
+            source += count
+            target += count
+        }
+        else
+        {
+            let count        = tag + 1
+            let remainingOut = expected - target
+            if source == packed.count or count > remainingOut
+            {
+                fail InvalidFormatError{"OpenEXR RLE repeat exceeds the scanline"}
+            }
+
+            let value = packed[source]
+            if count <= VectorBytes and remainingOut >= VectorBytes
+            {
+                Simd.store(output + target, Simd.splat(value))
+            }
+            else
+            {
+                Memory.set(output + target, value, count)
+            }
+
+            source += 1
+            target += count
+        }
+    }
+
+    if target != expected
+    {
+        fail InvalidFormatError{"OpenEXR RLE scanline has an invalid decoded size"}
+    }
+
+    decoded.count = expected
 }
 
 func channelComponent(name: string)->s32
@@ -699,6 +780,7 @@ struct ScanlineCache
 struct ScanlineScratch
 {
     zlib:      Compress.ZLib
+    piz:       PizScratch
     unpacked:  Array!{u8}
     reordered: Array!{u8}
     smallCache, largeCache: ScanlineCache
@@ -807,9 +889,9 @@ impl Part
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
         }
 
-        if result.compression != 0 and result.compression != 2 and result.compression != 3
+        if result.compression > PizCompression
         {
-            fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, or ZIP"}
+            fail UnsupportedFormatError{"OpenEXR compression is not NONE, RLE, ZIPS, ZIP, or PIZ"}
         }
 
         let width  = cast(s64, xMax) - xMin + 1
@@ -879,7 +961,7 @@ impl Part
         result.info.pixelFormat = format
         result.yMin             = yMin
         try options.checkImage(result.info.width, result.info.height, format)
-        let linesPerChunk = result.compression == 3 ? 16_u64 : 1_u64
+        let linesPerChunk = scanlinesPerChunk(result.compression)
         result.chunkCount = (cast(u64, height) + linesPerChunk - 1) / linesPerChunk
         if hasChunkCount and declaredChunks != result.chunkCount
         {
@@ -901,7 +983,7 @@ impl Part
     }
 
     #[Swag.Inline]
-    mtd const readScanlineChunk(buffer: const [..] u8, chunkIndex: u64, index: u32, multipart: bool, linesPerChunk: u64, seenRows: [..] bool, maxDecodedBytes: u64)->ScanlineChunk fail
+    mtd const readScanlineChunk(buffer: const [..] u8, chunkIndex: u64, index: u32, multipart: bool, linesPerChunk: u64, seenRows: *Array!{bool}, maxDecodedBytes: u64)->ScanlineChunk fail
     {
         var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
         let headerSize  = multipart ? 12_u64 : 8_u64
@@ -934,12 +1016,34 @@ impl Part
         }
 
         let start = cast(u64, relativeY)
-        if seenRows[start]
+
+        // Offset tables normally visit each block in scanline order. Allocate
+        // duplicate tracking only if a caller supplies a differently ordered table.
+        if seenRows.count or start != chunkIndex * linesPerChunk
         {
-            fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+            let slot = start / linesPerChunk
+            if not seenRows.count
+            {
+                if slot < chunkIndex
+                {
+                    fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+                }
+
+                seenRows.resize(.chunkCount)
+                for previous in chunkIndex
+                {
+                    seenRows[][previous] = true
+                }
+            }
+
+            if seenRows[][slot]
+            {
+                fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+            }
+
+            seenRows[][slot] = true
         }
 
-        seenRows[start] = true
         let rows     = Math.min(cast(s32, linesPerChunk), .info.height - cast(s32, relativeY))
         let expected = .rowBytes * cast(u64, rows)
         if maxDecodedBytes and expected > maxDecodedBytes
@@ -955,23 +1059,39 @@ impl Part
     {
         var pixels = chunk.pixels
 
-        // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
+        // OpenEXR writes the original bytes when compression cannot make the block smaller.
         if .compression and pixels.count < chunk.expected
         {
-            scratch.unpacked.clear()
-            try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
-            if scratch.unpacked.count != chunk.expected
+            if .compression == PizCompression
             {
-                fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                try decodePizScanlines(pixels, chunk.expected, cast(u64, .info.width), cast(u64, chunk.rows), .channels.toSlice(), &scratch.piz, &scratch.reordered)
+            }
+            else
+            {
+                scratch.unpacked.clear()
+                if .compression == RleCompression
+                {
+                    try decodeRleScanline(pixels, chunk.expected, &scratch.unpacked)
+                }
+                else
+                {
+                    try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
+                    if scratch.unpacked.count != chunk.expected
+                    {
+                        fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                    }
+                }
+
+                // RLE and ZIP share the same byte-plane predictor.
+                if layout.grayHalf and image.pixelFormat == .GrayF16
+                {
+                    writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
+                    return
+                }
+
+                undoZipPredictor(scratch.unpacked.toSlice(), &scratch.reordered)
             }
 
-            if layout.grayHalf and image.pixelFormat == .GrayF16
-            {
-                writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
-                return
-            }
-
-            undoZipPredictor(scratch.unpacked.toSlice(), &scratch.reordered)
             pixels = scratch.reordered.toSlice()
         }
 
@@ -1124,7 +1244,7 @@ impl Part
     }
 
     #[Swag.NoInline]
-    mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
+    mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: *Array!{bool}) fail
     {
         var chunks: Array!{ScanlineChunk}
         chunks.reserve(.chunkCount)
@@ -1253,10 +1373,9 @@ impl Part
             }
         }
 
-        let linesPerChunk = .compression == 3 ? 16_u64 : 1_u64
+        let linesPerChunk = scanlinesPerChunk(.compression)
         var seenRows: Array!{bool}
-        seenRows.resize(cast(u64, .info.height))
-        var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
+        var layout:   ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
 
         // Wide images can spend enough time packing stored samples to benefit from workers.
         const LargeImageBytes = 64_u64 * 1024 * 1024
@@ -1274,14 +1393,14 @@ impl Part
         let parallelCompression = compressed and (buffer.count >= ParallelZipBytes or Swag.workerCount() > 1)
         if .chunkCount >= 8 and (largePacking or parallelCompression)
         {
-            try .decodeScanlineBatches(buffer, index, multipart, linesPerChunk, largePacking, options, &result, &layout, seenRows.toSlice())
+            try .decodeScanlineBatches(buffer, index, multipart, linesPerChunk, largePacking, options, &result, &layout, &seenRows)
             return result
         }
 
         var scratch: ScanlineScratch = {}
         for chunkIndex in .chunkCount
         {
-            let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, seenRows.toSlice(), options.maxDecodedBytes)
+            let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, &seenRows, options.maxDecodedBytes)
             try .decodeScanlineChunk(&result, chunk, layout, &scratch)
         }
 

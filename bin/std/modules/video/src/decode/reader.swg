@@ -238,6 +238,12 @@ impl Reader
     // The extension selects the decoder. A fragmented MP4 scans each fragment header at open
     // and recovers completed fragments when the final one is incomplete. Frame payloads remain
     // in the file and are read only when requested. The file stays open until the reader is closed.
+    // Raw Motion JPEG indexes up to 1,048,576 pictures at open and assumes 25 frames per second.
+    // It needs consecutive complete JPEG pictures of constant dimensions.
+    //
+    // An H.264 or H.265 Annex B stream is scanned for picture offsets at open. Its nominal
+    // cadence comes from the sequence's VUI timing, or is 25 frames per second when
+    // timing is absent. Frame times are derived from display order and this cadence.
     //
     // `pictureOnly` opens the pictures alone: the reader reports no sound or subtitle track,
     // and a container that indexes its sound beside its pictures reads nothing for it. A
@@ -634,4 +640,7 @@ impl Reader
     Reader.registerDecoder!{Avi.Decoder}()
     Reader.registerDecoder!{Mp4.Decoder}()
     Reader.registerDecoder!{Matroska.Decoder}()
+    Reader.registerDecoder!{Mjpeg.Decoder}()
+    Reader.registerDecoder!{H264.AnnexBReader}()
+    Reader.registerDecoder!{Hevc.AnnexBReader}()
 }

@@ -4,7 +4,7 @@ This backlog covers the module-wide rendering, effects, image transformations, s
 texture-sampling, vector-output, and geometry contracts of `std/pixel`. Image decoding, encoding,
 metadata, multi-image input, and SVG decoding live in [std.pixel.image.md](std.pixel.image.md).
 
-Evidence, investigations, and intended outcomes owned by `bin/std/namespaces/pixel` stay together in
+Evidence, investigations, and intended outcomes owned by `bin/std/modules/pixel` stay together in
 these two scopes. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). Font parsing and shaping belongs in

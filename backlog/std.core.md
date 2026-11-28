@@ -7,7 +7,7 @@ Python standard library, and Zig's `std`.
 Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
-owned by `bin/std/namespaces/core` together. [README.md](README.md) has the whole layout.
+owned by `bin/std/modules/core` together. [README.md](README.md) has the whole layout.
 
 
 Read [design-swag-bin-modules](../.agents/skills/design-swag-bin-modules/SKILL.md) before
@@ -185,7 +185,7 @@ outcomes owned by `core` together.
 - Related: std.core.019
 ### std.core.036 — Move the regex program and syntax nodes to tagged unions after measuring
 
-- Evidence: `Regex.Inst` ([program.swg](../bin/std/namespaces/core/src/text/regexp/program.swg))
+- Evidence: `Regex.Inst` ([program.swg](../bin/std/modules/core/src/text/regexp/program.swg))
   shares `next` across kinds and keeps `lo`, `hi`, `assertion`, `alt` and `slot` meaningful for one
   kind each; `Regex.Node` and `Regex.Prefilter` are wide structs commented form by form. They sit
   on the hot paths of every regex engine.
@@ -228,7 +228,7 @@ outcomes owned by `core` together.
 
 ### std.core.041 — Make file transfer roles and replacement explicit
 
-- Evidence: [`File.move` and `File.duplicate`](../bin/std/namespaces/core/src/filesystem/file.swg)
+- Evidence: [`File.move` and `File.duplicate`](../bin/std/modules/core/src/filesystem/file.swg)
   take two strings in destination-first order and replace an existing destination. Swapping
   paths still type-checks. `duplicate` reads the source and writes directly to the destination.
 - Next: define explicit source and destination roles and an explicit replacement policy.
@@ -355,8 +355,8 @@ outcomes owned by `core` together.
 
 ### std.core.055 — Use one contract for a normal lookup miss
 
-- Evidence: [`HashTable.find`](../bin/std/namespaces/core/src/collections/hashtable.swg#L811)
-  asserts on a missing key, while [`Regexp.find`](../bin/std/namespaces/core/src/text/regexp/regexp.swg#L231)
+- Evidence: [`HashTable.find`](../bin/std/modules/core/src/collections/hashtable.swg#L811)
+  asserts on a missing key, while [`Regexp.find`](../bin/std/modules/core/src/text/regexp/regexp.swg#L231)
   returns a flag and span and changes capture state. UTF-8 index searches can return
   `Swag.U64.Max`. A caller guessing from the names can mishandle absence or mutate state.
 - Next: normalize the Core collection, regex and text search families. Make normal absence

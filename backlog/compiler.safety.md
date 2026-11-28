@@ -222,7 +222,7 @@ is the current scorecard.
   leak proof needs to know that a block MUST be released, and the language does not say so. Every
   allocation reaches the same `Swag.IAllocator.alloc`, whichever allocator is behind the interface,
   and the interface is a runtime value. `Memory.tempAlloc` in
-  [alloc.swg](../bin/std/namespaces/core/src/memory/alloc.swg) allocates from the context's temporary
+  [alloc.swg](../bin/std/modules/core/src/memory/alloc.swg) allocates from the context's temporary
   allocator through that same method, and a block from an arena is legitimately never released —
   the arena is reset whole. A rule seeded on the interface would therefore report every temporary
   allocation as a leak, which is the false positive that decides a sanity rule's fate.
@@ -270,7 +270,7 @@ is the current scorecard.
 - Next: decide the default. Either a foreign call is one of the operations that requires the marker
   from compiler.safety.033, or a foreign declaration without a written summary is assumed to store
   everything it receives and the bindings are annotated. Measure the second option against
-  `bin/std/namespaces/win32` before choosing.
+  `bin/std/modules/win32` before choosing.
 - Done when: the foreign boundary has one documented default, and the reference says what
   crossing it suspends.
 - Related: compiler.safety.033.

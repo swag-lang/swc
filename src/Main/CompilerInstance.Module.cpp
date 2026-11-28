@@ -153,14 +153,9 @@ namespace
         ownedStrings.swap(newOwnedStrings);
     }
 
-    fs::path workspaceModulesDirectory(const fs::path& workspacePath)
-    {
-        return WorkspaceLayout::workspaceSourceGroupsDirectory(workspacePath);
-    }
-
     fs::path workspaceModuleDirectory(const fs::path& workspacePath, std::string_view moduleName)
     {
-        return (workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
+        return (WorkspaceLayout::workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
     }
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)

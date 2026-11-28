@@ -1,0 +1,65 @@
+/*
+TrueType reads, measures, transforms, and rasterizes outline fonts from files or memory.
+
+A [[TrueType.Face]] retains its font bytes and exposes one reusable [[TrueType.GlyphSlot]].
+Use [[TrueType.FontSource]] to share bytes between faces of one font or collection.
+Select a pixel size, load a character or glyph,
+then consume its outline, metrics, or bitmap before loading the next glyph.
+Coordinates and advances in a loaded slot use 26.6 fixed-point pixels: divide
+them by 64 to obtain ordinary pixel values.
+
+## Render a glyph
+
+```swag
+using Core, TrueType
+
+let face = try Face.loadFile("Inter-Regular.ttf")
+defer face.destroy()
+
+try face.setPixelSize(0, 32)
+try face.loadChar('A', .Render)
+
+let bitmap = &face.glyph.bitmap
+// bitmap.buffer remains valid until this face loads or renders another glyph.
+```
+
+The module covers TrueType `glyf` outlines, OpenType and bare CFF1 programs,
+OpenType CFF2 at the default variation coordinates, Type 1 programs, `ttcf`
+collections, Unicode character maps including variation sequences,
+kerning from `GPOS` and from the legacy
+`kern` table, source-over RGBA rendering for COLR v0 and v0 fallback layers with
+CPAL v0 or v1 palettes, grayscale rasterization, and single- or multi-channel
+signed-distance fields. Faces with
+`vhea` and `vmtx` expose optional vertical glyph
+advances and top side bearings. [[TrueType.Face.loadSubset]] also accepts rendering-only
+document subsets whose family identity is supplied outside the font program.
+
+It does not shape text. Ligatures, mark attachment and script-specific reordering
+need `GSUB` and the rest of `GPOS`, so Arabic, Indic and Thai are positioned
+incorrectly rather than imperfectly. WOFF1 containers are reconstructed to sfnt
+before parsing; WOFF2 containers remain unsupported.
+*/
+
+#import("core")
+
+#static if #os == Swag.TargetOs.Linux
+{
+    #import("linux")
+}
+
+#run
+{
+    let itf = Swag.compiler()
+    let cfg = unwrap itf.getBuildCfg()
+    cfg.moduleVersion   = #swcversion
+    cfg.moduleRevision  = #swcrevision
+    cfg.moduleBuildNum  = #swcbuildnum
+    cfg.moduleNamespace = "TrueType"
+    cfg.backendKind     = .None
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype"
+
+    cfg.genDoc.kind       = .Api
+    cfg.genDoc.outputName = "std.truetype"
+    cfg.genDoc.icon       = "favicon.svg"
+    cfg.genDoc.css        = "css/style.css"
+}

@@ -1,6 +1,6 @@
 ---
 name: design-swag-themes
-description: Add, change, or review a GUI theme — the two Silence palettes Encre and Papier, a palette token, a Voltage or Arc role, a ThemeMetrics measure, the GUI type, the look of a control in any state, or the marks of the property grid. Use whenever touching bin/std/namespaces/gui/src/paint/theme*.swg, a widget or composite's colors, shapes or sizes, the theme atlases, a theme sheet, or judging whether an interface reads correctly in both shipped themes.
+description: Add, change, or review a GUI theme — the two Silence palettes Encre and Papier, a palette token, a Voltage or Arc role, a ThemeMetrics measure, the GUI type, the look of a control in any state, or the marks of the property grid. Use whenever touching bin/std/modules/gui/src/paint/theme*.swg, a widget or composite's colors, shapes or sizes, the theme atlases, a theme sheet, or judging whether an interface reads correctly in both shipped themes.
 ---
 
 # Design Swag Themes
@@ -48,7 +48,7 @@ The charter's token table maps onto the code like this:
 | Chosen segment, tool tip | `segment`, `tip` | segment and tool-tip parts |
 | Floating shadow, dim, veils | `shadow`, `veil` | `floating_Shadow`, `lens_Dim`, `veilSoft`/`Medium`/`Strong` |
 
-[`theme.colors.swg`](../../../bin/std/namespaces/gui/src/tests/cases/functional/theme.colors.swg) pins the
+[`theme.colors.swg`](../../../bin/std/modules/gui/src/tests/cases/functional/theme.colors.swg) pins the
 charter values. If a derivation lands one step away from the table, the derivation has a defect;
 it is not a new value. Information notices use Arc: there is no separate information hue.
 
@@ -75,8 +75,8 @@ acting is Voltage, unavailable is weaker. Only after that does it ask for a new 
 
 ## The Two Layers
 
-[`ThemePalette`](../../../bin/std/namespaces/gui/src/paint/themepalette.swg) holds the decisions,
-which are the charter's tokens. [`ThemeColors`](../../../bin/std/namespaces/gui/src/paint/themecolors.swg)
+[`ThemePalette`](../../../bin/std/modules/gui/src/paint/themepalette.swg) holds the decisions,
+which are the charter's tokens. [`ThemeColors`](../../../bin/std/modules/gui/src/paint/themecolors.swg)
 holds one value per painted part, and **`ThemeColors.apply(palette)` derives every one of
 them**. No palette writes a semantic colour directly. Read `apply` to know what a part is allowed
 to be, and read the charter to know what `apply` must produce.
@@ -117,7 +117,7 @@ ended up asymmetric that way.
 - **Never hardcode a colour in a widget.** There are three named exceptions. `imageRect_Fg` is
   white, the tint that leaves an image alone. The knob of a slider, and of a switch that is on,
   is white. Syntax hues go through `Color.ensureContrast` against the editor ground
-  ([lexerswag.swg](../../../bin/std/namespaces/gui/src/controls/richedit/lexerswag.swg)).
+  ([lexerswag.swg](../../../bin/std/modules/gui/src/controls/richedit/lexerswag.swg)).
 - **Never hardcode a measure.** A literal size in a widget is a measure no theme can answer for.
 - **A palette also answers for geometry.** Encre and Papier share one geometry, so switching
   between them moves no edge. A theme sheet that changes a shape writes it in `/ThemeMetrics` or
@@ -126,8 +126,8 @@ ended up asymmetric that way.
 ## Measures
 
 Every number a widget, a dialog or an application lays out with comes from
-[`ThemeMetrics`](../../../bin/std/namespaces/gui/src/paint/thememetrics.swg) or from the tile radius
-of [`ThemeImageRects`](../../../bin/std/namespaces/gui/src/paint/themerects.swg). The values are in
+[`ThemeMetrics`](../../../bin/std/modules/gui/src/paint/thememetrics.swg) or from the tile radius
+of [`ThemeImageRects`](../../../bin/std/modules/gui/src/paint/themerects.swg). The values are in
 the charter's Measures table. Each group of `ThemeMetrics` belongs to one part:
 
 | Part | Group |
@@ -173,7 +173,7 @@ A section label is always `Gui.SectionLabel`. Nobody shapes their own small capi
 The charter's Controls section and the pictures
 [gui.controls.ink](../../../backlog/design/silence/imgs/gui.controls.ink.png) and
 [gui.controls.paper](../../../backlog/design/silence/imgs/gui.controls.paper.png) give every control in
-every state. [`controls.charter.swg`](../../../bin/std/namespaces/gui/src/tests/cases/golden/controls.charter.swg)
+every state. [`controls.charter.swg`](../../../bin/std/modules/gui/src/tests/cases/golden/controls.charter.swg)
 and its goldens hold the measurable part. Implementation notes:
 
 - **Push buttons** have four forms: primary (`btnPush_Strong*`), secondary (`btnPush_*`), quiet

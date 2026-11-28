@@ -10,11 +10,9 @@ SWC_BEGIN_NAMESPACE();
 // Imports read directly from their source workspace.
 namespace WorkspaceLayout
 {
-    inline fs::path workspaceSourceGroupsDirectory(const fs::path& workspacePath)
+    inline fs::path workspaceModulesDirectory(const fs::path& workspacePath)
     {
-        const fs::path namespaces = workspacePath / "namespaces";
-        std::error_code error;
-        return fs::is_directory(namespaces, error) ? namespaces : workspacePath / "modules";
+        return (workspacePath / "modules").lexically_normal();
     }
 
     // Artifacts a workspace build publishes, and the intermediate files it does not.

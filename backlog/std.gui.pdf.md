@@ -458,7 +458,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 - Evidence: `Pdf.Item` keeps its text (`String` and two arrays), path (`LinePathList`) and image
   (`Image`) storage alive whatever its `kind`, and its accessors test `kind` by hand
-  ([item.swg](../bin/std/namespaces/gui/src/controls/pdf/item.swg)).
+  ([item.swg](../bin/std/modules/gui/src/controls/pdf/item.swg)).
 - Next: move the text, path and image members under `union(ItemKind)`, keeping the transform,
   colors, clip, blend and mask beside it; turn `createText`, `createPath` and `createImage` into
   case transitions and the `kind` tests into `is` and `switch`; run the PDF tests and the Swag

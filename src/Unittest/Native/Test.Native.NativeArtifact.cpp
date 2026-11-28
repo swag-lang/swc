@@ -349,7 +349,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
     cmdLine.command     = CommandKind::Build;
     cmdLine.buildCfg    = "devmode";
     cmdLine.backendKind = Runtime::BuildCfgBackendKind::None;
-    cmdLine.modulePath  = fs::path("bin/std/namespaces/win32");
+    cmdLine.modulePath  = fs::path("bin/std/modules/win32");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     if (Utf8(cmdLine.defaultBuildCfg.moduleNamespace) != "Win32")
@@ -371,7 +371,7 @@ SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceOverrideWins)
     cmdLine.command         = CommandKind::Build;
     cmdLine.buildCfg        = "devmode";
     cmdLine.backendKind     = Runtime::BuildCfgBackendKind::None;
-    cmdLine.modulePath      = fs::path("bin/std/namespaces/win32");
+    cmdLine.modulePath      = fs::path("bin/std/modules/win32");
     cmdLine.moduleNamespace = "WindowsSdk";
     CommandLineParser::refreshBuildCfg(cmdLine);
 

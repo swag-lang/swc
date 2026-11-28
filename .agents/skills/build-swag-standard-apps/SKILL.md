@@ -174,7 +174,7 @@ they do not copy that drawing code. Custom previews may supply the content insid
 while the common helper retains the frame, state and caption treatment.
 
 The charter's Shared components section and the pictures describe what each component looks
-like. The toolkit types live in `bin/std/namespaces/gui/src/controls/lens` and
+like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
 `controls/floating`, are shown together on the Components page of `gui10`, and are covered by
 `lens.swg` and `floating.swg`:
 

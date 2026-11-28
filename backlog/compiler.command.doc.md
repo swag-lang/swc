@@ -120,7 +120,7 @@ not the discovery.
 
 - Evidence: every ```` ```swag ```` fence goes through `DocMarkdown::renderCodeBlock`, which
   only syntax-colors it. Nothing compiles it, so examples such as the worked example in the
-  `truetype` module header ([module.swg](../bin/std/namespaces/truetype/module.swg)) are
+  `truetype` module header ([module.swg](../bin/std/modules/truetype/module.swg)) are
   unchecked.
 - Next: synthesize one `#test` per documentation example and compile and run it with the
   module's tests. Mark intentionally incomplete or illustrative snippets explicitly. Give

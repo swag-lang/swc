@@ -12,4 +12,4 @@ tools/package-linux.py text eol=lf
 # Test and application fixtures are byte-exact: a test compares their sizes and hashes
 bin/**/datas/** -text
 bin/**/src/tests/datas/*.pdf -diff
-bin/std/namespaces/video/src/tests/goldens/*.yuv binary
+bin/std/modules/video/src/tests/goldens/*.yuv binary

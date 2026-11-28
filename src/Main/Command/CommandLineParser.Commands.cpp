@@ -69,7 +69,7 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Input, "info new clean sema doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Use source groups in this workspace. Project groups live under modules and standard groups under namespaces. Outputs and intermediates go under .output and .tmp");
+        "Use modules/<name> source groups from this workspace. Store outputs and intermediates under .output and .tmp");
     add(HelpOptionGroup::Input, "info clean sema doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
         "With --workspace, select the named target and its transitive source dependencies");

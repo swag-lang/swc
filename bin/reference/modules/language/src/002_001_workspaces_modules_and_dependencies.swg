@@ -26,7 +26,7 @@ declarations their qualified names.
 A module configured with '.Executable' is a build target. The compiler takes in
 its sources and the complete graph of source dependencies. A module configured
 with '.None' supplies sources and can be imported. The standard library groups
-its sources under 'std/namespaces', with one descriptor per group.
+its sources under 'std/modules', with one descriptor per group.
 */
 
 #assert(#typeof(#module) == string)

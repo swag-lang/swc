@@ -6,7 +6,7 @@ competes with: miniaudio, SoLoud, OpenAL Soft, and the commercial tier of FMOD a
 Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
-owned by `bin/std/namespaces/audio` together. [README.md](README.md) has the whole layout.
+owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 
 
 ## Entries

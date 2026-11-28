@@ -69,10 +69,7 @@ function Invoke-TaggedCampaign([string] $Tag) {
     foreach ($item in $workspaces) {
         $modules = @($Module)
         if (!$Module) {
-            $modulesRoot = Join-Path $binRoot "$item\namespaces"
-            if (!(Test-Path -LiteralPath $modulesRoot -PathType Container)) {
-                $modulesRoot = Join-Path $binRoot "$item\modules"
-            }
+            $modulesRoot = Join-Path $binRoot "$item\modules"
             if (!(Test-Path -LiteralPath $modulesRoot)) { continue }
             $pattern = 'TestTag\("' + [regex]::Escape($Tag) + '"\)'
             $modules = @(Get-ChildItem -LiteralPath $modulesRoot -Directory | Where-Object {

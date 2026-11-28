@@ -28,7 +28,7 @@ class LinuxCampaignTests(unittest.TestCase):
         for workspace, modules in {'unittests/workspace': ('sandbox_consumer', 'runtime_context'),
                                    'std': ('core',), 'apps': ('swagcapture',), 'examples': ('gui1',), 'reference': ('language',)}.items():
             for module in modules:
-                path = self.root / workspace / ('namespaces' if workspace == 'std' else 'modules') / module
+                path = self.root / workspace / 'modules' / module
                 path.mkdir(parents=True)
                 (path / 'module.swg').touch()
 

@@ -1,6 +1,6 @@
 # Network Backlog
 
-This backlog covers `bin/std/namespaces/net`, measured against the networking libraries in the Go
+This backlog covers `bin/std/modules/net`, measured against the networking libraries in the Go
 standard library, .NET, Rust's standard library and de-facto crates, Python, and Zig.
 
 Platform-specific operating-system bindings belong in [platform.portability.md](platform.portability.md).

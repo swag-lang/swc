@@ -97,7 +97,7 @@ theme sheet — also read and follow
 every color derived from their tokens, and the result judged in `gui10` and against the charter
 pictures.
 
-When the change touches a modal box — a dialog under `bin/std/namespaces/gui/src/dialogs`, a
+When the change touches a modal box — a dialog under `bin/std/modules/gui/src/dialogs`, a
 composite hosted in one, or an application's own modal — also read and follow
 [design-swag-dialogs](.agents/skills/design-swag-dialogs/SKILL.md): the floating sheet, its
 inset, its title, its actions, and the way a box fits itself to its content are one composition.

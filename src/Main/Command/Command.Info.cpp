@@ -48,7 +48,7 @@ namespace
         std::error_code   ec;
         if (!stdRoot.empty())
         {
-            for (fs::directory_iterator it(WorkspaceLayout::workspaceSourceGroupsDirectory(stdRoot), fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
+            for (fs::directory_iterator it(WorkspaceLayout::workspaceModulesDirectory(stdRoot), fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
             {
                 std::error_code entryError;
                 if (fs::is_regular_file(it->path() / "module.swg", entryError))
@@ -81,7 +81,7 @@ namespace
         {
             const fs::path module(cmdLine.workspaceModuleFilter.c_str());
             addFolderEntry(entries, "Workspace", cmdLine.workspacePath);
-            addFolderEntry(entries, "Modules", WorkspaceLayout::workspaceSourceGroupsDirectory(cmdLine.workspacePath));
+            addFolderEntry(entries, "Modules", WorkspaceLayout::workspaceModulesDirectory(cmdLine.workspacePath));
             addFolderEntry(entries, "Build outputs", WorkspaceLayout::workspaceOutputDirectory(cmdLine.workspacePath) / module);
             addFolderEntry(entries, "Intermediate files", WorkspaceLayout::workspaceWorkDirectory(cmdLine.workspacePath) / module);
         }

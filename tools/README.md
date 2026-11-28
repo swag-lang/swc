@@ -238,7 +238,7 @@ python3 tools/linux-tests.py std --compiler /absolute/build/devmode/swc.dm --mod
 The native-only `integration.desktop.chooser` family requires a private session bus, `gdbus`,
 libsystemd and the Python GIO bindings. Start a test-owned bus with
 `dbus-daemon --session --fork --print-address=1 --print-pid=1`, retain its address and PID, and run
-`/usr/bin/python3 bin/std/namespaces/core/src/tests/datas/desktop.chooser.peer.py ADDRESS`.
+`/usr/bin/python3 bin/std/modules/core/src/tests/datas/desktop.chooser.peer.py ADDRESS`.
 Wait for `READY`, set both `DBUS_SESSION_BUS_ADDRESS` and `SWAG_CHOOSER_PRIVATE_BUS` to that
 address, then run:
 

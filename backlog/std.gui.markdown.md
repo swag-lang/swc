@@ -1,6 +1,6 @@
 # Markdown Backlog
 
-This backlog covers the Markdown engine in `bin/std/namespaces/gui/src/controls/markdown` —
+This backlog covers the Markdown engine in `bin/std/modules/gui/src/controls/markdown` —
 the block parser, the inline renderer, and the `Markdown.View` widget on top of them. It is
 measured against the readers it competes with — Typora, the VS Code preview, and GitHub's web
 rendering — with CommonMark plus GFM as the reference for what a document means, while staying

@@ -1,0 +1,187 @@
+/*
+Video reads and writes timed sequences of [[Pixel.Image]] frames. File-backed AVI, ISO-BMFF, and
+Matroska readers also expose streamed sound tracks through [[Audio.SoundFile]], and Matroska readers
+expose timed text through [[Video.Subtitle.Track]]. Standalone subtitle documents use the same track
+and cue model.
+
+Reading and writing are streamed: [[Video.Reader]] opens a stream by reading its
+metadata and decodes one frame at a time, and [[Video.Writer]] encodes one frame
+at a time into its destination. Encoded media payloads remain in their source;
+indexed containers retain compact sample tables while decoding keeps only the
+active picture, codec references, and bounded audio buffers. [[Video.Clip]] is
+the other half of the picture — the frames a program builds in memory before
+encoding them. [[Video.Timebase]] converts absolute timestamps between integer media clocks,
+including nanosecond capture timestamps and video or audio track ticks, without cumulative
+rounding.
+
+For H.264 and H.265, [[Video.Reader.width]] and [[Video.Reader.height]] describe stored pixels,
+while [[Video.Reader.displayWidth]] and [[Video.Reader.displayHeight]] include the sample aspect
+ratio carried by codec metadata or the container. Matroska track display geometry takes priority
+over codec metadata; ISO-BMFF `pasp` takes priority over codec metadata.
+
+```swag
+#import("video")
+
+using Video
+
+let rate  = try FrameRate.create(24, 1)
+var clip  = try Clip.create(320, 180, rate)
+let frame = Pixel.Image.create(320, 180, .RGB8)
+try clip.addFrame(frame)
+try clip.save("preview.y4m")
+
+var reader = try Reader.open("preview.y4m")
+var picture: Pixel.Image
+for index in reader.frameCount()
+{
+    try reader.decodeFrameInto(&picture, index)
+}
+```
+
+A format is a codec registered against [[Video.IDecoder]] and [[Video.IEncoder]],
+selected by filename extension; both read and write through [[Core.ByteSource]] and
+[[Core.ByteSink]], which are what make a codec independent of files and memory alike.
+The built-in formats cover these streams.
+
+- YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:1:1, 4:2:0, 4:2:2 and 4:4:4
+  YCbCr frames, reports display geometry from valid sample aspect tags, and writes 4:1:1, 4:2:0,
+  4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
+  implementation over the size of what it produces.
+- AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit
+  frames and exposes integer PCM and MPEG Layer III sound tracks. The reader follows OpenDML
+  frame indexes and `RIFF AVIX` continuations. The writer emits Motion JPEG in classic AVI
+  while its frames and indexes fit in one 1 GiB RIFF, then uses OpenDML continuations. The
+  header reserves 4,396 bytes for the OpenDML header and a superindex that addresses up to
+  256 RIFFs. Each frame must fit within one RIFF, and the total frame count is a 32-bit value.
+  A coded stream states its codec through the bitmap header of the container and its setup headers
+  inside the stream, and stores a bidirectional plane
+  behind the plane it refers forward to, which is what this container's lack of a decoding order
+  costs. The container index locates Motion JPEG and uncompressed frames directly.
+  MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
+  through the requested frame.
+- ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
+  Motion JPEG, and exposes AAC-LC, AC-3, and MPEG Layer III audio from classic sample tables.
+  Motion JPEG output can write a pixel aspect ratio. [[Video.Mp4.FragmentedWriter]] separately
+  writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
+  AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
+  The writer reports submitted video and audio packet counts, track end times, and completed byte
+  count for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
+  original compressed packets and track clocks for copying without decoding.
+  [[Video.Mp4.FragmentedPacketCursor]]
+  walks the same video and AAC packets one fragment at a time, keeping a bounded sample window;
+  it reports each packet's fragment location and the last complete media boundary, and can start
+  at a key-frame fragment located through [[Video.Mp4.FragmentedIndex]].
+  [[Video.Mp4.summarizeFragmentedRecording]] scans with the same bounded memory to report track
+  packet counts, decode-time endpoints, the last complete media boundary, and an interrupted tail.
+  [[Video.Mp4.copyVideoRanges]] joins
+  key-frame-aligned H.264 ranges into a video-only file without re-encoding;
+  [[Video.Mp4.copyRanges]] also copies AAC-LC tracks, rounding cut edges to whole sound packets.
+  [[Video.Mp4.planVideoTimeRanges]] expands intervals on the video decode-time clock to safe
+  key-frame packet ranges for either copy operation.
+  [[Video.Mp4.FragmentedIndex]] reads an
+  optional final key-frame index from the file tail and locates a fragment without scanning media
+  data; the cursor can seek directly to its video key frame.
+  [[Video.Mp4.rebuildFragmentedIndex]] can finalize complete fragments after an interrupted
+  write and rebuild that index using temporary disk storage. [[Video.Reader]] reads samples
+  by scanning fragment headers and
+  recovers complete fragments after an
+  interrupted final write. The classic reader expands compact sample tables into direct packet
+  offsets while payloads remain in the file. Exact composition timestamps are retained for
+  variable-rate playback and coded display reordering.
+  [[Video.H264.AnnexBAccessUnit]] converts start-code-delimited H.264 encoder output into the
+  length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
+  [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder,
+  and converts matching decoded 4:2:0 BT.709 planes directly without a packed RGB intermediate.
+  [[Video.H264.Encoder]] produces Constrained Baseline packets from those surfaces with flat
+  intra blocks, exact inter copies for small screen movements, luma and chroma residuals,
+  P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional
+  positive QP quantizes both IDR and P-picture residuals against locally reconstructed
+  neighbours and references. The fixed QP is not rate control.
+  [[Video.Mp4.SoftwareRecording]] joins RGB-to-NV12 conversion, software H.264 and AAC encoding,
+  sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM
+  chunks, AAC priming when audio is present, and fragmented MP4 finalization.
+  Its optional [[Video.Mp4.SoftwareVideoRateControl]] adapts per-picture QP toward an average
+  video rate and reports the selected QP and cumulative H.264 packet bytes; it does not promise a
+  fixed packet size or file size.
+  [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
+  and reports skipped frames without retaining pictures.
+- Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,
+  independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, and Opus audio track with up to eight
+  channels that its decoder supports. A picture
+  track remuxed from a legacy file is read as well: such a track names its codec through a Video
+  for Windows header, states its setup headers inside the stream rather than in the container, and
+  may store a bidirectional plane behind the plane it refers forward to. Display order is then
+  taken from the clock the stream states, not from the order the container hands samples over.
+  RealVideo 4 is decoded in Swag, including intra, predicted, and bidirectional pictures,
+  multiple slices, and its loop filter. Its wrapping picture clock also repairs legacy
+  container timestamps that put bidirectional pictures after their future reference.
+  Frames stored without the bytes they all begin with, which is what mkvmerge does by default to
+  several codecs, are handed to the decoder whole; a track compressed or encrypted any other way is
+  not offered. A file whose tail never made it to disk is read as far as it goes. Matroska
+  `CodecDelay` is removed from the audible timeline.
+  Opening reads only seek, track, and cue metadata. Decoding advances one foreground demux cursor
+  through complete cluster windows as playback reaches them; random access restarts it at the
+  preceding video cue and reconstructs the coded prediction through the requested picture. No
+  full-file scan competes with playback. Sound tracks become available when that progressive
+  cursor reaches their playback window; `S_TEXT/UTF8`, `S_TEXT/ASS`, and `S_TEXT/SSA` subtitle
+  tracks are exposed on that same media timeline. The complete indexes continue in the
+  background, and work may be interrupted through
+  [[Video.Reader.requestCancel]]. Media payloads stay in the file.
+
+- Raw Motion JPEG (`.mjpeg` and `.mjpg`) reads consecutive, self-contained JPEG pictures of
+  constant dimensions. Each picture is a seek point. The reader indexes the picture boundaries
+  at open and assumes 25 frames per second because the stream carries no timestamps.
+
+- H.264 Annex B (`.h264` and `.264`) indexes progressive pictures in a file or memory
+  stream. Opening scans start codes and slice headers. Seek and planar decode use the
+  AVC picture order and preceding IDR. The supported stream begins at an IDR, uses one
+  stable SPS and PPS, and keeps picture order across non-IDR pictures. The index holds
+  up to 1,048,576 pictures with access units of at most 64 MiB. The nominal VUI rate, or
+  25 frames per second when that timing is absent, gives the display timeline.
+
+- H.265 Annex B (`.hevc` and `.h265`) reads progressive Main and Main 10 streams
+  in a file or memory. It indexes up to 1,048,576 pictures at open, with access units
+  up to 64 MiB. It uses picture order for display and seeks from the preceding IDR.
+  The stream requires closed IDR groups, a stable VPS, SPS and PPS, and output for
+  every picture. The nominal SPS VUI rate, or 25 frames per second when timing is
+  absent, gives the display timeline.
+
+[[Video.Subtitle.Track.loadOwned]] decodes SubRip (`.srt`), WebVTT (`.vtt`), ASS/SSA (`.ass` and
+`.ssa`), LRC (`.lrc`), and MicroDVD (`.sub`) documents. UTF-8, UTF-16, UTF-32, and Windows-1252
+text are detected. The decoder keeps cue timing and readable text while leaving font, color,
+position, outline, and synchronization choices to the player.
+
+Decoding and encoding are separate implementations of a format, under `src/decode`
+and `src/encode`, laid out as the Pixel image codecs are. A format that has
+something to choose takes an options structure the same way they do, such as
+[[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]].
+
+Unsupported picture or sound codecs fail or remain unavailable rather than being mistaken for
+decoded media.
+Alpha is discarded during encoding, and decoded frames use
+[[Pixel.PixelFormat.RGB8]]. Malformed streams, unsupported codecs, inconsistent
+frames, and file access errors use Swag's normal `fail` mechanism.
+*/
+
+#import("core")
+#import("audio")
+#import("pixel")
+
+#run
+{
+    let itf = Swag.compiler()
+    let cfg = unwrap itf.getBuildCfg()
+    cfg.moduleVersion   = #swcversion
+    cfg.moduleRevision  = #swcrevision
+    cfg.moduleBuildNum  = #swcbuildnum
+    cfg.moduleNamespace = "Video"
+    cfg.backendKind     = .None
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/video"
+
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.video"
+    cfg.genDoc.titleContent = "Video"
+    cfg.genDoc.titleToc     = "Video documentation"
+    cfg.genDoc.icon         = "favicon.svg"
+    cfg.genDoc.css          = "css/style.css"
+}

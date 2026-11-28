@@ -1,0 +1,96 @@
+/*
+GUI builds native desktop interfaces from composable windows, controls, dialogs,
+themes, actions, password-safe input, and Pixel drawing.
+
+An [[Gui.Application]] owns surfaces and drives the event loop. Each
+[[Gui.Surface]] has a root [[Gui.Wnd]]; controls are connected at runtime through
+parent links, event hooks, signals, docking, and layout constraints, and each one
+is documented as its own entry of this reference.
+
+## Create a window
+
+```swag
+using Core, Gui
+
+var app: Application
+
+#main
+{
+    let surface = try app.createSurface(100, 100, 640, 420)
+    surface.setTitle("My application")
+
+    let button = PushButton.create(surface.view(), "Continue")
+    button.dockStyle = .CenterKeepSizeVert
+
+    surface.show()
+    return app.run()
+}
+```
+
+Coordinates and sizes are logical pixels. Windows are owned by their application;
+use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
+
+## Keyboard navigation
+
+Tab and Shift+Tab walk the active surface. The navigation ring starts with a
+keyboard navigation gesture and goes away on a pointer press. A call to
+[[Gui.Wnd.setFocus]] places the receiver for keys and can carry an existing ring
+within the active surface. Activation or closing a dialog can restore the receiver
+alone; the next navigation gesture shows its ring.
+
+Siblings follow reading order by default. To keep a particular order through
+layout changes, assign ascending [[Gui.Wnd.tabIndex]] values within their parent.
+A composite contributes one stop and sends input to its [[Gui.Wnd.focusDelegate]].
+Set [[Gui.Wnd.arrowNavigation]] on an action group when its bare arrow keys should
+stay within the group.
+
+## User keyboard shortcuts
+
+Commands registered with [[Gui.Lens.View.addCommands]] appear in Keyboard Shortcuts,
+including commands without a default key. Declare local defaults with
+[[Gui.Wnd.registerKeyShortcut]] and system-wide defaults with
+[[Gui.Application.registerUserHotKey]]. For callback rows supplied by a lens source,
+give each command a stable [[Gui.Lens.Entry.bindId]].
+
+Open the shared editor from an options surface with [[Gui.Lens.View.showKeyboardShortcuts]].
+Set [[Gui.Application.setStatePath]] before loading application state so customized
+bindings survive restart. Keep command identifiers stable across releases and languages.
+
+## Keep spacing on one grid
+
+Use 4 logical pixels for tight internal spacing, 8 between neighboring controls, 16 between
+related groups, and 24 or 32 to separate major sections. Measure the final visible gap after
+parent padding, child margins, and control insets are combined. Prefer the owning
+[[Gui.ThemeMetrics]] value when a shared control or themed surface defines the gap.
+
+Finite transitions use the application-owned [[Gui.Animator]]. Typed tracks can be
+retargeted by [[Gui.AnimationChannel]], grouped in parallel or sequence, and are
+cancelled automatically when their target is hidden or destroyed. The Animation
+guide below covers the motion and presentation contract.
+*/
+
+#import("pixel")
+#static if #os == Swag.TargetOs.Windows
+{
+    #import("win32")
+}
+
+#run
+{
+    let itf = Swag.compiler()
+    let cfg = unwrap itf.getBuildCfg()
+    cfg.moduleVersion     = #swcversion
+    cfg.moduleRevision    = #swcrevision
+    cfg.moduleBuildNum    = #swcbuildnum
+    cfg.moduleNamespace   = "Gui"
+    cfg.backendKind       = .None
+    cfg.ignoreInWorkspace = false
+    cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui"
+
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.gui"
+    cfg.genDoc.titleContent = "GUI"
+    cfg.genDoc.titleToc     = "GUI documentation"
+    cfg.genDoc.icon         = "favicon.svg"
+    cfg.genDoc.css          = "css/style.css"
+}

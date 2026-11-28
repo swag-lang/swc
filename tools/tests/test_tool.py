@@ -40,7 +40,7 @@ class ToolTests(unittest.TestCase):
             return tool.main(arguments)
 
     def test_golden_accept_needs_no_compiler_and_preserves_unrelated_files(self):
-        folder = self.root / 'bin/std/namespaces/fixture/src/tests/goldens'
+        folder = self.root / 'bin/std/modules/fixture/src/tests/goldens'
         folder.mkdir(parents=True)
         for path in (self.root / 'bin').glob('swc*'):
             path.unlink()

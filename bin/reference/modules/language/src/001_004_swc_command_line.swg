@@ -60,7 +60,7 @@ Use one input model per invocation:
 
 | Option | Meaning |
 |---|---|
-| '--workspace PATH', '-w PATH' | Use a workspace containing 'modules/<name>' or 'namespaces/<name>' |
+| '--workspace PATH', '-w PATH' | Use a workspace containing 'modules/<name>' |
 | '--workspace-module NAME', '-m NAME' | Select one module inside that workspace |
 | '--module PATH', '-mf PATH' | Compile a module directly |
 | '--module-file PATH' | Run one module setup file, then compile its module |

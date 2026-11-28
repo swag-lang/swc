@@ -3,7 +3,7 @@
 This backlog covers `std/truetype`, measured against the font libraries it competes with:
 FreeType, stb_truetype, HarfBuzz for shaping, and msdfgen for distance fields.
 
-Evidence, investigations, and intended outcomes owned by `bin/std/namespaces/truetype` stay together
+Evidence, investigations, and intended outcomes owned by `bin/std/modules/truetype` stay together
 here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [compiler.build.md](compiler.build.md),
 [compiler.codegen.md](compiler.codegen.md), or [compiler.optimization.md](compiler.optimization.md). Language changes belong in
 [language.design.md](language.design.md). [README.md](README.md) has the whole layout.

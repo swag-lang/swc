@@ -3,7 +3,7 @@
 The standard workspace lives under `bin/std` beside the compiler. Its sources
 are compiled into each application, and the documentation links
 back to the maintained declarations and comments in
-[`bin/std/namespaces`](https://github.com/swag-lang/swc/tree/master/bin/std/namespaces).
+[`bin/std/modules`](https://github.com/swag-lang/swc/tree/master/bin/std/modules).
 
 Import a standard module from `module.swg` or a script setup section:
 

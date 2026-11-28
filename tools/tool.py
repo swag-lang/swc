@@ -74,13 +74,12 @@ def runtime_workers(options):
     return str(int(value)) if value.isdecimal() and int(value) > 0 else str(os.cpu_count() or 1)
 
 
-def source_groups(workspace):
-    namespaces = workspace / 'namespaces'
-    return namespaces if namespaces.is_dir() else workspace / 'modules'
+def modules_root(workspace):
+    return workspace / 'modules'
 
 
 def module_names(workspace):
-    return sorted(path.name for path in source_groups(workspace).iterdir() if path.is_dir())
+    return sorted(path.name for path in modules_root(workspace).iterdir() if path.is_dir())
 
 
 def cpp_stage(compiler, options, full=True):
@@ -178,7 +177,7 @@ def tagged_modules(bin_root, *, windows, files=()):
     foreign_os = ('#os == Swag.TargetOs.Linux', 'LINUX') if windows else ('#os == Swag.TargetOs.Windows', 'WINDOWS')
     files = tuple(part.replace('\\', '/').lower() if windows else part for part in files)
     for workspace in WORKSPACES:
-        for cases in sorted(source_groups(bin_root / workspace).glob('*/src/tests/cases')):
+        for cases in sorted(modules_root(bin_root / workspace).glob('*/src/tests/cases')):
             tags = set()
             for case in cases.rglob('*.swg'):
                 path = case.as_posix().lower() if windows else case.as_posix()

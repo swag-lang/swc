@@ -13,7 +13,7 @@ import tempfile
 import time
 
 
-from tool import (SOURCE_SUITES, WORKSPACES, COMPILER_SUITES, Stage, cpp_stage, source_groups,
+from tool import (SOURCE_SUITES, WORKSPACES, COMPILER_SUITES, Stage, cpp_stage, modules_root,
                   module_names, module_stage, portability_check, source_stages, workspace_stages)
 
 
@@ -182,7 +182,7 @@ def main():
         parser.error('--file-filter needs a nonempty standalone source-suite filter')
     if args.module:
         directory = root / 'bin' / ('unittests/workspace' if args.suite == 'workspace' else args.suite)
-        if Path(args.module).name != args.module or args.module in ('.', '..') or not (source_groups(directory) / args.module / 'module.swg').is_file():
+        if Path(args.module).name != args.module or args.module in ('.', '..') or not (modules_root(directory) / args.module / 'module.swg').is_file():
             parser.error('--module needs an existing module in the selected workspace')
     for executable in (args.compiler, args.dev_compiler):
         if executable and (not executable.is_file() or not os.access(executable, os.X_OK)):

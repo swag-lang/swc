@@ -331,7 +331,7 @@ with exactly one language and keeps deliberately.
 ### language.design.053 — Make units checkable at standard-library boundaries
 
 - Evidence: [string count and indexing](../bin/reference/modules/language/src/003_003_string.swg)
-  use bytes, while [UTF-8 operations](../bin/std/namespaces/core/src/text/utf8.swg) also use rune
+  use bytes, while [UTF-8 operations](../bin/std/modules/core/src/text/utf8.swg) also use rune
   indices. Equal integer types allow those units to be swapped. Similar pairs appear in time
   and geometry APIs.
 - Next: start with byte offsets and rune indices. Use existing `Swag.Strict` aliases or
@@ -380,7 +380,7 @@ with exactly one language and keeps deliberately.
   and says nothing about the tag, so a reflection-driven serializer writes every member and cannot
   restore which one is active.
 - Consequence: `Scc.MetadataValue` stays a wide struct, because the SCC header is TagBin-encoded
-  through reflection ([scc.swg](../bin/std/namespaces/core/src/filesystem/scc.swg)).
+  through reflection ([scc.swg](../bin/std/modules/core/src/filesystem/scc.swg)).
 - Proposed contract: a tagged union's type info publishes its tag type and, for each member, the
   tag values that select it. TagBin writes the tag and only the active member, and refuses on
   decode a tag that no value of the tag type names.
@@ -403,7 +403,7 @@ with exactly one language and keeps deliberately.
   [Match.Func.cpp](../src/Compiler/Sema/Match/Match.Func.cpp)) only knows payload-less enum values.
   This is why `Painter.newCommand` returns a slot the caller then assigns:
   `.newCommand(.Clear).op = .Clear{color}`
-  ([painter.swg](../bin/std/namespaces/pixel/src/painter/painter.swg)).
+  ([painter.swg](../bin/std/modules/pixel/src/painter/painter.swg)).
 - Proposed contract: once the overload is selected, a leading-dot argument whose parameter is a
   tagged union names a case of it, with or without braces, exactly as in a typed initializer.
 - Next: resolve `.Case` and `.Case{...}` arguments against a tagged-union parameter in the
@@ -529,9 +529,9 @@ with exactly one language and keeps deliberately.
 
 ### language.design.062 — Make custom iteration independent of manual control-flow injection
 
-- Evidence: [Array.opVisit](../bin/std/namespaces/core/src/collections/array.swg) is a macro with
+- Evidence: [Array.opVisit](../bin/std/modules/core/src/collections/array.swg) is a macro with
   #code bindings and pointer stepping specifically arranged to preserve continue. The
-  [list visitor](../bin/std/namespaces/core/src/collections/list.swg) supplies #scope labels and
+  [list visitor](../bin/std/modules/core/src/collections/list.swg) supplies #scope labels and
   explicit break/continue remapping. These are provider implementation costs, not missing
   consumer features: for value/index, for &value, where, reversed() and pairs() already exist.
 - Proposed contract: define a checked iteration provider whose step/visit operation supplies
@@ -578,7 +578,7 @@ with exactly one language and keeps deliberately.
   The concrete missing shape is generating fields/cases from reflected members with checked
   names, types and attributes; arbitrary text can remain an explicit escape hatch.
 - Next: Classify #ast outputs, starting with
-  [CommandLine.IsSet](../bin/std/namespaces/core/src/system/commandline.swg) and the reference's
+  [CommandLine.IsSet](../bin/std/modules/core/src/system/commandline.swg) and the reference's
   reflected-field example. Prototype one typed field-generation operation
   expressing that same transformation without a StringBuilder. Specify lexical lookup, duplicate
   names, source locations, generated docs and visibility before generalizing to all syntax.

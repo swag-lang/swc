@@ -9,6 +9,12 @@ Prove the behavior that moved with the cheapest boundary that can observe it. Do
 campaign mechanically from changed paths and do not run every configuration by habit. Scheduled
 full campaigns provide periodic breadth; change validation provides precise evidence.
 
+Before selecting or running any validation, confirm the checkout is on `master` and that its tip
+matches freshly fetched `origin/master`, following
+[Start Every Session From The Current Master](../modify-swag-codebase/SKILL.md#start-every-session-from-the-current-master).
+Never validate a task from an environment-provided `work` branch or stale checkout. If fetching or
+fast-forwarding is unsafe, stop before running validation and preserve local changes.
+
 Follow the external scratch-directory rule in
 [modify-swag-codebase](../modify-swag-codebase/SKILL.md) for every campaign: logs, temporary
 workspaces, before/after snapshots, compiler copies, and experimental outputs stay outside the

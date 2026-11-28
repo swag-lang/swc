@@ -9,6 +9,14 @@ unless the user explicitly asks for one. Preserve unrelated uncommitted changes,
 the task's files when committing. When the checkout is on another branch, return to `master`
 without discarding or relocating those changes; ask the user if that cannot be done safely.
 
+At the start of every new or resumed repository session, before inspecting or changing project
+files, refresh `origin/master`, switch the main checkout to the local `master` branch (create it
+tracking `origin/master` if it does not exist), and fast-forward it to `origin/master`. Verify that
+`HEAD` and `origin/master` have the same commit before proceeding. Treat an environment-provided
+`work` branch as noncanonical: never use it as the project baseline. Do not reset, rebase, stash,
+or delete branches to force synchronization. If fetching, switching, or fast-forwarding cannot be
+done safely, preserve all changes and ask the user before doing repository work.
+
 ## Start Here
 
 The compiler lives in [src/](src): `src/Compiler/` handles the language pipeline, `src/Backend/`

@@ -7,6 +7,31 @@ description: Modify, refactor, fix, test, and validate the Swag compiler reposit
 
 Fix the root cause of every problem. Do not introduce hacks or workarounds.
 
+## Start Every Session From The Current Master
+
+At the start of every new or resumed session in this repository, before reading project files for
+the task, synchronize the main checkout to the current remote `master`. Do not assume the branch
+or commit selected by the environment is current.
+
+1. Confirm the checkout root and inspect `git status --short --branch` before changing branches.
+2. Run `git fetch origin master` so `origin/master` reflects the remote head. If fetching fails,
+   do not claim the checkout is current; stop and report that synchronization could not be verified.
+3. Ensure the main checkout is on local `master`. If it does not exist, create it tracking
+   `origin/master`. If the environment starts on `work` or another branch, switch to `master`;
+   never treat that branch as the task baseline.
+4. Fast-forward local `master` to `origin/master` with `git merge --ff-only origin/master`.
+   Never reset or rebase local history to force the match.
+5. Verify `git rev-parse HEAD` equals `git rev-parse origin/master` before inspecting or changing
+   project files.
+
+Preserve uncommitted changes when switching branches. Do not stash, move, discard, or overwrite
+them to make the switch succeed. If a branch switch or fast-forward is blocked by local changes,
+or local `master` has commits that prevent a fast-forward, stop and ask the user how to proceed.
+Do not delete a noncanonical branch such as `work`; it may contain work that must be preserved.
+
+The repository root `AGENTS.md` requires this check for every repository session. This skill gives
+the exact safe procedure whenever it is loaded for a code, review, or validation task.
+
 The repository is written in English. Every comment, identifier, message, and
 documentation line — in the compiler sources, in `bin/`, and in every other file —
 is English; never leave French (or any other language) in the tree, whatever the

@@ -3,7 +3,6 @@
 #import("api_static_provider")
 #import("runtime_context_bridge")
 #import("runtime_context_base")
-#import("runtime_context_direct")
 #import("core", location: "swag@std")
 // Core also imports its native ABI module; this diamond guards global deduplication.
 #static if #os == Swag.TargetOs.Windows

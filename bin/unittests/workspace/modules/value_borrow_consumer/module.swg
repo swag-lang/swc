@@ -1,4 +1,4 @@
-#import("value_borrow_library")
+#import("value_borrow_provider")
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()

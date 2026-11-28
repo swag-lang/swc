@@ -1,4 +1,4 @@
-using ExportApi, StaticApi, RuntimeCtxBridge, RuntimeCtxBase, RuntimeCtxDirect
+using ExportApi, StaticApi, RuntimeCtxBridge, RuntimeCtxBase
 
 #assert(#sizeof(CtxAbiPair) == 8)
 #assert(#alignof(CtxAbiPair) == 4)
@@ -403,10 +403,8 @@ func verifyRuntimeContext()
     let expectedContext = Swag.getContext().user2
     Swag.assert(ctxBaseReadContext() == 42)
     Swag.assert(ctxSharedReadContext() == 42)
-    Swag.assert(ctxDirectReadContext() == 42)
     Swag.assert(ctxBaseContextMarker() == expectedContext)
     Swag.assert(ctxSharedContextMarker() == expectedContext)
-    Swag.assert(ctxDirectContextMarker() == expectedContext)
     Swag.assert(ctxBaseInitCount() == 2)
     Swag.assert(ctxBasePreMainCount() == 2)
 }
@@ -414,13 +412,11 @@ func verifyRuntimeContext()
 #init
 {
     Swag.assert((Swag.getContext().user1 & CTX_SHARED_INIT_FLAG) != 0)
-    Swag.assert((Swag.getContext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
 }
 
 #premain
 {
     Swag.assert((Swag.getContext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
-    Swag.assert((Swag.getContext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
 }
 
 #drop

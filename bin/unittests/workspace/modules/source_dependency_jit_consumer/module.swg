@@ -1,8 +1,8 @@
-#import("artifact_shared_provider")
+#import("source_dependency_provider")
 
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.moduleNamespace = "SharedArtifactJitConsumer"
+    cfg.moduleNamespace = "SourceDependencyJitConsumer"
     cfg.backendKind     = .Executable
 }

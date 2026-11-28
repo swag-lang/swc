@@ -673,23 +673,23 @@ SWC_TEST_END()
 #ifdef __linux__
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSourceDependenciesShareRuntimeArguments)
 {
-    LinkerTestDirectory directory("shared_library_paths");
-    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_consumer"}));
+    LinkerTestDirectory directory("source_dependency_runtime_args");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"source_dependency_provider", "source_dependency_consumer"}));
     const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_consumer",
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "source_dependency_consumer",
         "--num-cores", "3", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
-    return runCompiler(arguments, ExitCode::Success, "shared provider dropped");
+    return runCompiler(arguments, ExitCode::Success, "source dependency provider dropped");
 }
 SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxSourceDependenciesExecuteDuringCompilation)
 {
-    LinkerTestDirectory directory("shared_library_jit");
-    SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_shared_provider", "artifact_shared_jit_consumer"}));
+    LinkerTestDirectory directory("source_dependency_runtime_jit");
+    SWC_RESULT(copyWorkspaceModules(directory.path(), {"source_dependency_provider", "source_dependency_jit_consumer"}));
     const std::vector<Utf8> arguments = {
-        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_shared_jit_consumer",
+        "run", "--os", "linux", "--workspace", Utf8(directory.path()), "--workspace-module", "source_dependency_jit_consumer",
         "--num-cores", "3", "--run-arg", "", "--run-arg", "two words", "--run-arg", "café"};
-    return runCompiler(arguments, ExitCode::Success, "compile-time shared artifact passed");
+    return runCompiler(arguments, ExitCode::Success, "compile-time source dependency passed");
 }
 SWC_TEST_END()
 
@@ -697,13 +697,13 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Linker_TransitiveSourceDependenciesExecuteDuringCompilation)
 {
-    LinkerTestDirectory directory("transitive_shared_library_jit");
+    LinkerTestDirectory directory("transitive_source_dependency_jit");
     SWC_RESULT(copyWorkspaceModules(directory.path(), {"artifact_transitive_leaf", "artifact_transitive_middle", "artifact_transitive_consumer"}));
     const std::vector<Utf8> arguments = {
         "run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "--workspace", Utf8(directory.path()), "--workspace-module", "artifact_transitive_consumer",
         "--num-cores", "3"};
-    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed"));
-    return runCompiler(arguments, ExitCode::Success, "transitive shared artifact passed");
+    SWC_RESULT(runCompiler(arguments, ExitCode::Success, "transitive source dependency passed"));
+    return runCompiler(arguments, ExitCode::Success, "transitive source dependency passed");
 }
 SWC_TEST_END()
 

@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global #[Swag.Safety(.ValueBorrow, true)]
 #global private
-using BorrowLibrary
+using BorrowProvider
 
 func mustReject(action: func||())
 {
@@ -14,7 +14,7 @@ func localWrite(target: *Value) { target.first = 0 }
 #[Swag.NoInline]
 func localRead(value: Value, target: *Value)->u64
 {
-    BorrowLibrary.write(target)
+    BorrowProvider.write(target)
     return value.first
 }
 
@@ -41,7 +41,7 @@ func localRead(value: Value, target: *Value)->u64
     var other: Value = {first: 277}
     let observed     = readAfterCallback(value, &localWrite, &other)
     Swag.require(observed == 271 and value.first == 271 and other.first == 0)
-    BorrowLibrary.write(&value)
+    BorrowProvider.write(&value)
     Swag.require(read(value) == 0)
 }
 

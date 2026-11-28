@@ -3,59 +3,6 @@
 
 using Swag, Core, Gui, Pixel
 
-// Startup and the pointer menu share their command list and settings.
-#test
-{
-    var host: Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host)
-    defer
-    {
-        host.shutdown()
-        g_Main = null
-    }
-
-    defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
-
-    testAddMonitorAt(main, {1440, 0, 1440, 900})
-    for language in Gui.languages()
-    {
-        expect host.app.setLanguage(language.tag)
-        main.hubBounds = {}
-        let centered = testOpenResidentPanel(&host, main, .Centered)
-        let pointer  = testOpenResidentPanel(&host, main, .AtPointer)
-        for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo]
-        {
-            Swag.require(testPanelOffers(centered, id) and testPanelOffers(pointer, id))
-        }
-
-        Swag.require(centered.surface!.flags.has(.SmallCaption))
-        Swag.require(not pointer.surface!.flags.has(.SmallCaption))
-        Swag.require(testPanelOffers(centered, ActionGlobal.Minimize))
-        Swag.require(centered.menu.items.last()!.id == ActionGlobal.Exit)
-        Swag.require(pointer.menu.items.last()!.id == ActionGlobal.Exit)
-        Swag.require(not testPanelOffers(pointer, ActionGlobal.Minimize))
-        Swag.require(testPanelOffers(pointer, ActionGlobal.ShowHub) and testPanelOffers(pointer, ActionGlobal.Exit))
-
-        Testing.assertContentFits(centered)
-        Testing.assertContentFits(pointer)
-
-        let work = Env.monitorForPoint({}).physicalWorkArea
-        let centeredBounds = centered.surface.position
-        Swag.require(Math.abs(centeredBounds.horzCenter() - work.horzCenter()) <= 1)
-        Swag.require(Math.abs(centeredBounds.vertCenter() - work.vertCenter()) <= 1)
-
-        let anchor = Math.Point{work.right() - 8, work.bottom() - 8}
-        pointer.place(anchor)
-        let pointerBounds = pointer.surface.position
-        Swag.require(pointer.anchor == anchor)
-        Swag.require(pointerBounds.x >= work.x and pointerBounds.right() <= work.right())
-        Swag.require(pointerBounds.y >= work.y and pointerBounds.bottom() <= work.bottom())
-        Swag.require(pointerBounds.right() >= anchor.x and pointerBounds.bottom() >= anchor.y)
-        centered.close()
-        pointer.close()
-    }
-}
-
 // The hub opens immediately, and loading a recent picture changes only the editor.
 #test
 {

@@ -526,14 +526,25 @@ before relying on them.
   saved 5.4% on `gui1` by median paired time before accounting for concurrent relocation
   publication. The guarded variant saved 0.7% and used more CPU. The progressive variant
   regressed `gui1` by 13.3% in median time. Focus reuse earlier than JIT graph discovery.
-- Executable builds record ordinary source-dependency function bodies that passed semantic
-  checks without being emitted or performing compile-time work. The archive keys the exact
-  parsed bytes of visible source groups and the runtime, their visibility, the target, build
-  configuration, and warning policy. A warm build rechecks declarations and signatures and
-  delays eligible bodies until demanded. A demanded body resumes with its declaration's
-  namespace, attributes, and build configuration. Groups that observe external input or
-  compiler messages still check their bodies eagerly. Generic instantiation, macro expansion,
-  compile-time execution, and diagnostics prevent publication of the affected bodies.
+- Executable builds record checked bodies of ordinary functions and concrete struct methods in
+  source dependencies when the bodies stayed dormant during code generation and compile-time
+  execution. The archive keys the exact parsed bytes of visible source groups and the runtime,
+  their visibility, the target, build configuration, and warning policy. A warm build rechecks
+  declarations and signatures and delays eligible bodies until demanded. A demanded body
+  resumes with its declaration's namespace, attributes, and build configuration. Groups that
+  observe external input or compiler messages still check their bodies eagerly. Generic
+  instantiation, macro expansion, compile-time execution, and diagnostics prevent publication
+  of the affected bodies.
+  Reusing typed bodies for functions that the build reaches remains open.
+- Windows now identifies the system DLL directory by filesystem identity. The loader and OS
+  API can spell `System32` differently, which previously blocked archive use on the measured
+  host. A workspace test warms the archive with an unused concrete method, then calls it from
+  both JIT and native code and verifies that a provider edit invalidates the result. Three
+  alternating Windows Release pairs with four workers deferred 1,371 bodies per `gui1` edit.
+  Median elapsed time moved from 12.52 s to 11.47 s, with two faster pairs, and median peak
+  working set from 1,493 to 1,522 MiB. The single cold pair moved from 15.03 s to 17.28 s.
+  Windows validation passed the semantic and expected-error suites, 1,620 JIT Release
+  tests, 4,107 native Release tests, and 1,867 C++ DevMode tests.
 - Workspace artifact reuse now checks filesystem change times alongside write times and
   verifies the manifest's checksum. A same-size private-body edit with a restored write time
   updates both the `#run` result and the executable. An added overload changes the selected

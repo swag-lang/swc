@@ -216,13 +216,14 @@ namespace
         return Result::Continue;
     }
 
-    Result runCompiler(const std::vector<Utf8>& args, const ExitCode expectedExit, const std::string_view expectedOutput)
+    Result runCompiler(const std::vector<Utf8>& args, const ExitCode expectedExit, const std::string_view expectedOutput, const std::string_view expectedDetail = {})
     {
         uint32_t                    exitCode = 0;
         std::string                 output;
         const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
         const Os::ProcessRunResult  result = Os::runProcess(exitCode, Os::getExeFullName(), args, fs::current_path(), &options);
-        if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(expectedExit) || output.find(expectedOutput) == std::string::npos || output.find("mimalloc: error") != std::string::npos)
+        if (result != Os::ProcessRunResult::Ok || exitCode != static_cast<uint32_t>(expectedExit) ||
+            !output.contains(expectedOutput) || !output.contains(expectedDetail) || output.contains("mimalloc: error"))
         {
             std::println(stderr, "[linker-test] compiler result={}, exit={}\n{}", static_cast<uint32_t>(result), exitCode, output);
             return Result::Error;
@@ -2294,6 +2295,61 @@ const Value = #run Provider.dormant()
 )"));
     SWC_RESULT(runCompiler(warm, ExitCode::Success, "demand=73/73/45"));
     SWC_RESULT(runCompiler(fresh, ExitCode::Success, "demand=73/73/45"));
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ReusesCheckedConcreteMethodBody)
+{
+    const LinkerTestDirectory directory("deferred_method_body");
+    SWC_RESULT(directory.write("modules/provider/module.swg", "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .None }\n"));
+    SWC_RESULT(directory.write("modules/app/module.swg", "#import(\"provider\")\n"));
+    std::string provider = R"(
+namespace Definition
+{
+    const MethodOffset = 73
+}
+
+using Definition
+
+public struct Number
+{
+    public value: s32
+}
+
+impl Number
+{
+    #[Swag.NoInline]
+    public mtd const withOffset()->s32 => .value + MethodOffset
+}
+)";
+    SWC_RESULT(directory.write("modules/provider/src/method.swg", provider));
+    SWC_RESULT(directory.write("modules/app/src/main.swg", "#main { Swag.print(\"primed\") }\n"));
+
+    const std::vector<Utf8> warm = {"run", "--workspace", Utf8(directory.path()), "--workspace-module", "app",
+                                    "-bc", "release-safe", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    auto fresh = warm;
+    fresh.push_back("--rebuild");
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "primed"));
+
+    SWC_RESULT(directory.write("modules/app/src/main.swg", R"(
+const CompileTime = #run
+{
+    let number = Provider.Number{value: 4}
+    return number.withOffset()
+}
+
+#main
+{
+    var number = Provider.Number{value: 22}
+    Swag.print("demand=", CompileTime, "/", number.withOffset())
+}
+)"));
+    SWC_RESULT(runCompiler(warm, ExitCode::Success, "demand=77/95", "1 deferred function body"));
+    SWC_RESULT(runCompiler(fresh, ExitCode::Success, "demand=77/95"));
+
+    provider.replace(provider.find("73"), 2, "74");
+    SWC_RESULT(directory.write("modules/provider/src/method.swg", provider));
+    SWC_RESULT(runCompiler(warm, ExitCode::Success, "demand=78/96"));
 }
 SWC_TEST_END()
 

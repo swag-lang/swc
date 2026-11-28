@@ -226,6 +226,8 @@ namespace Command
                 statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numFiles, "file"));
             if (deltaSnapshot.numTokens)
                 statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numTokens, "token"));
+            if (deltaSnapshot.numDeferredFunctionBodies)
+                statParts.push_back(ScopedTimedLog::formatStatCount(deltaSnapshot.numDeferredFunctionBodies, "deferred function body", "deferred function bodies"));
 
             stage->setStat(ScopedTimedLog::joinStatItems(statParts));
         }

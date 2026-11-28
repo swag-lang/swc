@@ -27,6 +27,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Stats.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -236,7 +237,7 @@ namespace
     {
         const auto* cache = sema.compiler().semaBodyCache();
         const auto* file  = sema.file();
-        if (!cache || !file || declImpl || sema.curScope().isLocal() ||
+        if (!cache || !file || sema.curScope().isLocal() || declImpl != function.declImplContext() ||
             !SemaBodyCache::isEligible(*file, function) || isImplicitGeneratedLifecycleWrapper(sema, function))
             return nullptr;
         return cache->deferredBuildConfig(*file, function.tokRef());
@@ -1913,6 +1914,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
                 run.sema->frame().currentAttributes() = sym.attributes();
                 run.sema->setBuildConfigOverride(*config);
                 sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
+                Stats::get().numDeferredFunctionBodies.fetch_add(1, std::memory_order_relaxed);
             }
         }
         sym.setTyped(sema.ctx());

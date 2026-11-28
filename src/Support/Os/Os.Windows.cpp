@@ -1565,7 +1565,9 @@ namespace Os
         if (!systemLength || systemLength >= capacity)
             return false;
         system.resize(systemLength);
-        return FileSystem::pathEquals(fs::path(resolved).parent_path(), fs::path(system));
+        // The loader and GetSystemDirectoryW can spell System32 with different case.
+        std::error_code error;
+        return fs::equivalent(fs::path(resolved).parent_path(), fs::path(system), error);
     }
 
     bool getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName)

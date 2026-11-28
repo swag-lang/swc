@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaBodyCache.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerCacheStore.h"
@@ -239,9 +240,20 @@ const Runtime::BuildCfg* SemaBodyCache::deferredBuildConfig(const SourceFile& fi
 bool SemaBodyCache::isEligible(const SourceFile& file, const SymbolFunction& function)
 {
     if (file.isRuntime() || !file.sourceOwner() || file.hasFlag(FileFlagsE::CustomSrc) ||
-        function.isGenericRoot() || function.isGenericInstance() || function.isMethod() ||
+        function.isGenericRoot() || function.isGenericInstance() ||
         function.isEmpty() || function.isForeign() || function.specOpKind() != SpecOpKind::None ||
-        function.attributes().hasMacroOrMixin() || !function.ownerSymMap() || !function.ownerSymMap()->isNamespace())
+        function.attributes().hasMacroOrMixin() || !function.ownerSymMap())
+        return false;
+
+    const auto* owner = function.ownerSymMap();
+    if (const auto* impl = owner->safeCast<SymbolImpl>())
+    {
+        const auto* structure = impl->isForStruct() ? impl->symStruct() : nullptr;
+        if (!structure || impl->isForInterface() || impl->symInterface() ||
+            structure->isGenericRoot() || structure->isGenericInstance())
+            return false;
+    }
+    else if (!owner->isNamespace() || function.isMethod())
         return false;
 
     const auto* decl = function.declAs<AstFunctionDecl>();
